@@ -1,0 +1,14 @@
+# Dependency directories
+node_modules/
+
+# TypeScript build
+dist
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# dotenv environment variables file
+.env

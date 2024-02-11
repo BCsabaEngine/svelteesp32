@@ -1,0 +1,47 @@
+{
+  "name": "svelteesp32",
+  "version": "1.0.0",
+  "description": "Convert Svelte JS application to ESP32 webserver (PsychicHttp)",
+  "author": "BCsabaEngine",
+  "license": "ISC",
+  "exports": "./dist/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BCsabaEngine/svelteesp32.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BCsabaEngine/svelteesp32/issues"
+  },
+  "homepage": "https://github.com/BCsabaEngine/svelteesp32",
+  "scripts": {
+    "dev": "nodemon src/index.ts -- -s svelte",
+    "clean": "tsc --build --clean",
+    "build": "tsc --build --clean && tsc --build --force",
+    "npm-publish-patch": "npm run build && npm version patch && npm publish && npm run clean && git push",
+    "npm-publish-minor": "npm run build && npm version minor && npm publish && npm run clean && git push"
+  },
+  "keywords": [
+    "Svelte",
+    "eps32",
+    "PsychicHttp"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "nodemon": "^3.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "ts-command-line-args": "^2.5.1"
+  }
+}
