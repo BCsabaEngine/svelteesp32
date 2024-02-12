@@ -12,7 +12,7 @@ This npm package provides a solution for **inserting any JS client application i
 
 Install package as devDependency (it is practical if the package is part of the project so that you always receive updates)
 
-```
+```bash
 npm install -D svelteesp32
 ```
 
@@ -44,5 +44,35 @@ void setup()
     server.listen(80);
 
     initSvelteStaticFiles(&server);
+}
+```
+
+The content of generated file (do not edit, just use)
+
+```c
+void initSvelteStaticFiles(PsychicHttpServer * server) {
+	server->on("assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request)
+	{
+        const uint8_t data[] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...}
+
+		PsychicStreamResponse response(request, "application/javascript");
+		response.addHeader("Content-Encoding", "gzip");
+		response.beginSend();
+		for (int i = 0; i < sizeof(data); i++) response.write(data[i]);
+		return response.endSend();
+    });
+
+    server->on("assets/index-Soe6cpLA.css", HTTP_GET, [](PsychicRequest * request)
+	{
+        const uint8_t data[] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...}
+
+		PsychicStreamResponse response(request, "text/css");
+		response.addHeader("Content-Encoding", "gzip");
+		response.beginSend();
+		for (int i = 0; i < sizeof(data); i++) response.write(data[i]);
+		return response.endSend();
+    });
+
+    ...
 }
 ```
