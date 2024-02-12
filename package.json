@@ -1,47 +1,60 @@
 {
-  "name": "svelteesp32",
-  "version": "1.0.0",
-  "description": "Convert Svelte JS application to ESP32 webserver (PsychicHttp)",
-  "author": "BCsabaEngine",
-  "license": "ISC",
-  "exports": "./dist/index.js",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "engines": {
-    "node": ">=18",
-    "npm": ">=9"
-  },
-  "files": [
-    "**/*.js",
-    "**/*.d.ts"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/BCsabaEngine/svelteesp32.git"
-  },
-  "bugs": {
-    "url": "https://github.com/BCsabaEngine/svelteesp32/issues"
-  },
-  "homepage": "https://github.com/BCsabaEngine/svelteesp32",
-  "scripts": {
-    "dev": "nodemon src/index.ts -- -s svelte",
-    "clean": "tsc --build --clean",
-    "build": "tsc --build --clean && tsc --build --force",
-    "npm-publish-patch": "npm run build && npm version patch && npm publish && npm run clean && git push",
-    "npm-publish-minor": "npm run build && npm version minor && npm publish && npm run clean && git push"
-  },
-  "keywords": [
-    "Svelte",
-    "eps32",
-    "PsychicHttp"
-  ],
-  "devDependencies": {
-    "@types/node": "^20.11.17",
-    "nodemon": "^3.0.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  },
-  "dependencies": {
-    "ts-command-line-args": "^2.5.1"
-  }
+	"name": "svelteesp32",
+	"version": "1.0.0",
+	"description": "Convert Svelte JS application to ESP32 webserver (PsychicHttp)",
+	"author": "BCsabaEngine",
+	"license": "ISC",
+	"exports": "./dist/index.js",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"engines": {
+		"node": ">=18",
+		"npm": ">=9"
+	},
+	"files": [
+		"dist/**/*.js",
+		"dist/**/*.d.ts"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/BCsabaEngine/svelteesp32.git"
+	},
+	"bugs": {
+		"url": "https://github.com/BCsabaEngine/svelteesp32/issues"
+	},
+	"homepage": "https://github.com/BCsabaEngine/svelteesp32",
+	"scripts": {
+		"dev": "nodemon src/index.ts -- -s ./svelte/dist -g",
+		"clean": "tsc --build --clean",
+		"build": "tsc --build --clean && tsc --build --force",
+		"format:check": "prettier --check .",
+		"format:fix": "prettier --write .",
+		"lint:check": "eslint .",
+		"lint:fix": "eslint --fix .",
+		"npm-publish-patch": "npm run build && npm version patch && npm publish && npm run clean && git push",
+		"npm-publish-minor": "npm run build && npm version minor && npm publish && npm run clean && git push"
+	},
+	"keywords": [
+		"Svelte",
+		"eps32",
+		"PsychicHttp"
+	],
+	"devDependencies": {
+		"@types/node": "^20.11.17",
+		"@typescript-eslint/eslint-plugin": "^6.21.0",
+		"@typescript-eslint/parser": "^6.21.0",
+		"eslint": "^8.56.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-simple-import-sort": "^12.0.0",
+		"eslint-plugin-sonarjs": "^0.24.0",
+		"eslint-plugin-unicorn": "^51.0.1",
+		"nodemon": "^3.0.3",
+		"prettier": "^3.2.5",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.3.3"
+	},
+	"dependencies": {
+		"glob": "^10.3.10",
+		"ts-command-line-args": "^2.5.1"
+	}
 }
