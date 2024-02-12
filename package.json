@@ -12,9 +12,13 @@
     "npm": ">=9"
   },
   "files": [
+    "bin/*.js",
     "dist/**/*.js",
     "dist/**/*.d.ts"
   ],
+  "bin": {
+    "svelteesp32": "bin/index.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BCsabaEngine/svelteesp32.git"
