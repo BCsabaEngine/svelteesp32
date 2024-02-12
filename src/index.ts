@@ -21,12 +21,12 @@ for (const file of getFiles()) {
   summary.filecount++;
   console.log(`[${file}]`);
 
-  const rawContent = readFileSync(join(cmdLine.sveltePath, file), { flag: 'r' });
+  const rawContent = readFileSync(join(cmdLine.sourcePath, file), { flag: 'r' });
   summary.size += rawContent.length;
   if (cmdLine.gzip) {
     const zipContent = gzipSync(rawContent, { level: 9 });
     summary.gzipsize += zipContent.length;
-    if (zipContent.length < rawContent.length * 0.85) {
+    if (rawContent.length > 100 && zipContent.length < rawContent.length * 0.85) {
       sources.push({ filename: file, content: zipContent, isGzip: true, mime });
       console.log(`✓ gzip used (${rawContent.length} -> ${zipContent.length})`);
     } else {
@@ -44,12 +44,12 @@ for (const file of getFiles()) {
 let cppFile = '';
 for (const source of sources) cppFile += getCppCode(source);
 cppFile = adoptMethodName(cppFile);
-writeFileSync(cmdLine.espFile, cppFile);
+writeFileSync(cmdLine.outputFile, cppFile);
 
 if (cmdLine.gzip)
   console.log(
-    `${summary.filecount} files, ${summary.size} original bytes, ${summary.gzipsize} gzip bytes`
+    `${summary.filecount} files, ${Math.round(summary.size / 1024)}kB original size, ${Math.round(summary.gzipsize / 1024)}kB gzip size`
   );
-else console.log(`${summary.filecount} files, ${summary.size} original bytes`);
+else console.log(`${summary.filecount} files, ${Math.round(summary.size / 1024)}kB original size`);
 
-console.log(`${cmdLine.espFile} ${cppFile.length} bytes`);
+console.log(`${cmdLine.outputFile} ${Math.round(cppFile.length / 1024)}kB size`);

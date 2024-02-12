@@ -12,3 +12,6 @@ dist
 
 # dotenv environment variables file
 .env
+
+# generated c++ header file
+*.h

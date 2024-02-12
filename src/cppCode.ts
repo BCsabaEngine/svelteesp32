@@ -7,11 +7,9 @@ export type cppCodeSource = {
   isGzip: boolean;
 };
 
-const headerTemplate = `
+const containerTemplate = `
 void $method(PsychicHttpServer * server) {
-`;
-
-const footerTemplate = `
+$code
 }`;
 
 const codeTemplate = `
@@ -35,4 +33,4 @@ export const getCppCode = (source: cppCodeSource): string =>
     .replace('$numbers', [...source.content].map((v) => `0x${v.toString(16)}`).join(', '));
 
 export const adoptMethodName = (content: string) =>
-  headerTemplate.replace('$method', cmdLine.espMethodName) + content + footerTemplate;
+  containerTemplate.replace('$method', cmdLine.espMethodName).replace('$code', content);

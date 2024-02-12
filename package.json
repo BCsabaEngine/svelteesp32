@@ -1,7 +1,7 @@
 {
   "name": "svelteesp32",
   "version": "1.0.0",
-  "description": "Convert Svelte JS application to ESP32 webserver (PsychicHttp)",
+  "description": "Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)",
   "author": "BCsabaEngine",
   "license": "ISC",
   "exports": "./dist/index.js",
@@ -24,19 +24,21 @@
   },
   "homepage": "https://github.com/BCsabaEngine/svelteesp32",
   "scripts": {
-    "dev": "nodemon src/index.ts -- -s ./svelte/dist -g",
+    "dev": "nodemon src/index.ts -- -s ./svelte/dist -o ./esp32.h -g",
     "clean": "tsc --build --clean",
     "build": "tsc --build --clean && tsc --build --force",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
+    "fix": "npm run format:fix && npm run lint:fix",
     "npm-publish-patch": "npm run build && npm version patch && npm publish && npm run clean && git push",
     "npm-publish-minor": "npm run build && npm version minor && npm publish && npm run clean && git push"
   },
   "keywords": [
     "Svelte",
     "eps32",
+    "webserver",
     "PsychicHttp"
   ],
   "devDependencies": {
