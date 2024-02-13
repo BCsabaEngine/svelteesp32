@@ -1,4 +1,6 @@
-# [svelteesp32] Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)
+# `svelteesp32` ![image](https://badges.github.io/stability-badges/dist/stable.svg)
+
+# Convert Svelte (or React/Angular/Vue) JS application to serve it from ESP32 webserver
 
 ### Forget SPIFFS and LittleFS now
 
@@ -50,29 +52,40 @@ void setup()
 The content of generated file (do not edit, just use)
 
 ```c
+const uint8_t data0[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
+const uint8_t data1[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
+
 void initSvelteStaticFiles(PsychicHttpServer * server) {
-    server->on("assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request)
-    {
-        const uint8_t data[] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...}
+  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request)
+  {
+    PsychicResponse response(request);
+    response.setContentType("application/javascript");
+    response.addHeader("Content-Encoding", "gzip");
+    response.setContent(data0, sizeof(data0));
+    return response.send();
+  });
 
-        PsychicStreamResponse response(request, "application/javascript");
-        response.addHeader("Content-Encoding", "gzip");
-        response.beginSend();
-        for (int i = 0; i < sizeof(data); i++) response.write(data[i]);
-        return response.endSend();
-    });
-
-    server->on("assets/index-Soe6cpLA.css", HTTP_GET, [](PsychicRequest * request)
-    {
-        const uint8_t data[] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...}
-
-        PsychicStreamResponse response(request, "text/css");
-        response.addHeader("Content-Encoding", "gzip");
-        response.beginSend();
-        for (int i = 0; i < sizeof(data); i++) response.write(data[i]);
-        return response.endSend();
-    });
+  server->on("/assets/index-Soe6cpLA.css", HTTP_GET, [](PsychicRequest * request)
+  {
+    PsychicResponse response(request);
+    response.setContentType("text/css");
+    response.addHeader("Content-Encoding", "gzip");
+    response.setContent(data1, sizeof(data1));
+    return response.send();
+  });
 
     ...
 }
 ```
+
+### Q&A
+
+- **How big a frontend application can be placed?** If you compress the content with gzip, even a 3-4Mb assets directory can be placed. This is a serious enough amount to serve a complete application.
+
+- **How fast is cpp file compilation?** The cpp file can be large, but it can be compiled in a few seconds on any machine. If you don't modify your svelte/react app, it will use the already compiled cpp file (not recompile). This does not increase the speed of ESP32 development.
+
+- **Does the solution use PROGMEM?** No and yes. ESP32 no longer has PROGMEM. (Exists, but does not affect the translation). Instead, if we use a const array in the global namespace, its content will be placed in the code area, i.e. it will not be used from the heap or the stack, so the content of the files to be served will be placed next to the code.
+
+- **Is this safe to use in production?** I suggest you give it a try! If you find it useful and safe in several different situations, feel free to use it, just like any other free library.
+
+- **Will you develop it further?** Since I use it myself, I will do my best to make the solution better and better.
