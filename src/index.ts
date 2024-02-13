@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib';
 import { lookup } from 'mime-types';
 
 import { cmdLine } from './commandLine';
-import { adoptMethodName, cppCodeSource, getCppCode } from './cppCode';
+import { cppCodeSource, getCppCode } from './cppCode';
 import { getFiles } from './file';
 
 const summary = {
@@ -15,7 +15,7 @@ const summary = {
 };
 
 const sources: cppCodeSource[] = [];
-
+let sourceIndex = 0;
 for (const file of getFiles()) {
   const mime = lookup(file) || 'text/plain';
   summary.filecount++;
@@ -27,23 +27,39 @@ for (const file of getFiles()) {
     const zipContent = gzipSync(rawContent, { level: 9 });
     summary.gzipsize += zipContent.length;
     if (rawContent.length > 100 && zipContent.length < rawContent.length * 0.85) {
-      sources.push({ filename: file, content: zipContent, isGzip: true, mime });
+      sources.push({
+        index: sourceIndex++,
+        filename: file,
+        content: zipContent,
+        isGzip: true,
+        mime
+      });
       console.log(`✓ gzip used (${rawContent.length} -> ${zipContent.length})`);
     } else {
-      sources.push({ filename: file, content: rawContent, isGzip: false, mime });
+      sources.push({
+        index: sourceIndex++,
+        filename: file,
+        content: rawContent,
+        isGzip: false,
+        mime
+      });
       console.log(`x gzip unused (${rawContent.length} -> ${zipContent.length})`);
     }
   } else {
-    sources.push({ filename: file, content: rawContent, isGzip: false, mime });
+    sources.push({
+      index: sourceIndex++,
+      filename: file,
+      content: rawContent,
+      isGzip: false,
+      mime
+    });
     console.log(`- gzip skipped (${rawContent.length})`);
   }
 
   console.log('');
 }
 
-let cppFile = '';
-for (const source of sources) cppFile += getCppCode(source);
-cppFile = adoptMethodName(cppFile);
+const cppFile = getCppCode(sources);
 writeFileSync(cmdLine.outputFile, cppFile);
 
 if (cmdLine.gzip)
