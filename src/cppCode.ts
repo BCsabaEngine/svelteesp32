@@ -27,11 +27,7 @@ const blockTemplate = `
 const getCppBlock = (source: cppCodeSource): string => {
   let result = blockTemplate;
 
-  result = replaceAll(
-    result,
-    '$default$',
-    source.filename.startsWith('index.htm') ? 'server->defaultEndpoint = ' : ''
-  );
+  result = replaceAll(result, '$default$', source.filename.startsWith('index.htm') ? 'server->defaultEndpoint = ' : '');
   result = replaceAll(result, '$index$', source.index.toString());
   result = replaceAll(result, '$filename$', source.filename);
   result = replaceAll(result, '$size$', source.content.length.toString());
@@ -58,7 +54,7 @@ export const getCppCode = (sources: cppCodeSource[]) => {
 
   let result = fileTemplate;
   result = replaceAll(result, '$arrays$', arrays.join('\n'));
-  result = replaceAll(result, '$method$', cmdLine.espMethodName);
+  result = replaceAll(result, '$method$', cmdLine.espmethod);
   result = replaceAll(result, '$code$', blocks.join(''));
   return result;
 };

@@ -3,33 +3,32 @@ import { existsSync, statSync } from 'node:fs';
 import { parse } from 'ts-command-line-args';
 
 interface ICopyFilesArguments {
-  sourcePath: string;
-  outputFile: string;
-  espMethodName: string;
-  gzip: boolean;
+  sourcepath: string;
+  outputfile: string;
+  espmethod: string;
+  'no-gzip': boolean;
   help?: boolean;
 }
 
 export const cmdLine = parse<ICopyFilesArguments>(
   {
-    sourcePath: {
+    sourcepath: {
       type: String,
       alias: 's',
       description: 'Source dist folder contains compiled web files'
     },
-    outputFile: {
+    outputfile: {
       type: String,
       alias: 'o',
       description: 'Generated output file with path',
       defaultValue: 'svelteesp32.h'
     },
-    gzip: {
+    'no-gzip': {
       type: Boolean,
-      alias: 'g',
-      description: 'Compress content with gzip',
+      description: 'Do not compress content with gzip',
       defaultValue: false
     },
-    espMethodName: {
+    espmethod: {
       type: String,
       description: 'Name of generated method',
       defaultValue: 'initSvelteStaticFiles'
@@ -42,7 +41,7 @@ export const cmdLine = parse<ICopyFilesArguments>(
   }
 );
 
-if (!existsSync(cmdLine.sourcePath) || !statSync(cmdLine.sourcePath).isDirectory()) {
-  console.error(`Directory ${cmdLine.sourcePath} not exists or not a directory`);
+if (!existsSync(cmdLine.sourcepath) || !statSync(cmdLine.sourcepath).isDirectory()) {
+  console.error(`Directory ${cmdLine.sourcepath} not exists or not a directory`);
   process.exit(1);
 }
