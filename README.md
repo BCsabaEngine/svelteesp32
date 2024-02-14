@@ -24,7 +24,7 @@ After a successful Svelte build (rollup/webpack/vite) **create an includeable c+
 npx svelteesp32 -s ../svelteapp/dist -o ../esp32project/svelteesp32.h
 ```
 
-During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP32's memory allocation.
+During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP32's memory allocation (gzip size)
 
 ```
 [assets/index-KwubEIf-.js]
@@ -46,7 +46,7 @@ x gzip unused (33249 -> 33282)
 ../../../Arduino/EspSvelte/svelteesp32.h 842kB size
 ```
 
-Include svelteesp32.h into your Arduino or PlatformIO c++ project (copy it next to the main c++ file)
+**Include svelteesp32.h** into your Arduino or PlatformIO c++ project (copy it next to the main c++ file)
 
 ```c
 ...
@@ -111,13 +111,13 @@ Typically, the entry point for web applications is the **index.htm or index.html
 
 ### Command line options
 
-| Option              | Mandatory | Description                                    | default                 |
-| ------------------- | :-------: | ---------------------------------------------- | ----------------------- |
-| `--sourcepath` `-s` |     x     | Source dist folder contains compiled web files |                         |
-| `--outputfile` `-o` |     x     | Generated output file with path                | `svelteesp32.h`         |
-| `--no-gzip`         |           | Do not compress content with gzip              |                         |
-| `--espmethod`       |     x     | Name of generated method                       | `initSvelteStaticFiles` |
-| `--help` `-h`       |           | Show help                                      |                         |
+| Option        | Mandatory | Description                                    | default                 |
+| ------------- | :-------: | ---------------------------------------------- | ----------------------- |
+| `-s`          |     x     | Source dist folder contains compiled web files |                         |
+| `-o`          |     x     | Generated output file with path                | `svelteesp32.h`         |
+| `--no-gzip`   |           | Do not compress content with gzip              |                         |
+| `--espmethod` |     x     | Name of generated method                       | `initSvelteStaticFiles` |
+| `-h`          |           | Show help                                      |                         |
 
 ### Q&A
 
