@@ -101,7 +101,7 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 All modern browsers have been able to handle gzip-compressed content for years. For this reason, there is no question that the easily compressed JS and CSS files are stored compressed in the ESP32 and sent to the browser.
 
-During the translation process, data in gzip format is generated and will be used if the size is greater than 100 bytes and we experience a reduction of at least 15%. In such a case, the compressed data is unconditionally sent to the browser with the appropriate header information.
+During the translation process, data in gzip format is generated and will be used if the **size is greater than 100 bytes** and we experience a **reduction of at least 15%**. In such a case, the compressed data is unconditionally sent to the browser with the appropriate **Content-Encoding** header information.
 
 Automatic compression can be turned off with the `--no-gzip` option.
 
@@ -111,13 +111,13 @@ Typically, the entry point for web applications is the **index.htm or index.html
 
 ### Command line options
 
-| Option        | Mandatory | Description                                    | default                 |
-| ------------- | :-------: | ---------------------------------------------- | ----------------------- |
-| `-s`          |     x     | Source dist folder contains compiled web files |                         |
-| `-o`          |     x     | Generated output file with path                | `svelteesp32.h`         |
-| `--no-gzip`   |           | Do not compress content with gzip              |                         |
-| `--espmethod` |     x     | Name of generated method                       | `initSvelteStaticFiles` |
-| `-h`          |           | Show help                                      |                         |
+| Option        | Required | Description                                    | default                 |
+| ------------- | :------: | ---------------------------------------------- | ----------------------- |
+| `-s`          |    x     | Source dist folder contains compiled web files |                         |
+| `-o`          |    x     | Generated output file with path                | `svelteesp32.h`         |
+| `--no-gzip`   |          | Do not compress content with gzip              |                         |
+| `--espmethod` |    x     | Name of generated method                       | `initSvelteStaticFiles` |
+| `-h`          |          | Show help                                      |                         |
 
 ### Q&A
 
