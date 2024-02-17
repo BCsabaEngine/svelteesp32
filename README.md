@@ -10,6 +10,8 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP32 web server** (PsychicHttp is my favorite, faster than ESPAsyncWebServer). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
+> Starting with version v1.1.0, the ETag header is also supported.
+
 ### Usage
 
 **Install package** as devDependency (it is practical if the package is part of the project so that you always receive updates)
@@ -21,7 +23,7 @@ npm install -D svelteesp32
 After a successful Svelte build (rollup/webpack/vite) **create an includeable c++ header** file
 
 ```bash
-npx svelteesp32 -s ../svelteapp/dist -o ../esp32project/svelteesp32.h
+npx svelteesp32 -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag
 ```
 
 During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP32's memory allocation (gzip size)
@@ -73,10 +75,17 @@ The content of **generated file** (do not edit, just use)
 ```c
 const uint8_t data0[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
 const uint8_t data1[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
+const char * etag0 = "387b88e345cc56ef9091...";
 
 void initSvelteStaticFiles(PsychicHttpServer * server) {
   server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request)
   {
+    if (request->hasHeader("If-None-Match") && ...) {
+      PsychicResponse response304(request);
+      response304.setCode(304);
+      return response304.send();
+    }
+
     PsychicResponse response(request);
     response.setContentType("application/javascript");
     response.addHeader("Content-Encoding", "gzip");
@@ -86,6 +95,10 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
   server->on("/assets/index-Soe6cpLA.css", HTTP_GET, [](PsychicRequest * request)
   {
+    if (request->hasHeader("If-None-Match") && ...) {
+      ...
+    }
+
     PsychicResponse response(request);
     response.setContentType("text/css");
     response.addHeader("Content-Encoding", "gzip");
