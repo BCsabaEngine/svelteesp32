@@ -36,24 +36,34 @@ const getCppBlock = (source: cppCodeSource): string => {
   return result;
 };
 
-const fileTemplate = `
-$arrays$
+const fileTemplate =
+  `//cmdline:  $commandline$
+//created:  $now$
+//files:    $filecount$
+//memory:   $filesize$
+
+$filedataarrays$
 
 void $method$(PsychicHttpServer * server) {
 $code$
 }`;
 
 export const getCppCode = (sources: cppCodeSource[]) => {
-  const arrays: string[] = [];
+  const fileDataArrays: string[] = [];
   const blocks: string[] = [];
   for (const source of sources) {
     const bytesString = [...source.content].map((v) => `0x${v.toString(16)}`).join(', ');
-    arrays.push(`const uint8_t data${source.index}[${source.content.length}] = {${bytesString}};`);
+    fileDataArrays.push(`const uint8_t data${source.index}[${source.content.length}] = {${bytesString}};`);
     blocks.push(getCppBlock(source));
   }
 
   let result = fileTemplate;
-  result = replaceAll(result, '$arrays$', arrays.join('\n'));
+  result = replaceAll(result, '$commandline$', process.argv.slice(2).join(' '));
+  result = replaceAll(result, '$now$', `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`);
+  result = replaceAll(result, '$filecount$', sources.length.toString());
+  result = replaceAll(result, '$filesize$', sources.reduce((previous, current) => previous + current.content.length, 0).toString());
+
+  result = replaceAll(result, '$filedataarrays$', fileDataArrays.join('\n'));
   result = replaceAll(result, '$method$', cmdLine.espmethod);
   result = replaceAll(result, '$code$', blocks.join(''));
   return result;
