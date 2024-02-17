@@ -29,6 +29,7 @@
   "homepage": "https://github.com/BCsabaEngine/svelteesp32",
   "scripts": {
     "dev": "nodemon src/index.ts -- -s ./svelte/dist -o ../../../Arduino/EspSvelte/svelteesp32.h",
+    "dev:local": "nodemon src/index.ts -- -s ./svelte/dist -o ./svelteesp32.h",
     "clean": "tsc --build --clean",
     "build": "tsc --build --clean && tsc --build --force",
     "format:check": "prettier --check .",
