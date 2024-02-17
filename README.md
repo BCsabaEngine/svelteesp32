@@ -136,7 +136,7 @@ Typically, the entry point for web applications is the **index.htm or index.html
 | ------------- | :------: | ---------------------------------------------- | ----------------------- |
 | `-s`          |    x     | Source dist folder contains compiled web files |                         |
 | `-o`          |    x     | Generated output file with path                | `svelteesp32.h`         |
-| `--etag`      |          | Use ETAG header for cache                      | false                   |
+| `--etag`      |          | Use ETag header for cache                      | false                   |
 | `--no-gzip`   |          | Do not compress content with gzip              | false -> gzip used      |
 | `--espmethod` |    x     | Name of generated method                       | `initSvelteStaticFiles` |
 | `-h`          |          | Show help                                      |                         |
