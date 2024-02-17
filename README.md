@@ -105,6 +105,14 @@ During the translation process, data in gzip format is generated and will be use
 
 Automatic compression can be turned off with the `--no-gzip` option.
 
+### ETag
+
+The ETag HTTP header can be used to significantly reduce network traffic. If the server sends ETag information, the client can check the integrity of the file by sending back this ETag (in `If-None-Match` header) without sending the data back again. All browsers use this function, the 304 HTTP response code is clearly visible in the network traffic.
+
+Since ESP32 data traffic is moderately expensive, it is an individual decision whether to use the ETag or not. We **recommend using ETag**, which adds a bit more code (about 1-3%) but results in a much cleaner operation.
+
+The use of ETag is **not enabled by default**, this can be achieved with the `--etag` switch.
+
 ### Main entry point - index.html
 
 Typically, the entry point for web applications is the **index.htm or index.html** file. This does not need to be listed in the browser's address bar because web servers know that this file should be served by default. Svelteesp32 also does this: if there is an index.htm or index.html file, it sets it as the main file to be served. So using `http://esp32_xxx.local` or just entering the `http://x.y.w.z/` IP address will serve this main file.
@@ -115,7 +123,8 @@ Typically, the entry point for web applications is the **index.htm or index.html
 | ------------- | :------: | ---------------------------------------------- | ----------------------- |
 | `-s`          |    x     | Source dist folder contains compiled web files |                         |
 | `-o`          |    x     | Generated output file with path                | `svelteesp32.h`         |
-| `--no-gzip`   |          | Do not compress content with gzip              |                         |
+| `--etag`      |          | Use ETAG header for cache                      | false                   |
+| `--no-gzip`   |          | Do not compress content with gzip              | false -> gzip used      |
 | `--espmethod` |    x     | Name of generated method                       | `initSvelteStaticFiles` |
 | `-h`          |          | Show help                                      |                         |
 

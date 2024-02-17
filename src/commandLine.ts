@@ -7,6 +7,7 @@ interface ICopyFilesArguments {
   outputfile: string;
   espmethod: string;
   'no-gzip': boolean;
+  etag: boolean;
   help?: boolean;
 }
 
@@ -26,6 +27,11 @@ export const cmdLine = parse<ICopyFilesArguments>(
     'no-gzip': {
       type: Boolean,
       description: 'Do not compress content with gzip',
+      defaultValue: false
+    },
+    etag: {
+      type: Boolean,
+      description: 'Use ETAG header for cache',
       defaultValue: false
     },
     espmethod: {

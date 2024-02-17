@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -22,6 +23,7 @@ for (const file of getFiles()) {
   console.log(`[${file}]`);
 
   const rawContent = readFileSync(join(cmdLine.sourcepath, file), { flag: 'r' });
+  const md5 = createHash('md5').update(rawContent).digest('hex');
   summary.size += rawContent.length;
   if (cmdLine['no-gzip']) {
     sources.push({
@@ -29,7 +31,8 @@ for (const file of getFiles()) {
       filename: file,
       content: rawContent,
       isGzip: false,
-      mime
+      mime,
+      md5
     });
     console.log(`- gzip skipped (${rawContent.length})`);
   } else {
@@ -41,7 +44,8 @@ for (const file of getFiles()) {
         filename: file,
         content: zipContent,
         isGzip: true,
-        mime
+        mime,
+        md5
       });
       console.log(`✓ gzip used (${rawContent.length} -> ${zipContent.length})`);
     } else {
@@ -50,7 +54,8 @@ for (const file of getFiles()) {
         filename: file,
         content: rawContent,
         isGzip: false,
-        mime
+        mime,
+        md5
       });
       console.log(`x gzip unused (${rawContent.length} -> ${zipContent.length})`);
     }
