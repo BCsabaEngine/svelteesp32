@@ -63,6 +63,7 @@
   },
   "dependencies": {
     "glob": "^10.3.10",
+    "handlebars": "^4.7.8",
     "mime-types": "^2.1.35",
     "ts-command-line-args": "^2.5.1"
   }
