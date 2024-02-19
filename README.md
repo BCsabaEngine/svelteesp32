@@ -4,11 +4,11 @@
 
 ### Forget SPIFFS and LittleFS now
 
-I often make small to medium-sized microcontroller solutions that run on ESP32/ESP8266. If a web interface is needed, I create a Svelte application. The Svelte application is practically served by the ESP32/ESP8266.
+I often make small to medium-sized microcontroller solutions that run on ESP32 or ESP8266. If a web interface is needed, I create a Svelte application. The Svelte application is practically served by the ESP32/ESP8266.
 
 In order to be able to easily update OTA, it is important - from the users' point of view - that the update file **consists of one file**. I can't use the SPIFFS/LittleFS solution for this. It is necessary that the WebUI files are included inline in the Arduino or PlatformIO c++ code.
 
-This npm package provides a solution for **inserting any JS client application into the ESP32/ESP8266 web server** (PsychicHttp and also ESPAsyncWebServer available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
+This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
 > Starting with version v1.1.0, the ETag header is also supported.
 
@@ -32,7 +32,7 @@ npx svelteesp32 -e psychic -s ../svelteapp/dist -o ../esp32project/svelteesp32.h
 npx svelteesp32 -e async -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag
 ```
 
-During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP32/ESP8266's memory allocation (gzip size)
+During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP's memory allocation (gzip size)
 
 ```
 [assets/index-KwubEIf-.js]
@@ -156,13 +156,13 @@ Automatic compression can be turned off with the `--no-gzip` option.
 
 The ETag HTTP header can be used to significantly reduce network traffic. If the server sends ETag information, the client can check the integrity of the file by sending back this ETag (in `If-None-Match` header) without sending the data back again. All browsers use this function, the 304 HTTP response code is clearly visible in the network traffic.
 
-Since ESP32/ESP8266 data traffic is moderately expensive, it is an individual decision whether to use the ETag or not. We **recommend using ETag**, which adds a bit more code (about 1-3%) but results in a much cleaner operation.
+Since microcontroller data traffic is moderately expensive, it is an individual decision whether to use the ETag or not. We **recommend using ETag**, which adds a bit more code (about 1-3%) but results in a much cleaner operation.
 
 The use of ETag is **not enabled by default**, this can be achieved with the `--etag` switch.
 
 ### Main entry point - index.html
 
-Typically, the entry point for web applications is the **index.htm or index.html** file. This does not need to be listed in the browser's address bar because web servers know that this file should be served by default. Svelteesp32 also does this: if there is an index.htm or index.html file, it sets it as the main file to be served. So using `http://esp32_xxx.local` or just entering the `http://x.y.w.z/` IP address will serve this main file.
+Typically, the entry point for web applications is the **index.htm or index.html** file. This does not need to be listed in the browser's address bar because web servers know that this file should be served by default. Svelteesp32 also does this: if there is an index.htm or index.html file, it sets it as the main file to be served. So using `http://esp_xxx.local` or just entering the `http://x.y.w.z/` IP address will serve this main file.
 
 ### Command line options
 
