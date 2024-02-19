@@ -28,8 +28,10 @@
   },
   "homepage": "https://github.com/BCsabaEngine/svelteesp32",
   "scripts": {
-    "dev": "nodemon src/index.ts -- -s ./svelte/dist -o ../../../Arduino/EspSvelte/svelteesp32.h --etag",
-    "dev:local": "nodemon src/index.ts -- -s ./svelte/dist -o ./svelteesp32.h --etag",
+    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./svelte/dist -o ../../../Arduino/SvelteEsp32/svelteesp32.h --etag",
+    "dev:psychic:local": "nodemon src/index.ts -- -e psychic -s ./svelte/dist -o ./svelteesp32.h --etag",
+    "dev:async": "nodemon src/index.ts -- -e async -s ./svelte/dist -o ../../../Arduino/SvelteEsp8266/svelteesp32.h --etag",
+    "dev:async:local": "nodemon src/index.ts -- -e async -s ./svelte/dist -o ./svelteesp32.h --etag",
     "clean": "tsc --build --clean",
     "build": "tsc --build --clean && tsc --build --force",
     "format:check": "prettier --check .",
@@ -49,8 +51,8 @@
   "devDependencies": {
     "@types/mime-types": "^2.1.4",
     "@types/node": "^20.11.19",
-    "@typescript-eslint/eslint-plugin": "^7.0.1",
-    "@typescript-eslint/parser": "^7.0.1",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-simple-import-sort": "^12.0.0",
