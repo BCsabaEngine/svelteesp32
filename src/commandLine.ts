@@ -3,6 +3,7 @@ import { existsSync, statSync } from 'node:fs';
 import { parse } from 'ts-command-line-args';
 
 interface ICopyFilesArguments {
+  engine: 'psychic' | 'async';
   sourcepath: string;
   outputfile: string;
   espmethod: string;
@@ -13,6 +14,16 @@ interface ICopyFilesArguments {
 
 export const cmdLine = parse<ICopyFilesArguments>(
   {
+    engine: {
+      type: (value) => {
+        if (value === 'psychic') return 'psychic';
+        if (value === 'async') return 'async';
+        throw new Error(`Invalid engine: ${value}`);
+      },
+      alias: 'e',
+      description: 'The engine for which the include file is created',
+      defaultValue: 'psychic'
+    },
     sourcepath: {
       type: String,
       alias: 's',
@@ -51,3 +62,5 @@ if (!existsSync(cmdLine.sourcepath) || !statSync(cmdLine.sourcepath).isDirectory
   console.error(`Directory ${cmdLine.sourcepath} not exists or not a directory`);
   process.exit(1);
 }
+
+console.log(`[SvelteESP32] Generate code for ${cmdLine.engine} engine`);

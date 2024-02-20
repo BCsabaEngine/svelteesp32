@@ -11,16 +11,17 @@ export type cppCodeSource = {
   md5: string;
 };
 
-const esp32Template = `
+const psychicTemplate = `
+//engine:   PsychicHttpServer
 //cmdline:  {{commandLine}}
 //created:  {{now}}
 //files:    {{fileCount}}
 //memory:   {{fileSize}}
 
 {{#each sources}}
-  const uint8_t data{{this.index}}[{{this.length}}] = { {{this.bytes}} };
+const uint8_t data{{this.index}}[{{this.length}}] = { {{this.bytes}} };
 {{#if ../isEtag}}
-  const char * etag{{this.index}} = "{{this.md5}}";
+const char * etag{{this.index}} = "{{this.md5}}";
 {{/if}}
 {{/each}}
 
@@ -50,8 +51,49 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{/each}}
 }`;
 
+const asyncTemplate = `
+//engine:   ESPAsyncWebServer
+//cmdline:  {{commandLine}}
+//created:  {{now}}
+//files:    {{fileCount}}
+//memory:   {{fileSize}}
+
+{{#each sources}}
+const char data{{this.index}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
+{{#if ../isEtag}}
+const char * etag{{this.index}} = "{{this.md5}}";
+{{/if}}
+{{/each}}
+
+void {{methodName}}(AsyncWebServer * server) {
+{{#each sources}}
+
+  ArRequestHandlerFunction func{{this.index}} = [](AsyncWebServerRequest * request)
+  {
+  {{#if ../isEtag}}
+    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag{{this.index}})) {
+      request->send(304);
+      return;
+    }
+  {{/if}}
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data{{this.index}});
+  {{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
+  {{/if}}
+  {{#if ../isEtag}}
+    response->addHeader("ETag", etag{{this.index}});
+  {{/if}}
+    request->send(response);
+  };
+  server->on("/{{this.filename}}", HTTP_GET, func{{this.index}});
+{{#if this.isDefault}}
+  server->on("/", HTTP_GET, func{{this.index}});
+{{/if}}
+{{/each}}
+}`;
+
 export const getCppCode = (sources: cppCodeSource[]): string =>
-  handlebarsCompile(esp32Template)({
+  handlebarsCompile(cmdLine.engine === 'psychic' ? psychicTemplate : asyncTemplate)({
     commandLine: process.argv.slice(2).join(' '),
     now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
     fileCount: sources.length.toString(),
