@@ -59,7 +59,7 @@ const asyncTemplate = `
 //memory:   {{fileSize}}
 
 {{#each sources}}
-const char data{{this.index}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
+const uint8_t data{{this.index}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
 {{#if ../isEtag}}
 const char * etag{{this.index}} = "{{this.md5}}";
 {{/if}}
@@ -76,7 +76,7 @@ void {{methodName}}(AsyncWebServer * server) {
       return;
     }
   {{/if}}
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data{{this.index}});
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data{{this.index}}, {{this.length}});
   {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
   {{/if}}
