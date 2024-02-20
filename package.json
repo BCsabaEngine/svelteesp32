@@ -43,10 +43,15 @@
     "npm-publish-minor": "npm run build && npm version minor && npm publish && npm run clean && git push"
   },
   "keywords": [
-    "Svelte",
+    "svelte",
+    "angular",
+    "react",
+    "vue",
     "eps32",
+    "esp8266",
     "webserver",
-    "PsychicHttp"
+    "psychichttpserver",
+    "espasyncwebserver"
   ],
   "devDependencies": {
     "@types/mime-types": "^2.1.4",
