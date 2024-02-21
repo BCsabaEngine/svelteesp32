@@ -12,7 +12,7 @@ This npm package provides a solution for **inserting any JS client application i
 
 > Starting with version v1.1.0, the ETag header is also supported.
 
-> Starting with version v1.3.0, ESP8266/ESP8285 is also supported.
+> Starting with version v1.2.0, ESP8266/ESP8285 is also supported.
 
 ### Usage
 
