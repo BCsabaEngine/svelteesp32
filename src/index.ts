@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-string-replace-all */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -28,7 +29,7 @@ for (const file of getFiles()) {
   if (cmdLine['no-gzip']) {
     sources.push({
       index: sourceIndex++,
-      filename: file,
+      filename: file.replace(/\\/g, '/'),
       content: rawContent,
       isGzip: false,
       mime,
@@ -41,7 +42,7 @@ for (const file of getFiles()) {
     if (rawContent.length > 100 && zipContent.length < rawContent.length * 0.85) {
       sources.push({
         index: sourceIndex++,
-        filename: file,
+        filename: file.replace(/\\/g, '/'),
         content: zipContent,
         isGzip: true,
         mime,
@@ -51,7 +52,7 @@ for (const file of getFiles()) {
     } else {
       sources.push({
         index: sourceIndex++,
-        filename: file,
+        filename: file.replace(/\\/g, '/'),
         content: rawContent,
         isGzip: false,
         mime,
