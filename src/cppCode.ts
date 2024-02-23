@@ -18,6 +18,10 @@ const psychicTemplate = `
 //files:    {{fileCount}}
 //memory:   {{fileSize}}
 
+#include <Arduino.h>
+#include <PsychicHttp.h>
+#include <PsychicHttpsServer.h>
+
 {{#each sources}}
 const uint8_t data{{this.index}}[{{this.length}}] = { {{this.bytes}} };
 {{#if ../isEtag}}
@@ -57,6 +61,9 @@ const asyncTemplate = `
 //created:  {{now}}
 //files:    {{fileCount}}
 //memory:   {{fileSize}}
+
+#include <Arduino.h>
+#include <ESPAsyncWebServer.h>
 
 {{#each sources}}
 const uint8_t data{{this.index}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
