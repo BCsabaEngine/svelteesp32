@@ -18,7 +18,13 @@ const summary = {
 
 const sources: cppCodeSource[] = [];
 let sourceIndex = 0;
-for (const file of getFiles()) {
+const files = getFiles();
+if (files.length === 0) {
+  console.error(`Directory ${cmdLine.sourcepath} is empty`);
+  process.exit(1);
+}
+
+for (const file of files) {
   const mime = lookup(file) || 'text/plain';
   summary.filecount++;
   console.log(`[${file}]`);
