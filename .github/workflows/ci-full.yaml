@@ -1,0 +1,56 @@
+name: Release pipeline
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  check:
+    name: Source revision
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint:check
+      - run: npm run build
+
+  tag:
+    name: Version tag
+    needs: [check]
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.create_tag.outputs.successful }}
+      version: ${{ steps.create_tag.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jaywcjlove/create-tag-action@main
+        id: create_tag
+        with:
+          package-path: ./package.json
+          release: true
+
+  package:
+    name: Build docker images
+    needs: [check, tag]
+    if: needs.tag.outputs.status == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm build
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
