@@ -39,7 +39,7 @@ jobs:
           release: true
 
   package:
-    name: Build docker images
+    name: Publish NPM package
     needs: [check, tag]
     if: needs.tag.outputs.status == 'true'
     runs-on: ubuntu-latest
