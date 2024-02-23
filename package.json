@@ -38,9 +38,7 @@
     "format:fix": "prettier --write .",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
-    "fix": "npm run format:fix && npm run lint:fix",
-    "npm-publish-patch": "npm run build && npm version patch && npm publish && npm run clean && git push",
-    "npm-publish-minor": "npm run build && npm version minor && npm publish && npm run clean && git push"
+    "fix": "npm run format:fix && npm run lint:fix"
   },
   "keywords": [
     "svelte",
