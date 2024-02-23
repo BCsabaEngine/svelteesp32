@@ -3,7 +3,7 @@ name: DEV pipeline
 on:
   push:
     branches-ignore:
-      - master
+      - main
 
 jobs:
   check:
