@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/prefer-string-replace-all */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import { lookup } from 'mime-types';
@@ -29,7 +29,7 @@ for (const file of files) {
   summary.filecount++;
   console.log(`[${file}]`);
 
-  const rawContent = readFileSync(join(cmdLine.sourcepath, file), { flag: 'r' });
+  const rawContent = readFileSync(path.join(cmdLine.sourcepath, file), { flag: 'r' });
   const md5 = createHash('md5').update(rawContent).digest('hex');
   summary.size += rawContent.length;
   if (cmdLine['no-gzip']) {
