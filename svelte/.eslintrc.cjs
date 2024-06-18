@@ -5,12 +5,11 @@ module.exports = {
 		'plugin:@typescript-eslint/recommended',
 		'plugin:svelte/recommended',
 		'plugin:unicorn/all',
-		'plugin:sonarjs/recommended',
 		'plugin:tailwindcss/recommended',
 		'prettier'
 	],
 	parser: '@typescript-eslint/parser',
-	plugins: ['@typescript-eslint', 'simple-import-sort', 'unicorn', 'sonarjs', 'tailwindcss'],
+	plugins: ['@typescript-eslint', 'simple-import-sort', 'unicorn', 'tailwindcss'],
 	parserOptions: {
 		sourceType: 'module',
 		ecmaVersion: 2020,
@@ -22,9 +21,7 @@ module.exports = {
 		'unicorn/filename-case': 'off',
 		'no-alert': 'error',
 		'no-console': 'error',
-		'no-debugger': 'error',
-		'sonarjs/cognitive-complexity': 'off',
-		'sonarjs/no-unused-collection': 'off'
+		'no-debugger': 'error'
 	},
 	env: {
 		browser: true,
