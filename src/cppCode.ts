@@ -27,6 +27,13 @@ const uint8_t data{{this.index}}[{{this.length}}] = { {{this.bytes}} };
 {{#if ../isEtag}}
 const char * etag{{this.index}} = "{{this.md5}}";
 {{/if}}
+{{#if this.isDefault}}
+const uint8_t *defaultDocument = &data{{this.index}}[{{this.length}}];
+const uint lengthDefaultDocument = {{this.length}};
+{{#if ../isEtag}}
+const char * etagDefaultDocument = &etag{{this.index}};
+{{/if}}
+{{/if}}
 {{/each}}
 
 void {{methodName}}(PsychicHttpServer * server) {
@@ -69,6 +76,13 @@ const asyncTemplate = `
 const uint8_t data{{this.index}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
 {{#if ../isEtag}}
 const char * etag{{this.index}} = "{{this.md5}}";
+{{/if}}
+{{#if this.isDefault}}
+const uint8_t *defaultDocument = &data{{this.index}}[{{this.length}}];
+const uint lengthDefaultDocument = {{this.length}};
+{{#if ../isEtag}}
+const char * etagDefaultDocument = &etag{{this.index}};
+{{/if}}
 {{/if}}
 {{/each}}
 
