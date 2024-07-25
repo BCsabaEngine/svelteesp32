@@ -23,33 +23,38 @@ const psychicTemplate = `
 #include <PsychicHttpsServer.h>
 
 {{#each sources}}
+{{#if this.isDefault}}
+const uint8_t dataDefaultDocument[{{this.length}}] = { {{this.bytes}} };
+{{#if ../isEtag}}
+const char * etagDefaultDocument = "{{this.md5}}";
+{{/if}}
+{{else}}
 const uint8_t data{{this.index}}[{{this.length}}] = { {{this.bytes}} };
 {{#if ../isEtag}}
 const char * etag{{this.index}} = "{{this.md5}}";
+{{/if}}
 {{/if}}
 {{/each}}
 
 void {{methodName}}(PsychicHttpServer * server) {
 {{#each sources}}
-
-  {{#if this.isDefault}}server->defaultEndpoint = {{/if}}server->on("/{{this.filename}}", HTTP_GET, [](PsychicRequest * request)
-  {
-  {{#if ../isEtag}}
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag{{this.index}})) {
+  {{#if this.isDefault}}server->defaultEndpoint = {{/if}}server->on("/{{this.filename}}", HTTP_GET, [](PsychicRequest * request) {
+    {{#if ../isEtag}}
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String({{#if this.isDefault}}etagDefaultDocument{{else}}etag{{this.index}}{{/if}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
     }
-  {{/if}}
+    {{/if}}
     PsychicResponse response(request);
     response.setContentType("{{this.mime}}");
-  {{#if this.isGzip}}
+    {{#if this.isGzip}}
     response.addHeader("Content-Encoding", "gzip");
-  {{/if}}
+    {{/if}}
     {{#if ../isEtag}}
-    response.addHeader("ETag", etag{{this.index}});
-  {{/if}}
-    response.setContent(data{{this.index}}, sizeof(data{{this.index}}));
+    response.addHeader("ETag", {{#if this.isDefault}}etagDefaultDocument{{else}}etag{{this.index}}{{/if}});
+    {{/if}}
+    response.setContent({{#if this.isDefault}}dataDefaultDocument{{else}}data{{this.index}}{{/if}}, sizeof({{#if this.isDefault}}dataDefaultDocument{{else}}data{{this.index}}{{/if}}));
     return response.send();
   });
 {{/each}}
@@ -66,36 +71,43 @@ const asyncTemplate = `
 #include <ESPAsyncWebServer.h>
 
 {{#each sources}}
+{{#if this.isDefault}}
+const uint8_t dataDefaultDocument[{{this.length}}] = { {{this.bytes}} };
+{{#if ../isEtag}}
+const char * etagDefaultDocument = "{{this.md5}}";
+{{/if}}
+{{else}}
 const uint8_t data{{this.index}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
 {{#if ../isEtag}}
 const char * etag{{this.index}} = "{{this.md5}}";
+{{/if}}
 {{/if}}
 {{/each}}
 
 void {{methodName}}(AsyncWebServer * server) {
 {{#each sources}}
-
-  ArRequestHandlerFunction func{{this.index}} = [](AsyncWebServerRequest * request)
-  {
-  {{#if ../isEtag}}
-    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag{{this.index}})) {
+  ArRequestHandlerFunction {{#if this.isDefault}}funcDefaultDocument{{else}}func{{this.index}}{{/if}} = [](AsyncWebServerRequest * request) {
+    {{#if ../isEtag}}
+    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String({{#if this.isDefault}}etagDefaultDocument{{else}}etag{{this.index}}{{/if}})) {
       request->send(304);
       return;
     }
-  {{/if}}
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data{{this.index}}, {{this.length}});
-  {{#if this.isGzip}}
+    {{/if}}
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", {{#if this.isDefault}}dataDefaultDocument{{else}}data{{this.index}}{{/if}}, {{this.length}});
+    {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
-  {{/if}}
-  {{#if ../isEtag}}
-    response->addHeader("ETag", etag{{this.index}});
-  {{/if}}
+    {{/if}}
+    {{#if ../isEtag}}
+    response->addHeader("ETag", {{#if this.isDefault}}etagDefaultDocument{{else}}etag{{this.index}}{{/if}});
+    {{/if}}
     request->send(response);
   };
+  {{#if this.isDefault}}
+  server->on("/{{this.filename}}", HTTP_GET, funcDefaultDocument);
+  server->on("/", HTTP_GET, funcDefaultDocument);
+  {{else}}
   server->on("/{{this.filename}}", HTTP_GET, func{{this.index}});
-{{#if this.isDefault}}
-  server->on("/", HTTP_GET, func{{this.index}});
-{{/if}}
+  {{/if}}
 {{/each}}
 }`;
 
