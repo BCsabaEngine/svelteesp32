@@ -57,6 +57,7 @@ void {{methodName}}(PsychicHttpServer * server) {
     response.setContent({{#if this.isDefault}}dataDefaultDocument{{else}}data{{this.index}}{{/if}}, sizeof({{#if this.isDefault}}dataDefaultDocument{{else}}data{{this.index}}{{/if}}));
     return response.send();
   });
+
 {{/each}}
 }`;
 
@@ -108,6 +109,7 @@ void {{methodName}}(AsyncWebServer * server) {
   {{else}}
   server->on("/{{this.filename}}", HTTP_GET, func{{this.index}});
   {{/if}}
+
 {{/each}}
 }`;
 
