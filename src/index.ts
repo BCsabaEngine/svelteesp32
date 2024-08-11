@@ -17,7 +17,6 @@ const summary = {
 };
 
 const sources: cppCodeSource[] = [];
-let sourceIndex = 0;
 const files = getFiles();
 if (files.length === 0) {
   console.error(`Directory ${cmdLine.sourcepath} is empty`);
@@ -29,13 +28,16 @@ for (const file of files) {
   summary.filecount++;
   console.log(`[${file}]`);
 
+  const filename = file.replace(/\\/g, '/');
+  const dataname = filename.replace(/[./-]/g, '_');
+
   const rawContent = readFileSync(path.join(cmdLine.sourcepath, file), { flag: 'r' });
   const md5 = createHash('md5').update(rawContent).digest('hex');
   summary.size += rawContent.length;
   if (cmdLine['no-gzip']) {
     sources.push({
-      index: sourceIndex++,
-      filename: file.replace(/\\/g, '/'),
+      filename: filename,
+      dataname,
       content: rawContent,
       isGzip: false,
       mime,
@@ -47,8 +49,8 @@ for (const file of files) {
     summary.gzipsize += zipContent.length;
     if (rawContent.length > 100 && zipContent.length < rawContent.length * 0.85) {
       sources.push({
-        index: sourceIndex++,
-        filename: file.replace(/\\/g, '/'),
+        filename: filename,
+        dataname,
         content: zipContent,
         isGzip: true,
         mime,
@@ -57,8 +59,8 @@ for (const file of files) {
       console.log(`✓ gzip used (${rawContent.length} -> ${zipContent.length})`);
     } else {
       sources.push({
-        index: sourceIndex++,
-        filename: file.replace(/\\/g, '/'),
+        filename: filename,
+        dataname,
         content: rawContent,
         isGzip: false,
         mime,

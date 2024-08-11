@@ -3,8 +3,8 @@ import { compile as handlebarsCompile } from 'handlebars';
 import { cmdLine } from './commandLine';
 
 export type cppCodeSource = {
-  index: number;
   filename: string;
+  dataname: string;
   mime: string;
   content: Buffer;
   isGzip: boolean;
@@ -23,16 +23,9 @@ const psychicTemplate = `
 #include <PsychicHttpsServer.h>
 
 {{#each sources}}
-{{#if this.isDefault}}
-const uint8_t dataDefaultDocument[{{this.length}}] = { {{this.bytes}} };
+const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
 {{#if ../isEtag}}
-const char * etagDefaultDocument = "{{this.md5}}";
-{{/if}}
-{{else}}
-const uint8_t data{{this.index}}[{{this.length}}] = { {{this.bytes}} };
-{{#if ../isEtag}}
-const char * etag{{this.index}} = "{{this.md5}}";
-{{/if}}
+const char * etag_{{this.dataname}} = "{{this.md5}}";
 {{/if}}
 {{/each}}
 
@@ -40,7 +33,7 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{#each sources}}
   {{#if this.isDefault}}server->defaultEndpoint = {{/if}}server->on("/{{this.filename}}", HTTP_GET, [](PsychicRequest * request) {
     {{#if ../isEtag}}
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String({{#if this.isDefault}}etagDefaultDocument{{else}}etag{{this.index}}{{/if}})) {
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
@@ -52,9 +45,9 @@ void {{methodName}}(PsychicHttpServer * server) {
     response.addHeader("Content-Encoding", "gzip");
     {{/if}}
     {{#if ../isEtag}}
-    response.addHeader("ETag", {{#if this.isDefault}}etagDefaultDocument{{else}}etag{{this.index}}{{/if}});
+    response.addHeader("ETag", etag_{{this.dataname}});
     {{/if}}
-    response.setContent({{#if this.isDefault}}dataDefaultDocument{{else}}data{{this.index}}{{/if}}, sizeof({{#if this.isDefault}}dataDefaultDocument{{else}}data{{this.index}}{{/if}}));
+    response.setContent(data_{{this.dataname}}, sizeof(data_{{this.dataname}}));
     return response.send();
   });
 
@@ -72,42 +65,33 @@ const asyncTemplate = `
 #include <ESPAsyncWebServer.h>
 
 {{#each sources}}
-{{#if this.isDefault}}
-const uint8_t dataDefaultDocument[{{this.length}}] = { {{this.bytes}} };
+const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
 {{#if ../isEtag}}
-const char * etagDefaultDocument = "{{this.md5}}";
-{{/if}}
-{{else}}
-const uint8_t data{{this.index}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
-{{#if ../isEtag}}
-const char * etag{{this.index}} = "{{this.md5}}";
-{{/if}}
+const char * etag_{{this.dataname}} = "{{this.md5}}";
 {{/if}}
 {{/each}}
 
 void {{methodName}}(AsyncWebServer * server) {
 {{#each sources}}
-  ArRequestHandlerFunction {{#if this.isDefault}}funcDefaultDocument{{else}}func{{this.index}}{{/if}} = [](AsyncWebServerRequest * request) {
+  ArRequestHandlerFunction func_{{this.dataname}} = [](AsyncWebServerRequest * request) {
     {{#if ../isEtag}}
-    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String({{#if this.isDefault}}etagDefaultDocument{{else}}etag{{this.index}}{{/if}})) {
+    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag_{{this.dataname}})) {
       request->send(304);
       return;
     }
     {{/if}}
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", {{#if this.isDefault}}dataDefaultDocument{{else}}data{{this.index}}{{/if}}, {{this.length}});
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
     {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
     {{/if}}
     {{#if ../isEtag}}
-    response->addHeader("ETag", {{#if this.isDefault}}etagDefaultDocument{{else}}etag{{this.index}}{{/if}});
+    response->addHeader("ETag", etag_{{this.dataname}});
     {{/if}}
     request->send(response);
   };
+  server->on("/{{this.filename}}", HTTP_GET, func_{{this.dataname}});
   {{#if this.isDefault}}
-  server->on("/{{this.filename}}", HTTP_GET, funcDefaultDocument);
-  server->on("/", HTTP_GET, funcDefaultDocument);
-  {{else}}
-  server->on("/{{this.filename}}", HTTP_GET, func{{this.index}});
+  server->on("/", HTTP_GET, func_{{this.dataname}});
   {{/if}}
 
 {{/each}}
