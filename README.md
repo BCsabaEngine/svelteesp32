@@ -178,6 +178,7 @@ Typically, the entry point for web applications is the **index.htm or index.html
 To make it easy to integrate into a larger c++ project, we have made a couple of variables available as c++ defines.
 
 You can use the COUNT and SIZE constants:
+
 ```c
 ...
 #include "svelteesp32.h"
@@ -189,6 +190,7 @@ You can use the COUNT and SIZE constants:
 ```
 
 You can include a warning if a named file accidentally missing from the build:
+
 ```c
 ...
 #include "svelteesp32.h"

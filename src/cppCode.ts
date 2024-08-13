@@ -123,5 +123,5 @@ export const getCppCode = (sources: cppCodeSource[]): string =>
     })),
     isEtag: cmdLine.etag,
     methodName: cmdLine.espmethod,
-    definePrefix: cmdLine.define,
+    definePrefix: cmdLine.define
   }).trim();
