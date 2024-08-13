@@ -24,7 +24,7 @@ export default [
       '**/node_modules',
       '**/bin',
       '**/dist',
-      '**/svelte',
+      '**/demo',
       '**/.env',
       '**/.env.*',
       '!**/.env.example',
