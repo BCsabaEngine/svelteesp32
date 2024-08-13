@@ -98,6 +98,8 @@ void setup()
 }
 ```
 
+You can find a minimal buildable example platformio project in [demo/esp32](demo/esp32) folder.
+
 The content of **generated file** (do not edit, just use)
 
 ```c
