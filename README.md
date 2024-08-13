@@ -14,6 +14,8 @@ This npm package provides a solution for **inserting any JS client application i
 
 > Starting with version v1.2.0, ESP8266/ESP8285 is also supported.
 
+> Starting with version v1.3.0, c++ defines can be used.
+
 ### Usage
 
 **Install package** as devDependency (it is practical if the package is part of the project so that you always receive updates)
@@ -103,6 +105,11 @@ You can find a minimal buildable example platformio project in [demo/esp32](demo
 The content of **generated file** (do not edit, just use)
 
 ```c
+#define SVELTEESP32_COUNT 5
+#define SVELTEESP32_SIZE 145633
+#define SVELTEESP32_FILE_index_html
+...
+
 const uint8_t data0[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
 const uint8_t data1[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
 const char * etag0 = "387b88e345cc56ef9091...";
@@ -166,6 +173,34 @@ The use of ETag is **not enabled by default**, this can be achieved with the `--
 
 Typically, the entry point for web applications is the **index.htm or index.html** file. This does not need to be listed in the browser's address bar because web servers know that this file should be served by default. Svelteesp32 also does this: if there is an index.htm or index.html file, it sets it as the main file to be served. So using `http://esp_xxx.local` or just entering the `http://x.y.w.z/` IP address will serve this main file.
 
+### C++ defines
+
+To make it easy to integrate into a larger c++ project, we have made a couple of variables available as c++ defines.
+
+You can use the COUNT and SIZE constants:
+
+```c
+...
+#include "svelteesp32.h"
+
+#if SVELTEESP32_COUNT != 5
+  #error Invalid file count
+#endif
+...
+```
+
+You can include a warning if a named file accidentally missing from the build:
+
+```c
+...
+#include "svelteesp32.h"
+
+#ifndef SVELTEESP32_FILE_index_html
+  #error Missing index file
+#endif
+...
+```
+
 ### Command line options
 
 | Option        | Required | Description                                                      | default                 |
@@ -176,6 +211,7 @@ Typically, the entry point for web applications is the **index.htm or index.html
 | `--etag`      |          | Use ETag header for cache                                        | false                   |
 | `--no-gzip`   |          | Do not compress content with gzip                                | false -> gzip used      |
 | `--espmethod` |    x     | Name of generated method                                         | `initSvelteStaticFiles` |
+| `--define`    |    x     | Prefix of c++ defines                                            | `SVELTEESP32`           |
 | `-h`          |          | Show help                                                        |                         |
 
 ### Q&A

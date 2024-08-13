@@ -4,6 +4,14 @@
 #include <ESPAsyncWebServer.h>
 #include "svelteesp32async.h"
 
+#if SVELTEESP32_COUNT != 5
+#error Invalid file count
+#endif
+
+#ifndef SVELTEESP32_FILE_index_html
+#error Missing index file
+#endif
+
 AsyncWebServer server(80);
 void setup()
 {
@@ -17,6 +25,14 @@ void loop() {}
 
 #include <PsychicHttp.h>
 #include "svelteesp32psychic.h"
+
+#if SVELTEESP32_COUNT != 5
+#error Invalid file count
+#endif
+
+#ifndef SVELTEESP32_FILE_index_html
+#error Missing index file
+#endif
 
 PsychicHttpServer server;
 void setup()

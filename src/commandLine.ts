@@ -7,6 +7,7 @@ interface ICopyFilesArguments {
   sourcepath: string;
   outputfile: string;
   espmethod: string;
+  define: string;
   'no-gzip': boolean;
   etag: boolean;
   help?: boolean;
@@ -49,6 +50,11 @@ export const cmdLine = parse<ICopyFilesArguments>(
       type: String,
       description: 'Name of generated method',
       defaultValue: 'initSvelteStaticFiles'
+    },
+    define: {
+      type: String,
+      description: 'Prefix of c++ defines',
+      defaultValue: 'SVELTEESP32'
     },
     help: { type: Boolean, optional: true, alias: 'h', description: 'Shows this help' }
   },
