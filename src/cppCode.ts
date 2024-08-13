@@ -22,6 +22,12 @@ const psychicTemplate = `
 #include <PsychicHttp.h>
 #include <PsychicHttpsServer.h>
 
+#define {{definePrefix}}_COUNT {{fileCount}}
+#define {{definePrefix}}_SIZE {{fileSize}}
+{{#each sources}}
+#define {{../definePrefix}}_FILE_{{this.dataname}}
+{{/each}}
+
 {{#each sources}}
 const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
 {{#if ../isEtag}}
@@ -63,6 +69,12 @@ const asyncTemplate = `
 
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
+
+#define {{definePrefix}}_COUNT {{fileCount}}
+#define {{definePrefix}}_SIZE {{fileSize}}
+{{#each sources}}
+#define {{../definePrefix}}_FILE_{{this.dataname}}
+{{/each}}
 
 {{#each sources}}
 const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
@@ -110,5 +122,6 @@ export const getCppCode = (sources: cppCodeSource[]): string =>
       isDefault: s.filename.startsWith('index.htm')
     })),
     isEtag: cmdLine.etag,
-    methodName: cmdLine.espmethod
+    methodName: cmdLine.espmethod,
+    definePrefix: cmdLine.define,
   }).trim();
