@@ -28,10 +28,12 @@
   },
   "homepage": "https://github.com/BCsabaEngine/svelteesp32",
   "scripts": {
-    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./svelte/dist -o ../../../Arduino/SvelteEsp32/svelteesp32.h --etag",
-    "dev:psychic:local": "nodemon src/index.ts -- -e psychic -s ./svelte/dist -o ./svelteesp32.h --etag",
-    "dev:async": "nodemon src/index.ts -- -e async -s ./svelte/dist -o ../../../Arduino/SvelteEsp8266/svelteesp32.h --etag",
-    "dev:async:local": "nodemon src/index.ts -- -e async -s ./svelte/dist -o ./svelteesp32.h --etag",
+    "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32async.h --etag",
+    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32psychic.h --etag",
+    "run:async": "tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32async.h --etag",
+    "run:psychic": "tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32psychic.h --etag",
+    "run:all": "npm run run:async && npm run run:psychic",
+    "run:all:build": "npm run run:all && ~/.platformio/penv/bin/pio run -d ./demo/esp32",
     "clean": "tsc --build --clean",
     "build": "tsc --build --clean && tsc --build --force",
     "format:check": "prettier --check .",
@@ -63,6 +65,7 @@
     "nodemon": "^3.1.4",
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
+    "tsx": "^4.17.0",
     "typescript": "^5.5.4"
   },
   "dependencies": {
