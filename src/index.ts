@@ -38,6 +38,7 @@ for (const file of files) {
     sources.push({
       filename: filename,
       dataname,
+      datanameUpperCase: dataname.toUpperCase(),
       content: rawContent,
       isGzip: false,
       mime,
@@ -51,6 +52,7 @@ for (const file of files) {
       sources.push({
         filename: filename,
         dataname,
+        datanameUpperCase: dataname.toUpperCase(),
         content: zipContent,
         isGzip: true,
         mime,
@@ -61,6 +63,7 @@ for (const file of files) {
       sources.push({
         filename: filename,
         dataname,
+        datanameUpperCase: dataname.toUpperCase(),
         content: rawContent,
         isGzip: false,
         mime,

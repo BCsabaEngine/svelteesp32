@@ -8,7 +8,7 @@
 #error Invalid file count
 #endif
 
-#ifndef SVELTEESP32_FILE_index_html
+#ifndef SVELTEESP32_FILE_INDEX_HTML
 #error Missing index file
 #endif
 
@@ -30,7 +30,7 @@ void loop() {}
 #error Invalid file count
 #endif
 
-#ifndef SVELTEESP32_FILE_index_html
+#ifndef SVELTEESP32_FILE_INDEX_HTML
 #error Missing index file
 #endif
 

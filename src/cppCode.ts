@@ -5,6 +5,7 @@ import { cmdLine } from './commandLine';
 export type cppCodeSource = {
   filename: string;
   dataname: string;
+  datanameUpperCase: string;
   mime: string;
   content: Buffer;
   isGzip: boolean;
@@ -25,7 +26,7 @@ const psychicTemplate = `
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
 {{#each sources}}
-#define {{../definePrefix}}_FILE_{{this.dataname}}
+#define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
 {{/each}}
 
 {{#each sources}}
@@ -73,7 +74,7 @@ const asyncTemplate = `
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
 {{#each sources}}
-#define {{../definePrefix}}_FILE_{{this.dataname}}
+#define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
 {{/each}}
 
 {{#each sources}}
