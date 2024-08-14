@@ -1,4 +1,4 @@
-import { compile as handlebarsCompile } from 'handlebars';
+import { compile as handlebarsCompile, HelperOptions } from 'handlebars';
 
 import { cmdLine } from './commandLine';
 
@@ -167,7 +167,7 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     },
     {
       helpers: {
-        ifeq: function (a, b, options) {
+        ifeq: function (a: string, b: string, options: HelperOptions) {
           if (a == b) {
             return options.fn(this);
           }
