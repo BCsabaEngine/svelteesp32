@@ -13,7 +13,7 @@
 #endif
 
 #if SVELTEESP32_CSS_FILES > 1
-#error Too much CSS files
+#error Too many CSS files
 #endif
 
 AsyncWebServer server(80);
@@ -39,7 +39,7 @@ void loop() {}
 #endif
 
 #if SVELTEESP32_CSS_FILES > 1
-#error Too much CSS files
+#error Too many CSS files
 #endif
 
 PsychicHttpServer server;
