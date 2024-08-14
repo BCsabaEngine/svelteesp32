@@ -8,6 +8,7 @@ export type CppCodeSource = {
   datanameUpperCase: string;
   mime: string;
   content: Buffer;
+  contentGzip: Buffer;
   isGzip: boolean;
   md5: string;
 };
@@ -36,6 +37,12 @@ const psychicTemplate = `
 {{#ifeq etag "false" }}
 #undef {{definePrefix}}_ENABLE_ETAG
 {{/ifeq}}
+{{#ifeq gzip "true" }}
+#define {{definePrefix}}_ENABLE_GZIP
+{{/ifeq}}
+{{#ifeq gzip "false" }}
+#undef {{definePrefix}}_ENABLE_GZIP
+{{/ifeq}}
 
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
@@ -48,9 +55,15 @@ const psychicTemplate = `
 #define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
 {{/each}}
 
+#ifdef {{definePrefix}}_ENABLE_GZIP
+{{#each sources}}
+const uint8_t datagz_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+{{/each}}
+#else
 {{#each sources}}
 const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
 {{/each}}
+#endif 
 
 #ifdef {{definePrefix}}_ENABLE_ETAG
 {{#each sources}}
@@ -70,13 +83,19 @@ void {{methodName}}(PsychicHttpServer * server) {
 #endif 
     PsychicResponse response(request);
     response.setContentType("{{this.mime}}");
+#ifdef {{../definePrefix}}_ENABLE_GZIP
     {{#if this.isGzip}}
     response.addHeader("Content-Encoding", "gzip");
     {{/if}}
+#endif 
 #ifdef {{../definePrefix}}_ENABLE_ETAG
     response.addHeader("ETag", etag_{{this.dataname}});
 #endif 
-    response.setContent(data_{{this.dataname}}, sizeof(data_{{this.dataname}}));
+#ifdef {{../definePrefix}}_ENABLE_GZIP
+    response.setContent(datagz_{{this.dataname}}, {{this.lengthGzip}});
+#else
+    response.setContent(data_{{this.dataname}}, {{this.length}});
+#endif 
     return response.send();
   });
 
@@ -99,6 +118,12 @@ const asyncTemplate = `
 {{#ifeq etag "false" }}
 #undef {{definePrefix}}_ENABLE_ETAG
 {{/ifeq}}
+{{#ifeq gzip "true" }}
+#define {{definePrefix}}_ENABLE_GZIP
+{{/ifeq}}
+{{#ifeq gzip "false" }}
+#undef {{definePrefix}}_ENABLE_GZIP
+{{/ifeq}}
 
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
@@ -111,9 +136,15 @@ const asyncTemplate = `
 #define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
 {{/each}}
 
+#ifdef {{definePrefix}}_ENABLE_GZIP
 {{#each sources}}
-const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+const uint8_t datagz_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this.bytesGzip}} };
 {{/each}}
+#else
+{{#each sources}}
+const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
+{{/each}}
+#endif 
 
 #ifdef {{definePrefix}}_ENABLE_ETAG
 {{#each sources}}
@@ -129,11 +160,15 @@ void {{methodName}}(AsyncWebServer * server) {
       request->send(304);
       return;
     }
-#endif 
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+#endif
+#ifdef {{../definePrefix}}_ENABLE_GZIP
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagz_{{this.dataname}}, {{this.lengthGzip}});
     {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
     {{/if}}
+#else
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+#endif
 #ifdef {{../definePrefix}}_ENABLE_ETAG
     response->addHeader("ETag", etag_{{this.dataname}});
 #endif 
@@ -158,10 +193,13 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
         ...s,
         length: s.content.length,
         bytes: [...s.content].map((v) => `0x${v.toString(16)}`).join(', '),
+        lengthGzip: s.contentGzip.length,
+        bytesGzip: [...s.contentGzip].map((v) => `0x${v.toString(16)}`).join(', '),
         isDefault: s.filename.startsWith('index.htm')
       })),
       filesByExtension,
       etag: cmdLine.etag,
+      gzip: cmdLine.gzip,
       methodName: cmdLine.espmethod,
       definePrefix: cmdLine.define
     },

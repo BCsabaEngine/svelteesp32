@@ -38,61 +38,45 @@ for (const file of files) {
   if (group) group.count += 1;
   else filesByExtension.push({ extension, count: 1 });
 
-  const rawContent = readFileSync(path.join(cmdLine.sourcepath, file), { flag: 'r' });
-  const md5 = createHash('md5').update(rawContent).digest('hex');
-  summary.size += rawContent.length;
-  if (cmdLine['no-gzip']) {
+  const content = readFileSync(path.join(cmdLine.sourcepath, file), { flag: 'r' });
+  const md5 = createHash('md5').update(content).digest('hex');
+  summary.size += content.length;
+  const zipContent = gzipSync(content, { level: 9 });
+  summary.gzipsize += zipContent.length;
+  if (content.length > 100 && zipContent.length < content.length * 0.85) {
     sources.push({
-      filename: filename,
+      filename,
       dataname,
       datanameUpperCase: dataname.toUpperCase(),
-      content: rawContent,
+      content,
+      contentGzip: zipContent,
+      isGzip: true,
+      mime,
+      md5
+    });
+    console.log(`✓ gzip used (${content.length} -> ${zipContent.length})`);
+  } else {
+    sources.push({
+      filename,
+      dataname,
+      datanameUpperCase: dataname.toUpperCase(),
+      content,
+      contentGzip: content,
       isGzip: false,
       mime,
       md5
     });
-    console.log(`- gzip skipped (${rawContent.length})`);
-  } else {
-    const zipContent = gzipSync(rawContent, { level: 9 });
-    summary.gzipsize += zipContent.length;
-    if (rawContent.length > 100 && zipContent.length < rawContent.length * 0.85) {
-      sources.push({
-        filename: filename,
-        dataname,
-        datanameUpperCase: dataname.toUpperCase(),
-        content: zipContent,
-        isGzip: true,
-        mime,
-        md5
-      });
-      console.log(`✓ gzip used (${rawContent.length} -> ${zipContent.length})`);
-    } else {
-      sources.push({
-        filename: filename,
-        dataname,
-        datanameUpperCase: dataname.toUpperCase(),
-        content: rawContent,
-        isGzip: false,
-        mime,
-        md5
-      });
-      console.log(`x gzip unused (${rawContent.length} -> ${zipContent.length})`);
-    }
+    console.log(`x gzip unused (${content.length} -> ${zipContent.length})`);
   }
-
-  console.log('');
 }
+console.log('');
 filesByExtension.sort((left, right) => left.extension.localeCompare(right.extension));
 
 const cppFile = getCppCode(sources, filesByExtension);
 writeFileSync(cmdLine.outputfile, cppFile);
 
-if (cmdLine['no-gzip']) {
-  console.log(`${summary.filecount} files, ${Math.round(summary.size / 1024)}kB original size`);
-} else {
-  console.log(
-    `${summary.filecount} files, ${Math.round(summary.size / 1024)}kB original size, ${Math.round(summary.gzipsize / 1024)}kB gzip size`
-  );
-}
+console.log(
+  `${summary.filecount} files, ${Math.round(summary.size / 1024)}kB original size, ${Math.round(summary.gzipsize / 1024)}kB gzip size`
+);
 
 console.log(`${cmdLine.outputfile} ${Math.round(cppFile.length / 1024)}kB size`);

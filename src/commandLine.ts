@@ -8,7 +8,7 @@ interface ICopyFilesArguments {
   outputfile: string;
   espmethod: string;
   define: string;
-  'no-gzip': boolean;
+  gzip: 'true' | 'false' | 'compiler';
   etag: 'true' | 'false' | 'compiler';
   help?: boolean;
 }
@@ -36,10 +36,15 @@ export const cmdLine = parse<ICopyFilesArguments>(
       description: 'Generated output file with path',
       defaultValue: 'svelteesp32.h'
     },
-    'no-gzip': {
-      type: Boolean,
-      description: 'Do not compress content with gzip',
-      defaultValue: false
+    gzip: {
+      type: (value) => {
+        if (value === 'true') return 'true';
+        if (value === 'false') return 'false';
+        if (value === 'compiler') return 'compiler';
+        throw new Error(`Invalid etag: ${value}`);
+      },
+      description: 'Compress content with gzip',
+      defaultValue: 'true'
     },
     etag: {
       type: (value) => {
