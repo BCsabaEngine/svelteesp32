@@ -1,13 +1,12 @@
 //engine:   ESPAsyncWebServer
-//cmdline:  -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32async.h --etag&#x3D;compiler
-//created:  8/14/2024 8:14:54 PM
+//cmdline:  -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32async.h --etag&#x3D;compiler --gzip&#x3D;compiler
+//created:  8/14/2024 8:35:04 PM
 //files:    5
 //memory:   471154
 
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 
-#define SVELTEESP32_ENABLE_GZIP
 
 #define SVELTEESP32_COUNT 5
 #define SVELTEESP32_SIZE 471154
