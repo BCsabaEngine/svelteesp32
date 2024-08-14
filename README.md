@@ -16,6 +16,8 @@ This npm package provides a solution for **inserting any JS client application i
 
 > Starting with version v1.3.0, c++ defines can be used.
 
+> Version v1.4.0 has a breaking change! --no-gzip changed to --gzip. Starting with this version c++ compiler directives are available to setup operation in project level.
+
 ### Usage
 
 **Install package** as devDependency (it is practical if the package is part of the project so that you always receive updates)
@@ -160,7 +162,10 @@ All modern browsers have been able to handle gzip-compressed content for years. 
 
 During the translation process, data in gzip format is generated and will be used if the **size is greater than 100 bytes** and we experience a **reduction of at least 15%**. In such a case, the compressed data is unconditionally sent to the browser with the appropriate **Content-Encoding** header information.
 
-Automatic compression can be turned off with the `--no-gzip` option.
+Automatic compression can be turned off with the `--gzip=false` option.
+
+> This setting has three states: yes, no, and compiler mode is available. In compiler mode, you can disable/enable Gzip by setting the `SVELTEESP32_ENABLE_GZIP` c++ compiler directive.
+> For example, if using platformio, you can use `-D SVELTEESP32_ENABLE_GZIP`.
 
 ### ETag
 
@@ -169,6 +174,9 @@ The ETag HTTP header can be used to significantly reduce network traffic. If the
 Since microcontroller data traffic is moderately expensive, it is an individual decision whether to use the ETag or not. We **recommend using ETag**, which adds a bit more code (about 1-3%) but results in a much cleaner operation.
 
 The use of ETag is **not enabled by default**, this can be achieved with the `--etag=true` switch.
+
+> This setting has three states: yes, no, and compiler mode is available. In compiler mode, you can disable/enable ETag by setting the `SVELTEESP32_ENABLE_ETAG` c++ compiler directive.
+> For example, if using platformio, you can use `-D SVELTEESP32_ENABLE_ETAG`.
 
 ### Main entry point - index.html
 
@@ -214,6 +222,9 @@ You can include a blocker error if a named file accidentally missing from the bu
 ...
 ```
 
+You can use the following c++ directives at the project level if you want to configure the usage there. Do not forget `--etag=compiler` or `--gzip=compiler` command line arg:
+`SVELTEESP32_ENABLE_ETAG` and `SVELTEESP32_ENABLE_GZIP`
+
 ### Command line options
 
 | Option        | Description                                                      | default                 |
@@ -222,7 +233,7 @@ You can include a blocker error if a named file accidentally missing from the bu
 | `-e`          | The engine for which the include file is created (psychic/async) | psychic                 |
 | `-o`          | Generated output file with path                                  | `svelteesp32.h`         |
 | `--etag`      | Use ETag header for cache (true/false/compiler)                  | false                   |
-| `--no-gzip`   | Do not compress content with gzip                                | false -> gzip used      |
+| `--gzip`      | Compress content with gzip (true/false/compiler)                 | true                    |
 | `--espmethod` | Name of generated method                                         | `initSvelteStaticFiles` |
 | `--define`    | Prefix of c++ defines                                            | `SVELTEESP32`           |
 | `-h`          | Show help                                                        |                         |
