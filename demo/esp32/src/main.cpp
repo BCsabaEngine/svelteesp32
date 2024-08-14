@@ -8,8 +8,12 @@
 #error Invalid file count
 #endif
 
-#ifndef SVELTEESP32_FILE_index_html
+#ifndef SVELTEESP32_FILE_INDEX_HTML
 #error Missing index file
+#endif
+
+#if SVELTEESP32_CSS_FILES > 1
+#error Too many CSS files
 #endif
 
 AsyncWebServer server(80);
@@ -30,8 +34,12 @@ void loop() {}
 #error Invalid file count
 #endif
 
-#ifndef SVELTEESP32_FILE_index_html
+#ifndef SVELTEESP32_FILE_INDEX_HTML
 #error Missing index file
+#endif
+
+#if SVELTEESP32_CSS_FILES > 1
+#error Too many CSS files
 #endif
 
 PsychicHttpServer server;

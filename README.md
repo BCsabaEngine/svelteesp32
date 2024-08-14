@@ -107,7 +107,8 @@ The content of **generated file** (do not edit, just use)
 ```c
 #define SVELTEESP32_COUNT 5
 #define SVELTEESP32_SIZE 145633
-#define SVELTEESP32_FILE_index_html
+#define SVELTEESP32_FILE_INDEX_HTML
+#define SVELTEESP32_HTML_FILES 1
 ...
 
 const uint8_t data0[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
@@ -189,30 +190,42 @@ You can use the COUNT and SIZE constants:
 ...
 ```
 
-You can include a warning if a named file accidentally missing from the build:
+You can include a blocker error if a named file accidentally missing from the build:
 
 ```c
 ...
 #include "svelteesp32.h"
 
-#ifndef SVELTEESP32_FILE_index_html
+#ifndef SVELTEESP32_FILE_INDEX_HTML
   #error Missing index file
+#endif
+...
+```
+
+...or if there are too many of a file type:
+
+```c
+...
+#include "svelteesp32.h"
+
+#if SVELTEESP32_CSS_FILES > 1
+  #error Too many CSS files
 #endif
 ...
 ```
 
 ### Command line options
 
-| Option        | Required | Description                                                      | default                 |
-| ------------- | :------: | ---------------------------------------------------------------- | ----------------------- |
-| `-e`          |    x     | The engine for which the include file is created (psychic/async) | psychic                 |
-| `-s`          |    x     | Source dist folder contains compiled web files                   |                         |
-| `-o`          |    x     | Generated output file with path                                  | `svelteesp32.h`         |
-| `--etag`      |          | Use ETag header for cache                                        | false                   |
-| `--no-gzip`   |          | Do not compress content with gzip                                | false -> gzip used      |
-| `--espmethod` |    x     | Name of generated method                                         | `initSvelteStaticFiles` |
-| `--define`    |    x     | Prefix of c++ defines                                            | `SVELTEESP32`           |
-| `-h`          |          | Show help                                                        |                         |
+| Option        | Description                                               | default                 |
+| ------------- | --------------------------------------------------------- | ----------------------- | ------- |
+| `-s`          | **Source dist folder contains compiled web files**        |                         |
+| `-e`          | The engine for which the include file is created [psychic | async]                  | psychic |
+| `-o`          | Generated output file with path                           | `svelteesp32.h`         |
+| `--etag`      | Use ETag header for cache                                 | false                   |
+| `--no-gzip`   | Do not compress content with gzip                         | false -> gzip used      |
+| `--espmethod` | Name of generated method                                  | `initSvelteStaticFiles` |
+| `--define`    | Prefix of c++ defines                                     | `SVELTEESP32`           |
+| `-h`          | Show help                                                 |                         |
 
 ### Q&A
 
