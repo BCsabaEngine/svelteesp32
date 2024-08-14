@@ -28,10 +28,10 @@ After a successful Svelte build (rollup/webpack/vite) **create an includeable c+
 
 ```bash
 // for PsychicHttpServer
-npx svelteesp32 -e psychic -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag
+npx svelteesp32 -e psychic -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag=true
 
 // for ESPAsyncWebServer
-npx svelteesp32 -e async -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag
+npx svelteesp32 -e async -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag=true
 ```
 
 During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP's memory allocation (gzip size)
@@ -168,7 +168,7 @@ The ETag HTTP header can be used to significantly reduce network traffic. If the
 
 Since microcontroller data traffic is moderately expensive, it is an individual decision whether to use the ETag or not. We **recommend using ETag**, which adds a bit more code (about 1-3%) but results in a much cleaner operation.
 
-The use of ETag is **not enabled by default**, this can be achieved with the `--etag` switch.
+The use of ETag is **not enabled by default**, this can be achieved with the `--etag=true` switch.
 
 ### Main entry point - index.html
 
@@ -216,16 +216,16 @@ You can include a blocker error if a named file accidentally missing from the bu
 
 ### Command line options
 
-| Option        | Description                                               | default                 |
-| ------------- | --------------------------------------------------------- | ----------------------- | ------- |
-| `-s`          | **Source dist folder contains compiled web files**        |                         |
-| `-e`          | The engine for which the include file is created [psychic | async]                  | psychic |
-| `-o`          | Generated output file with path                           | `svelteesp32.h`         |
-| `--etag`      | Use ETag header for cache                                 | false                   |
-| `--no-gzip`   | Do not compress content with gzip                         | false -> gzip used      |
-| `--espmethod` | Name of generated method                                  | `initSvelteStaticFiles` |
-| `--define`    | Prefix of c++ defines                                     | `SVELTEESP32`           |
-| `-h`          | Show help                                                 |                         |
+| Option        | Description                                                      | default                 |
+| ------------- | ---------------------------------------------------------------- | ----------------------- |
+| `-s`          | **Source dist folder contains compiled web files**               |                         |
+| `-e`          | The engine for which the include file is created (psychic/async) | psychic                 |
+| `-o`          | Generated output file with path                                  | `svelteesp32.h`         |
+| `--etag`      | Use ETag header for cache (true/false/compiler)                  | false                   |
+| `--no-gzip`   | Do not compress content with gzip                                | false -> gzip used      |
+| `--espmethod` | Name of generated method                                         | `initSvelteStaticFiles` |
+| `--define`    | Prefix of c++ defines                                            | `SVELTEESP32`           |
+| `-h`          | Show help                                                        |                         |
 
 ### Q&A
 

@@ -9,7 +9,7 @@ interface ICopyFilesArguments {
   espmethod: string;
   define: string;
   'no-gzip': boolean;
-  etag: boolean;
+  etag: 'true' | 'false' | 'compiler';
   help?: boolean;
 }
 
@@ -22,7 +22,7 @@ export const cmdLine = parse<ICopyFilesArguments>(
         throw new Error(`Invalid engine: ${value}`);
       },
       alias: 'e',
-      description: 'The engine for which the include file is created',
+      description: 'The engine for which the include file is created (psychic|async)',
       defaultValue: 'psychic'
     },
     sourcepath: {
@@ -42,9 +42,14 @@ export const cmdLine = parse<ICopyFilesArguments>(
       defaultValue: false
     },
     etag: {
-      type: Boolean,
+      type: (value) => {
+        if (value === 'true') return 'true';
+        if (value === 'false') return 'false';
+        if (value === 'compiler') return 'compiler';
+        throw new Error(`Invalid etag: ${value}`);
+      },
       description: 'Use ETAG header for cache',
-      defaultValue: false
+      defaultValue: 'false'
     },
     espmethod: {
       type: String,
