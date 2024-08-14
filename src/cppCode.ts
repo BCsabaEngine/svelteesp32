@@ -2,7 +2,7 @@ import { compile as handlebarsCompile } from 'handlebars';
 
 import { cmdLine } from './commandLine';
 
-export type cppCodeSource = {
+export type CppCodeSource = {
   filename: string;
   dataname: string;
   datanameUpperCase: string;
@@ -11,6 +11,13 @@ export type cppCodeSource = {
   isGzip: boolean;
   md5: string;
 };
+export type CppCodeSources = CppCodeSource[];
+
+export type ExtensionGroup = {
+  extension: string;
+  count: number;
+};
+export type ExtensionGroups = ExtensionGroup[];
 
 const psychicTemplate = `
 //engine:   PsychicHttpServer
@@ -25,8 +32,13 @@ const psychicTemplate = `
 
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
+
 {{#each sources}}
 #define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
+{{/each}}
+
+{{#each filesByExtension}}
+#define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
 {{/each}}
 
 {{#each sources}}
@@ -73,8 +85,13 @@ const asyncTemplate = `
 
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
+
 {{#each sources}}
 #define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
+{{/each}}
+
+{{#each filesByExtension}}
+#define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
 {{/each}}
 
 {{#each sources}}
@@ -110,7 +127,7 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/each}}
 }`;
 
-export const getCppCode = (sources: cppCodeSource[]): string =>
+export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string =>
   handlebarsCompile(cmdLine.engine === 'psychic' ? psychicTemplate : asyncTemplate)({
     commandLine: process.argv.slice(2).join(' '),
     now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
@@ -122,6 +139,7 @@ export const getCppCode = (sources: cppCodeSource[]): string =>
       bytes: [...s.content].map((v) => `0x${v.toString(16)}`).join(', '),
       isDefault: s.filename.startsWith('index.htm')
     })),
+    filesByExtension,
     isEtag: cmdLine.etag,
     methodName: cmdLine.espmethod,
     definePrefix: cmdLine.define

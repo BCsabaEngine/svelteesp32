@@ -12,6 +12,10 @@
 #error Missing index file
 #endif
 
+#if SVELTEESP32_CSS_FILES > 1
+#error Too much CSS files
+#endif
+
 AsyncWebServer server(80);
 void setup()
 {
@@ -32,6 +36,10 @@ void loop() {}
 
 #ifndef SVELTEESP32_FILE_INDEX_HTML
 #error Missing index file
+#endif
+
+#if SVELTEESP32_CSS_FILES > 1
+#error Too much CSS files
 #endif
 
 PsychicHttpServer server;

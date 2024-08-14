@@ -7,7 +7,7 @@ import { gzipSync } from 'node:zlib';
 import { lookup } from 'mime-types';
 
 import { cmdLine } from './commandLine';
-import { cppCodeSource, getCppCode } from './cppCode';
+import { CppCodeSources, ExtensionGroups, getCppCode } from './cppCode';
 import { getFiles } from './file';
 
 const summary = {
@@ -16,7 +16,8 @@ const summary = {
   gzipsize: 0
 };
 
-const sources: cppCodeSource[] = [];
+const sources: CppCodeSources = [];
+const filesByExtension: ExtensionGroups = [];
 const files = getFiles();
 if (files.length === 0) {
   console.error(`Directory ${cmdLine.sourcepath} is empty`);
@@ -30,6 +31,12 @@ for (const file of files) {
 
   const filename = file.replace(/\\/g, '/');
   const dataname = filename.replace(/[./-]/g, '_');
+  let extension = path.extname(filename).toUpperCase();
+  if (extension.startsWith('.')) extension = extension.slice(1);
+
+  const group = filesByExtension.find((fe) => fe.extension === extension);
+  if (group) group.count += 1;
+  else filesByExtension.push({ extension, count: 1 });
 
   const rawContent = readFileSync(path.join(cmdLine.sourcepath, file), { flag: 'r' });
   const md5 = createHash('md5').update(rawContent).digest('hex');
@@ -75,8 +82,9 @@ for (const file of files) {
 
   console.log('');
 }
+filesByExtension.sort((left, right) => left.extension.localeCompare(right.extension));
 
-const cppFile = getCppCode(sources);
+const cppFile = getCppCode(sources, filesByExtension);
 writeFileSync(cmdLine.outputfile, cppFile);
 
 if (cmdLine['no-gzip']) {
