@@ -164,8 +164,7 @@ During the translation process, data in gzip format is generated and will be use
 
 Automatic compression can be turned off with the `--gzip=false` option.
 
-> This setting has three states: yes, no, and compiler mode is available. In compiler mode, you can disable/enable Gzip by setting the `SVELTEESP32_ENABLE_GZIP` c++ compiler directive.
-> For example, if using platformio, you can use `-D SVELTEESP32_ENABLE_GZIP`.
+> This setting has three states: yes, no, and compiler mode is available. In compiler mode, you can disable/enable Gzip by setting the `SVELTEESP32_ENABLE_GZIP` c++ compiler directive. For example, if using platformio, just write `-D SVELTEESP32_ENABLE_GZIP`.
 
 ### ETag
 
@@ -175,8 +174,7 @@ Since microcontroller data traffic is moderately expensive, it is an individual 
 
 The use of ETag is **not enabled by default**, this can be achieved with the `--etag=true` switch.
 
-> This setting has three states: yes, no, and compiler mode is available. In compiler mode, you can disable/enable ETag by setting the `SVELTEESP32_ENABLE_ETAG` c++ compiler directive.
-> For example, if using platformio, you can use `-D SVELTEESP32_ENABLE_ETAG`.
+> This setting has three states: yes, no, and compiler mode is available. In compiler mode, you can disable/enable ETag by setting the `SVELTEESP32_ENABLE_ETAG` c++ compiler directive. For example, if using platformio, just type `-D SVELTEESP32_ENABLE_ETAG`.
 
 ### Main entry point - index.html
 
@@ -227,16 +225,18 @@ You can use the following c++ directives at the project level if you want to con
 
 ### Command line options
 
-| Option        | Description                                                      | default                 |
-| ------------- | ---------------------------------------------------------------- | ----------------------- |
-| `-s`          | **Source dist folder contains compiled web files**               |                         |
-| `-e`          | The engine for which the include file is created (psychic/async) | psychic                 |
-| `-o`          | Generated output file with path                                  | `svelteesp32.h`         |
-| `--etag`      | Use ETag header for cache (true/false/compiler)                  | false                   |
-| `--gzip`      | Compress content with gzip (true/false/compiler)                 | true                    |
-| `--espmethod` | Name of generated method                                         | `initSvelteStaticFiles` |
-| `--define`    | Prefix of c++ defines                                            | `SVELTEESP32`           |
-| `-h`          | Show help                                                        |                         |
+| Option        | Description                                                              | default                 |
+| ------------- | ------------------------------------------------------------------------ | ----------------------- |
+| `-s`          | **Source dist folder contains compiled web files**                       |                         |
+| `-e`          | The engine for which the include file is created (psychic/async)         | psychic                 |
+| `-o`          | Generated output file with path                                          | `svelteesp32.h`         |
+| `--etag`      | Use ETag header for cache (true/false/compiler)                          | false                   |
+| `--gzip`      | Compress content with gzip (true/false/compiler)                         | true                    |
+| `--created`   | Include creation time (now) in the output file                           | false                   |
+| `--version`   | Include version info (ex. from frontend package.json) in the output file | ''                      |
+| `--espmethod` | Name of generated method                                                 | `initSvelteStaticFiles` |
+| `--define`    | Prefix of c++ defines                                                    | `SVELTEESP32`           |
+| `-h`          | Show help                                                                |                         |
 
 ### Q&A
 

@@ -10,6 +10,8 @@ interface ICopyFilesArguments {
   define: string;
   gzip: 'true' | 'false' | 'compiler';
   etag: 'true' | 'false' | 'compiler';
+  created: boolean;
+  version: string;
   help?: boolean;
 }
 
@@ -36,6 +38,16 @@ export const cmdLine = parse<ICopyFilesArguments>(
       description: 'Generated output file with path',
       defaultValue: 'svelteesp32.h'
     },
+    etag: {
+      type: (value) => {
+        if (value === 'true') return 'true';
+        if (value === 'false') return 'false';
+        if (value === 'compiler') return 'compiler';
+        throw new Error(`Invalid etag: ${value}`);
+      },
+      description: 'Use ETAG header for cache',
+      defaultValue: 'false'
+    },
     gzip: {
       type: (value) => {
         if (value === 'true') return 'true';
@@ -46,15 +58,15 @@ export const cmdLine = parse<ICopyFilesArguments>(
       description: 'Compress content with gzip',
       defaultValue: 'true'
     },
-    etag: {
-      type: (value) => {
-        if (value === 'true') return 'true';
-        if (value === 'false') return 'false';
-        if (value === 'compiler') return 'compiler';
-        throw new Error(`Invalid etag: ${value}`);
-      },
-      description: 'Use ETAG header for cache',
-      defaultValue: 'false'
+    created: {
+      type: Boolean,
+      description: 'Include creation time in the output file',
+      defaultValue: false
+    },
+    version: {
+      type: String,
+      description: 'Include version info in the output file',
+      defaultValue: ''
     },
     espmethod: {
       type: String,
