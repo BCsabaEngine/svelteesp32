@@ -1,6 +1,8 @@
 //engine:   PsychicHttpServer
 //cmdline:  -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32psychic_compiler.h --etag=compiler --gzip=compiler --version=v1.5.0
 
+C
+
 
 #define SVELTEESP32_VERSION "v1.5.0"
 #define SVELTEESP32_COUNT 5

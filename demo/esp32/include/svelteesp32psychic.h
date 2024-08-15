@@ -1,6 +1,8 @@
 //engine:   PsychicHttpServer
 //cmdline:  -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32psychic.h --etag=true --gzip=true --version=v1.5.0
 
+T
+
 #define SVELTEESP32_ENABLE_ETAG
 #define SVELTEESP32_ENABLE_GZIP
 

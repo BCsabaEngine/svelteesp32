@@ -27,6 +27,18 @@ const psychicTemplate = `
 //created:  {{now}}
 {{/if}}
 
+{{#switch etag}} 
+{{#case "true"}}
+T
+{{/case}} 
+{{#case "false"}}
+F
+{{/case}} 
+{{#case "compiler"}}
+C
+{{/case}} 
+{{/switch}}
+
 {{#ifeq etag "true" }}
 #define {{definePrefix}}_ENABLE_ETAG
 {{/ifeq}}
@@ -190,6 +202,7 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/each}}
 }`;
 
+let switchValue: string;
 export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string =>
   handlebarsCompile(cmdLine.engine === 'psychic' ? psychicTemplate : asyncTemplate)(
     {
@@ -217,11 +230,19 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     {
       helpers: {
         ifeq: function (a: string, b: string, options: HelperOptions) {
-          if (a == b) {
+          if (a == b)
             return options.fn(this);
-          }
+          return options.inverse(this);
+        },
+        switch: function (value: string, options: HelperOptions) {
+          switchValue = value;
+          return options.fn(this);
+        },
+        case: function (value: string, options: HelperOptions) {
+          if (value == switchValue)
+            return options.fn(this);
           return options.inverse(this);
         }
-      }
+      },
     }
   ).trim();
