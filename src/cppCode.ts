@@ -22,14 +22,10 @@ export type ExtensionGroups = ExtensionGroup[];
 
 const psychicTemplate = `
 //engine:   PsychicHttpServer
-//cmdline:  {{commandLine}}
+//cmdline:  {{{commandLine}}}
+{{#if created }}
 //created:  {{now}}
-//files:    {{fileCount}}
-//memory:   {{fileSize}}
-
-#include <Arduino.h>
-#include <PsychicHttp.h>
-#include <PsychicHttpsServer.h>
+{{/if}}
 
 {{#ifeq etag "true" }}
 #define {{definePrefix}}_ENABLE_ETAG
@@ -44,6 +40,9 @@ const psychicTemplate = `
 #undef {{definePrefix}}_ENABLE_GZIP
 {{/ifeq}}
 
+{{#if version }}
+#define {{definePrefix}}_VERSION "{{version}}"
+{{/if}}
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
 
@@ -54,6 +53,10 @@ const psychicTemplate = `
 {{#each filesByExtension}}
 #define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
 {{/each}}
+
+#include <Arduino.h>
+#include <PsychicHttp.h>
+#include <PsychicHttpsServer.h>
 
 #ifdef {{definePrefix}}_ENABLE_GZIP
 {{#each sources}}
@@ -104,13 +107,10 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 const asyncTemplate = `
 //engine:   ESPAsyncWebServer
-//cmdline:  {{commandLine}}
+//cmdline:  {{{commandLine}}}
+{{#if created }}
 //created:  {{now}}
-//files:    {{fileCount}}
-//memory:   {{fileSize}}
-
-#include <Arduino.h>
-#include <ESPAsyncWebServer.h>
+{{/if}}
 
 {{#ifeq etag "true" }}
 #define {{definePrefix}}_ENABLE_ETAG
@@ -125,6 +125,9 @@ const asyncTemplate = `
 #undef {{definePrefix}}_ENABLE_GZIP
 {{/ifeq}}
 
+{{#if version }}
+#define {{definePrefix}}_VERSION "{{version}}"
+{{/if}}
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
 
@@ -135,6 +138,9 @@ const asyncTemplate = `
 {{#each filesByExtension}}
 #define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
 {{/each}}
+
+#include <Arduino.h>
+#include <ESPAsyncWebServer.h>
 
 #ifdef {{definePrefix}}_ENABLE_GZIP
 {{#each sources}}
@@ -200,6 +206,8 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
       filesByExtension,
       etag: cmdLine.etag,
       gzip: cmdLine.gzip,
+      created: cmdLine.created,
+      version: cmdLine.version,
       methodName: cmdLine.espmethod,
       definePrefix: cmdLine.define
     },
