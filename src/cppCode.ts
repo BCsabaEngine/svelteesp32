@@ -45,6 +45,7 @@ const psychicTemplate = `
 {{/if}}
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
+#define {{definePrefix}}_SIZE_GZIP {{fileGzipSize}}
 
 {{#each sources}}
 #define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
@@ -130,6 +131,7 @@ const asyncTemplate = `
 {{/if}}
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
+#define {{definePrefix}}_SIZE_GZIP {{fileGzipSize}}
 
 {{#each sources}}
 #define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
@@ -195,6 +197,7 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
       now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
       fileCount: sources.length.toString(),
       fileSize: sources.reduce((previous, current) => previous + current.content.length, 0).toString(),
+      fileGzipSize: sources.reduce((previous, current) => previous + current.contentGzip.length, 0).toString(),
       sources: sources.map((s) => ({
         ...s,
         length: s.content.length,
