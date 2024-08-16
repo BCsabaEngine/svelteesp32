@@ -28,8 +28,8 @@
   },
   "homepage": "https://github.com/BCsabaEngine/svelteesp32",
   "scripts": {
-    "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --version=v1.5.0",
-    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v1.5.0",
+    "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --version=v$npm_package_version",
+    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
     "platformio": "~/.platformio/penv/bin/pio run -d ./demo/esp32",
     "all:build": "./package.script && npm run platformio",
     "clean": "tsc --build --clean",

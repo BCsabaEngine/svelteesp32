@@ -220,32 +220,35 @@ You can include a blocker error if a named file accidentally missing from the bu
 ...
 ```
 
-You can use the following c++ directives at the project level if you want to configure the usage there. Do not forget `--etag=compiler` or `--gzip=compiler` command line arg:
-`SVELTEESP32_ENABLE_ETAG` and `SVELTEESP32_ENABLE_GZIP`
+You can use the following c++ directives at the project level if you want to configure the usage there: `SVELTEESP32_ENABLE_ETAG` and `SVELTEESP32_ENABLE_GZIP`. (Do not forget `--etag=compiler` or `--gzip=compiler` command line arg!)
 
 ### Command line options
 
-| Option        | Description                                                              | default                 |
-| ------------- | ------------------------------------------------------------------------ | ----------------------- |
-| `-s`          | **Source dist folder contains compiled web files**                       |                         |
-| `-e`          | The engine for which the include file is created (psychic/async)         | psychic                 |
-| `-o`          | Generated output file with path                                          | `svelteesp32.h`         |
-| `--etag`      | Use ETag header for cache (true/false/compiler)                          | false                   |
-| `--gzip`      | Compress content with gzip (true/false/compiler)                         | true                    |
-| `--created`   | Include creation time (now) in the output file                           | false                   |
-| `--version`   | Include version info (ex. from frontend package.json) in the output file | ''                      |
-| `--espmethod` | Name of generated method                                                 | `initSvelteStaticFiles` |
-| `--define`    | Prefix of c++ defines                                                    | `SVELTEESP32`           |
-| `-h`          | Show help                                                                |                         |
+| Option        | Description                                                                  | default                 |
+| ------------- | ---------------------------------------------------------------------------- | ----------------------- |
+| `-s`          | **Source dist folder contains compiled web files**                           |                         |
+| `-e`          | The engine for which the include file is created (psychic/async)             | psychic                 |
+| `-o`          | Generated output file with path                                              | `svelteesp32.h`         |
+| `--etag`      | Use ETag header for cache (true/false/compiler)                              | false                   |
+| `--gzip`      | Compress content with gzip (true/false/compiler)                             | true                    |
+| `--created`   | Include creation time (now) in the output file                               | false                   |
+| `--version`   | Include version info in the output file, ex. --version=v$npm_package_version | ''                      |
+| `--espmethod` | Name of generated method                                                     | `initSvelteStaticFiles` |
+| `--define`    | Prefix of c++ defines                                                        | `SVELTEESP32`           |
+| `-h`          | Show help                                                                    |                         |
 
 ### Q&A
 
 - **How big a frontend application can be placed?** If you compress the content with gzip, even a 3-4Mb assets directory can be placed. This is a serious enough amount to serve a complete application.
 
-- **How fast is cpp file compilation?** The cpp file can be large, but it can be compiled in a few seconds on any machine. If you don't modify your svelte/react app, it will use the already compiled cpp file (not recompile). This does not increase the speed of ESP32/ESP8266 development.
+- **How fast is cpp file compilation?** The cpp (.h) file can be large, but it can be compiled in a few seconds on any machine. If you don't modify your svelte/react app, it will use the already compiled cpp file (not recompile). This does not increase the speed of ESP32/ESP8266 development.
 
 - **Does the solution use PROGMEM?** No and yes. ESP32 no longer has PROGMEM. (Exists, but does not affect the translation). Instead, if we use a const array in the global namespace, its content will be placed in the code area, i.e. it will not be used from the heap or the stack, so the content of the files to be served will be placed next to the code. When working on ESP8266, PROGMEM will actually be used.
 
-- **Is this safe to use in production?** I suggest you give it a try! If you find it useful and safe in several different situations, feel free to use it, just like any other free library.
+- **Why is the .h file so big?** The source files are always larger than the binary compiled from them. Does the size information in the header (SVELTEESP32_SIZE, SVELTEESP32_SIZE_GZIP) show the actual memory allocation.
+
+- **Is collaboration between groups supported?** Yes, the Frontend team produces the application, the use of svelteesp32 is part of the build process. Then, provided with a version number, the .h file is placed in git, which the ESP team translates into the platformio application.
 
 - **Will you develop it further?** Since I use it myself, I will do my best to make the solution better and better.
+
+- **Is this safe to use in production?** I suggest you give it a try! If you find it useful and safe in several different situations, feel free to use it, just like any other free library.
