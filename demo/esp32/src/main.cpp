@@ -2,11 +2,7 @@
 /* ESPAsyncWebServer example */
 
 #include <ESPAsyncWebServer.h>
-#ifdef COMPILER
-#include "svelteesp32async_compiler.h"
-#else
 #include "svelteesp32async.h"
-#endif
 
 #if SVELTEESP32_COUNT != 5
 #error Invalid file count
@@ -24,7 +20,7 @@ AsyncWebServer server(80);
 void setup()
 {
   initSvelteStaticFiles(&server);
-  server.begin(); 
+  server.begin();
 }
 void loop() {}
 
@@ -32,11 +28,7 @@ void loop() {}
 /* PsychicHttp example */
 
 #include <PsychicHttp.h>
-#ifdef COMPILER
-#include "svelteesp32psychic_compiler.h"
-#else
 #include "svelteesp32psychic.h"
-#endif
 
 #if SVELTEESP32_COUNT != 5
 #error Invalid file count
