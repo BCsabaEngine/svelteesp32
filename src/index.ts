@@ -1,6 +1,6 @@
 /* eslint-disable unicorn/prefer-string-replace-all */
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -73,6 +73,7 @@ console.log('');
 filesByExtension.sort((left, right) => left.extension.localeCompare(right.extension));
 
 const cppFile = getCppCode(sources, filesByExtension);
+mkdirSync(path.normalize(path.dirname(cmdLine.outputfile)), { recursive: true });
 writeFileSync(cmdLine.outputfile, cppFile);
 
 console.log(
