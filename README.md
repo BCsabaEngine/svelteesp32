@@ -224,18 +224,18 @@ You can use the following c++ directives at the project level if you want to con
 
 ### Command line options
 
-| Option        | Description                                                                  | default                 |
-| ------------- | ---------------------------------------------------------------------------- | ----------------------- |
-| `-s`          | **Source dist folder contains compiled web files**                           |                         |
-| `-e`          | The engine for which the include file is created (psychic/async)             | psychic                 |
-| `-o`          | Generated output file with path                                              | `svelteesp32.h`         |
-| `--etag`      | Use ETag header for cache (true/false/compiler)                              | false                   |
-| `--gzip`      | Compress content with gzip (true/false/compiler)                             | true                    |
-| `--created`   | Include creation time (now) in the output file                               | false                   |
-| `--version`   | Include version info in the output file, ex. --version=v$npm_package_version | ''                      |
-| `--espmethod` | Name of generated method                                                     | `initSvelteStaticFiles` |
-| `--define`    | Prefix of c++ defines                                                        | `SVELTEESP32`           |
-| `-h`          | Show help                                                                    |                         |
+| Option        | Description                                                                | default                 |
+| ------------- | -------------------------------------------------------------------------- | ----------------------- |
+| `-s`          | **Source dist folder contains compiled web files**                         |                         |
+| `-e`          | The engine for which the include file is created (psychic/async)           | psychic                 |
+| `-o`          | Generated output file with path                                            | `svelteesp32.h`         |
+| `--etag`      | Use ETag header for cache (true/false/compiler)                            | false                   |
+| `--gzip`      | Compress content with gzip (true/false/compiler)                           | true                    |
+| `--created`   | Include creation time in the output file                                   | false                   |
+| `--version`   | Include version info in the output file, `--version=v$npm_package_version` | ''                      |
+| `--espmethod` | Name of generated method                                                   | `initSvelteStaticFiles` |
+| `--define`    | Prefix of c++ defines                                                      | `SVELTEESP32`           |
+| `-h`          | Show help                                                                  |                         |
 
 ### Q&A
 
