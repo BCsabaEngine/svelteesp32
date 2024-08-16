@@ -62,7 +62,7 @@ const psychicTemplate = `
 {{#switch gzip}} 
 {{#case "true"}}
   {{#each sources}}
-const uint8_t datagz_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
   {{/each}}
 {{/case}} 
 {{#case "false"}}
@@ -73,7 +73,7 @@ const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
   {{#each sources}}
-const uint8_t datagz_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
   {{/each}}
 #else
   {{#each sources}}
@@ -159,14 +159,14 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../gzip}} 
 {{#case "true"}}
-    response.setContent(datagz_{{this.dataname}}, {{this.lengthGzip}});
+    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
 {{/case}} 
 {{#case "false"}}
     response.setContent(data_{{this.dataname}}, {{this.length}});
 {{/case}} 
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_GZIP
-    response.setContent(datagz_{{this.dataname}}, {{this.lengthGzip}});
+    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
   #else
     response.setContent(data_{{this.dataname}}, {{this.length}});
   #endif 
@@ -220,7 +220,7 @@ const asyncTemplate = `
 {{#switch gzip}} 
 {{#case "true"}}
   {{#each sources}}
-const uint8_t datagz_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this.bytesGzip}} };
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this.bytesGzip}} };
   {{/each}}
 {{/case}} 
 {{#case "false"}}
@@ -231,7 +231,7 @@ const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
   {{#each sources}}
-const uint8_t datagz_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this.bytesGzip}} };
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this.bytesGzip}} };
   {{/each}}
 #else
   {{#each sources}}
@@ -286,7 +286,7 @@ void {{methodName}}(AsyncWebServer * server) {
 
 {{#switch ../gzip}} 
 {{#case "true"}}
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagz_{{this.dataname}}, {{this.lengthGzip}});
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
     {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
     {{/if}}
@@ -296,7 +296,7 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/case}} 
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_GZIP
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagz_{{this.dataname}}, {{this.lengthGzip}});
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
     {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
     {{/if}}
@@ -373,4 +373,5 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     .map((line) => line.trimEnd())
     .filter(Boolean)
     .map((line) => (line == '//' ? '' : line))
-    .join('\n');
+    .join('\n')
+    .replace(/\\n{2}/, '\n');
