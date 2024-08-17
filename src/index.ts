@@ -74,7 +74,7 @@ filesByExtension.sort((left, right) => left.extension.localeCompare(right.extens
 
 const cppFile = getCppCode(sources, filesByExtension);
 mkdirSync(path.normalize(path.dirname(cmdLine.outputfile)), { recursive: true });
-writeFileSync(cmdLine.outputfile, cppFile);
+writeFileSync(cmdLine.outputfile, cppFile, { flush: true, encoding: 'utf8' });
 
 console.log(
   `${summary.filecount} files, ${Math.round(summary.size / 1024)}kB original size, ${Math.round(summary.gzipsize / 1024)}kB gzip size`

@@ -339,9 +339,9 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
       sources: sources.map((s) => ({
         ...s,
         length: s.content.length,
-        bytes: [...s.content].map((v) => `0x${v.toString(16)}`).join(', '),
+        bytes: [...s.content].map((v) => `${v.toString(10)}`).join(','),
         lengthGzip: s.contentGzip.length,
-        bytesGzip: [...s.contentGzip].map((v) => `0x${v.toString(16)}`).join(', '),
+        bytesGzip: [...s.contentGzip].map((v) => `${v.toString(10)}`).join(','),
         isDefault: s.filename.startsWith('index.htm')
       })),
       filesByExtension,
