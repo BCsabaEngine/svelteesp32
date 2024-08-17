@@ -2,6 +2,8 @@
 
 # Convert Svelte (or React/Angular/Vue) JS application to serve it from ESP32/ESP8266 webserver
 
+<p align="right">[Changelog](CHANGELOG.md)</p>
+
 ### Forget SPIFFS and LittleFS now
 
 I often make small to medium-sized microcontroller solutions that run on ESP32 or ESP8266. If a web interface is needed, I create a Svelte application. The Svelte application is practically served by the ESP32/ESP8266.
@@ -10,13 +12,13 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
-> Starting with version v1.1.0, the ETag header is also supported.
-
-> Starting with version v1.2.0, ESP8266/ESP8285 is also supported.
+> Version v1.4.0 has a breaking change! --no-gzip changed to --gzip. Starting with this version c++ compiler directives are available to setup operation in project level.
 
 > Starting with version v1.3.0, c++ defines can be used.
 
-> Version v1.4.0 has a breaking change! --no-gzip changed to --gzip. Starting with this version c++ compiler directives are available to setup operation in project level.
+> Starting with version v1.2.0, ESP8266/ESP8285 is also supported.
+
+> Starting with version v1.1.0, the ETag header is also supported.
 
 ### Usage
 
