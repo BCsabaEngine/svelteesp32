@@ -22,6 +22,8 @@ This npm package provides a solution for **inserting any JS client application i
 
 > Starting with version v1.1.0, the ETag header is also supported.
 
+[Changelog](CHANGELOG.md)
+
 ### Usage
 
 **Install package** as devDependency (it is practical if the package is part of the project so that you always receive updates)
