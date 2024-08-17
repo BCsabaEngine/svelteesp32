@@ -1,10 +1,7 @@
 # `svelteesp32` ![image](https://badges.github.io/stability-badges/dist/stable.svg)
+[Changelog](CHANGELOG.md)
 
 # Convert Svelte (or React/Angular/Vue) JS application to serve it from ESP32/ESP8266 webserver
-
-<p align="right">
-[Changelog](CHANGELOG.md)
-</p>
 
 ### Forget SPIFFS and LittleFS now
 
@@ -21,8 +18,6 @@ This npm package provides a solution for **inserting any JS client application i
 > Starting with version v1.2.0, ESP8266/ESP8285 is also supported.
 
 > Starting with version v1.1.0, the ETag header is also supported.
-
-[Changelog](CHANGELOG.md)
 
 ### Usage
 
