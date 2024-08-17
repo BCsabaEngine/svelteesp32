@@ -1,4 +1,5 @@
 # `svelteesp32` ![image](https://badges.github.io/stability-badges/dist/stable.svg)
+
 [Changelog](CHANGELOG.md)
 
 # Convert Svelte (or React/Angular/Vue) JS application to serve it from ESP32/ESP8266 webserver
