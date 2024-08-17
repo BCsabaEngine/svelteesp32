@@ -2,7 +2,9 @@
 
 # Convert Svelte (or React/Angular/Vue) JS application to serve it from ESP32/ESP8266 webserver
 
-<p align="right">[Changelog](CHANGELOG.md)</p>
+<p align="right">
+[Changelog](CHANGELOG.md)
+</p>
 
 ### Forget SPIFFS and LittleFS now
 
