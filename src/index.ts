@@ -27,7 +27,6 @@ if (files.length === 0) {
 for (const file of files) {
   const mime = lookup(file) || 'text/plain';
   summary.filecount++;
-  console.log(`[${file}]`);
 
   const filename = file.replace(/\\/g, '/');
   const dataname = filename.replace(/[./-]/g, '_');
@@ -43,7 +42,8 @@ for (const file of files) {
   summary.size += content.length;
   const zipContent = gzipSync(content, { level: 9 });
   summary.gzipsize += zipContent.length;
-  if (content.length > 100 && zipContent.length < content.length * 0.85) {
+  const zipRatio = Math.round((zipContent.length / content.length) * 100);
+  if (content.length > 1024 && zipContent.length < content.length * 0.85) {
     sources.push({
       filename,
       dataname,
@@ -54,7 +54,7 @@ for (const file of files) {
       mime,
       md5
     });
-    console.log(`✓ gzip used (${content.length} -> ${zipContent.length})`);
+    console.log(`[${file}] ✓ gzip used (${content.length} -> ${zipContent.length} = ${zipRatio}%)`);
   } else {
     sources.push({
       filename,
@@ -66,7 +66,9 @@ for (const file of files) {
       mime,
       md5
     });
-    console.log(`x gzip unused (${content.length} -> ${zipContent.length})`);
+    console.log(
+      `[${file}] x gzip unused ${content.length <= 1024 ? `(too small)` : ''} (${content.length} -> ${zipContent.length} = ${zipRatio}%)`
+    );
   }
 }
 console.log('');

@@ -160,7 +160,7 @@ If you **only work on ESP32**, I recommend using PsychicHttpServer, which uses t
 
 All modern browsers have been able to handle gzip-compressed content for years. For this reason, there is no question that the easily compressed JS and CSS files are stored compressed in the ESP32/ESP8266 and sent to the browser.
 
-During the translation process, data in gzip format is generated and will be used if the **size is greater than 100 bytes** and we experience a **reduction of at least 15%**. In such a case, the compressed data is unconditionally sent to the browser with the appropriate **Content-Encoding** header information.
+During the translation process, data in gzip format is generated and will be used if the **size is greater than 1024 bytes** and we experience a **reduction of at least 15%**. In such a case, the compressed data is unconditionally sent to the browser with the appropriate **Content-Encoding** header information.
 
 Automatic compression can be turned off with the `--gzip=false` option.
 
