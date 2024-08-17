@@ -23,7 +23,6 @@
 		"@rollup/plugin-swc": "^0.3.1",
 		"@sveltejs/vite-plugin-svelte": "^3.1.1",
 		"@tsconfig/svelte": "^5.0.4",
-		"@types/three": "^0.167.1",
 		"@typescript-eslint/eslint-plugin": "^8.1.0",
 		"@typescript-eslint/parser": "^8.1.0",
 		"autoprefixer": "^10.4.20",
@@ -35,6 +34,7 @@
 		"eslint-plugin-unicorn": "^55.0.0",
 		"flowbite": "^2.5.1",
 		"flowbite-svelte": "^0.46.15",
+		"flowbite-svelte-icons": "^1.6.1",
 		"postcss": "^8.4.41",
 		"postcss-load-config": "^6.0.1",
 		"prettier": "^3.3.3",
@@ -47,6 +47,5 @@
 		"typescript": "^5.5.4",
 		"vite": "^5.4.1",
 		"vite-plugin-tailwind-purgecss": "^0.3.3"
-	},
-	"dependencies": {}
+	}
 }
