@@ -4,17 +4,42 @@
 
 ### 1.4.0
 
+- The etag and gzip compiler option: For Etag and Gzip switches, values ​​true|false|compiler can be used. In the case of a compiler value, both variants can be found in the .h file and you can decide at compile time which one should be used.
+
+- The created and version info: You can put the creation date and a version number in the .h file with the --create and --version options.
+
+- 2x9 build and test system
+
+- Separated demo env
+
+- Proper svelte demo app
+
+- Create output directory: If output folder not exists, it will be automatically created
+
+- Detect precompressed files: If a.b and a.b.gz exist together, the .gz file is not used (gz, br, brottli)
+
+- Reduce .h file size: The size of the .h file has been reduced by 35-50%.
+
+- Skip gz under 1024: The gzip threshold increased to 1024 bytes.
+
+- Pipeline node version update
+
+- Warning if not usable directive used
+
+- Colored console
+
 ## 1.3
 
 ### 1.3.1
 
-- feat: filename directives are uppercased
-- feat: filecount by extension
-- fix: readme
+- Filename directives are uppercased
+
+- Filecount by extension
 
 ### 1.3.0
 
 - C++ defines can be used
+
 - C++ defines group by filetypes: Should we be able to check if a given file name or number of files is correct? For this, we should find C++ defines in the generated code.
 
 ## 1.2
