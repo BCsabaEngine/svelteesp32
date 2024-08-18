@@ -12,3 +12,5 @@ dist
 
 # dotenv environment variables file
 .env
+
+demo/esp32/include/**/*.h

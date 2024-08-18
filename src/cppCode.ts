@@ -1,4 +1,4 @@
-import { compile as handlebarsCompile } from 'handlebars';
+import { compile as handlebarsCompile, HelperOptions } from 'handlebars';
 
 import { cmdLine } from './commandLine';
 
@@ -8,6 +8,7 @@ export type CppCodeSource = {
   datanameUpperCase: string;
   mime: string;
   content: Buffer;
+  contentGzip: Buffer;
   isGzip: boolean;
   md5: string;
 };
@@ -21,52 +22,176 @@ export type ExtensionGroups = ExtensionGroup[];
 
 const psychicTemplate = `
 //engine:   PsychicHttpServer
-//cmdline:  {{commandLine}}
+//cmdline:  {{{commandLine}}}
+{{#if created }}
 //created:  {{now}}
-//files:    {{fileCount}}
-//memory:   {{fileSize}}
+{{/if}}
+//
 
-#include <Arduino.h>
-#include <PsychicHttp.h>
-#include <PsychicHttpsServer.h>
+{{#switch etag}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
 
+{{#switch gzip}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
+
+//
+{{#if version }}
+#define {{definePrefix}}_VERSION "{{version}}"
+{{/if}}
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
+#define {{definePrefix}}_SIZE_GZIP {{fileGzipSize}}
 
+//
 {{#each sources}}
 #define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
 {{/each}}
 
+//
 {{#each filesByExtension}}
 #define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
 {{/each}}
 
-{{#each sources}}
-const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
-{{#if ../isEtag}}
-const char * etag_{{this.dataname}} = "{{this.md5}}";
-{{/if}}
-{{/each}}
+//
+#include <Arduino.h>
+#include <PsychicHttp.h>
+#include <PsychicHttpsServer.h>
 
+//
+{{#switch gzip}}
+{{#case "true"}}
+  {{#each sources}}
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+  {{/each}}
+{{/case}}
+{{#case "false"}}
+  {{#each sources}}
+const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+  {{/each}}
+{{/case}}
+{{#case "compiler"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+  {{#each sources}}
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+  {{/each}}
+#else
+  {{#each sources}}
+const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+  {{/each}}
+#endif 
+{{/case}}
+{{/switch}}
+
+//
+{{#switch etag}}
+{{#case "true"}}
+  {{#each sources}}
+const char * etag_{{this.dataname}} = "{{this.md5}}";
+  {{/each}}
+{{/case}}
+{{#case "false"}}
+{{/case}}
+{{#case "compiler"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+  {{#each sources}}
+const char * etag_{{this.dataname}} = "{{this.md5}}";
+  {{/each}}
+#endif 
+{{/case}}
+{{/switch}}
+
+//
+// Http Handlers
 void {{methodName}}(PsychicHttpServer * server) {
 {{#each sources}}
+//
+// {{this.filename}}
   {{#if this.isDefault}}server->defaultEndpoint = {{/if}}server->on("/{{this.filename}}", HTTP_GET, [](PsychicRequest * request) {
-    {{#if ../isEtag}}
+
+{{#switch ../etag}}
+{{#case "true"}}
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
     }
-    {{/if}}
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
+      PsychicResponse response304(request);
+      response304.setCode(304);
+      return response304.send();
+    }
+  #endif 
+{{/case}}
+{{/switch}}
+
     PsychicResponse response(request);
     response.setContentType("{{this.mime}}");
-    {{#if this.isGzip}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+{{#if this.isGzip}}
     response.addHeader("Content-Encoding", "gzip");
-    {{/if}}
-    {{#if ../isEtag}}
+{{/if}}
+{{/case}}
+{{#case "compiler"}}
+  {{#if this.isGzip}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response.addHeader("Content-Encoding", "gzip");
+  #endif 
+  {{/if}}
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
     response.addHeader("ETag", etag_{{this.dataname}});
-    {{/if}}
-    response.setContent(data_{{this.dataname}}, sizeof(data_{{this.dataname}}));
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    response.addHeader("ETag", etag_{{this.dataname}});
+  #endif 
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+{{/case}}
+{{#case "false"}}
+    response.setContent(data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+  #else
+    response.setContent(data_{{this.dataname}}, {{this.length}});
+  #endif 
+{{/case}}
+{{/switch}}
+
     return response.send();
   });
 
@@ -75,48 +200,161 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 const asyncTemplate = `
 //engine:   ESPAsyncWebServer
-//cmdline:  {{commandLine}}
+//cmdline:  {{{commandLine}}}
+{{#if created }}
 //created:  {{now}}
-//files:    {{fileCount}}
-//memory:   {{fileSize}}
+{{/if}}
+//
 
-#include <Arduino.h>
-#include <ESPAsyncWebServer.h>
+{{#switch etag}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
 
+{{#switch gzip}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
+
+//
+{{#if version }}
+#define {{definePrefix}}_VERSION "{{version}}"
+{{/if}}
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
+#define {{definePrefix}}_SIZE_GZIP {{fileGzipSize}}
 
+//
 {{#each sources}}
 #define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
 {{/each}}
 
+//
 {{#each filesByExtension}}
 #define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
 {{/each}}
 
-{{#each sources}}
-const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
-{{#if ../isEtag}}
-const char * etag_{{this.dataname}} = "{{this.md5}}";
-{{/if}}
-{{/each}}
+//
+#include <Arduino.h>
+#include <ESPAsyncWebServer.h>
 
+//
+{{#switch gzip}}
+{{#case "true"}}
+  {{#each sources}}
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this.bytesGzip}} };
+  {{/each}}
+{{/case}}
+{{#case "false"}}
+  {{#each sources}}
+const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
+  {{/each}}
+{{/case}}
+{{#case "compiler"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+  {{#each sources}}
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this.bytesGzip}} };
+  {{/each}}
+#else
+  {{#each sources}}
+const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
+  {{/each}}
+#endif 
+{{/case}}
+{{/switch}}
+
+//
+{{#switch etag}}
+{{#case "true"}}
+  {{#each sources}}
+const char * etag_{{this.dataname}} = "{{this.md5}}";
+  {{/each}}
+{{/case}}
+{{#case "false"}}
+{{/case}}
+{{#case "compiler"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+  {{#each sources}}
+const char * etag_{{this.dataname}} = "{{this.md5}}";
+  {{/each}}
+#endif 
+{{/case}}
+{{/switch}}
+
+//
+// Http Handlers
 void {{methodName}}(AsyncWebServer * server) {
 {{#each sources}}
+//
+// {{this.filename}}
   ArRequestHandlerFunction func_{{this.dataname}} = [](AsyncWebServerRequest * request) {
-    {{#if ../isEtag}}
+
+{{#switch ../etag}}
+{{#case "true"}}
     if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag_{{this.dataname}})) {
       request->send(304);
       return;
     }
-    {{/if}}
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag_{{this.dataname}})) {
+      request->send(304);
+      return;
+    }
+  #endif 
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
     {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
     {{/if}}
-    {{#if ../isEtag}}
-    response->addHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "false"}}
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    {{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
     {{/if}}
+  #else
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+  #endif 
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    response->addHeader("ETag", etag_{{this.dataname}});
+  #endif 
+{{/case}}
+{{/switch}}
+
     request->send(response);
   };
   server->on("/{{this.filename}}", HTTP_GET, func_{{this.dataname}});
@@ -127,20 +365,51 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/each}}
 }`;
 
+let switchValue: string;
 export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string =>
-  handlebarsCompile(cmdLine.engine === 'psychic' ? psychicTemplate : asyncTemplate)({
-    commandLine: process.argv.slice(2).join(' '),
-    now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
-    fileCount: sources.length.toString(),
-    fileSize: sources.reduce((previous, current) => previous + current.content.length, 0).toString(),
-    sources: sources.map((s) => ({
-      ...s,
-      length: s.content.length,
-      bytes: [...s.content].map((v) => `0x${v.toString(16)}`).join(', '),
-      isDefault: s.filename.startsWith('index.htm')
-    })),
-    filesByExtension,
-    isEtag: cmdLine.etag,
-    methodName: cmdLine.espmethod,
-    definePrefix: cmdLine.define
-  }).trim();
+  handlebarsCompile(cmdLine.engine === 'psychic' ? psychicTemplate : asyncTemplate)(
+    {
+      commandLine: process.argv.slice(2).join(' '),
+      now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+      fileCount: sources.length.toString(),
+      fileSize: sources.reduce((previous, current) => previous + current.content.length, 0).toString(),
+      fileGzipSize: sources.reduce((previous, current) => previous + current.contentGzip.length, 0).toString(),
+      sources: sources.map((s) => ({
+        ...s,
+        length: s.content.length,
+        bytes: [...s.content].map((v) => `${v.toString(10)}`).join(','),
+        lengthGzip: s.contentGzip.length,
+        bytesGzip: [...s.contentGzip].map((v) => `${v.toString(10)}`).join(','),
+        isDefault: s.filename.startsWith('index.htm')
+      })),
+      filesByExtension,
+      etag: cmdLine.etag,
+      gzip: cmdLine.gzip,
+      created: cmdLine.created,
+      version: cmdLine.version,
+      methodName: cmdLine.espmethod,
+      definePrefix: cmdLine.define
+    },
+    {
+      helpers: {
+        ifeq: function (a: string, b: string, options: HelperOptions) {
+          if (a == b) return options.fn(this);
+          return options.inverse(this);
+        },
+        switch: function (value: string, options: HelperOptions) {
+          switchValue = value;
+          return options.fn(this);
+        },
+        case: function (value: string, options: HelperOptions) {
+          if (value == switchValue) return options.fn(this);
+          return options.inverse(this);
+        }
+      }
+    }
+  )
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter(Boolean)
+    .map((line) => (line == '//' ? '' : line))
+    .join('\n')
+    .replace(/\\n{2}/, '\n');

@@ -4,7 +4,7 @@
 #include <ESPAsyncWebServer.h>
 #include "svelteesp32async.h"
 
-#if SVELTEESP32_COUNT != 5
+#if SVELTEESP32_COUNT != 10
 #error Invalid file count
 #endif
 
@@ -30,7 +30,7 @@ void loop() {}
 #include <PsychicHttp.h>
 #include "svelteesp32psychic.h"
 
-#if SVELTEESP32_COUNT != 5
+#if SVELTEESP32_COUNT != 10
 #error Invalid file count
 #endif
 

@@ -8,8 +8,10 @@ interface ICopyFilesArguments {
   outputfile: string;
   espmethod: string;
   define: string;
-  'no-gzip': boolean;
-  etag: boolean;
+  gzip: 'true' | 'false' | 'compiler';
+  etag: 'true' | 'false' | 'compiler';
+  created: boolean;
+  version: string;
   help?: boolean;
 }
 
@@ -22,7 +24,7 @@ export const cmdLine = parse<ICopyFilesArguments>(
         throw new Error(`Invalid engine: ${value}`);
       },
       alias: 'e',
-      description: 'The engine for which the include file is created',
+      description: 'The engine for which the include file is created (psychic|async)',
       defaultValue: 'psychic'
     },
     sourcepath: {
@@ -36,15 +38,35 @@ export const cmdLine = parse<ICopyFilesArguments>(
       description: 'Generated output file with path',
       defaultValue: 'svelteesp32.h'
     },
-    'no-gzip': {
+    etag: {
+      type: (value) => {
+        if (value === 'true') return 'true';
+        if (value === 'false') return 'false';
+        if (value === 'compiler') return 'compiler';
+        throw new Error(`Invalid etag: ${value}`);
+      },
+      description: 'Use ETAG header for cache',
+      defaultValue: 'false'
+    },
+    gzip: {
+      type: (value) => {
+        if (value === 'true') return 'true';
+        if (value === 'false') return 'false';
+        if (value === 'compiler') return 'compiler';
+        throw new Error(`Invalid etag: ${value}`);
+      },
+      description: 'Compress content with gzip',
+      defaultValue: 'true'
+    },
+    created: {
       type: Boolean,
-      description: 'Do not compress content with gzip',
+      description: 'Include creation time in the output file',
       defaultValue: false
     },
-    etag: {
-      type: Boolean,
-      description: 'Use ETAG header for cache',
-      defaultValue: false
+    version: {
+      type: String,
+      description: 'Include version info in the output file',
+      defaultValue: ''
     },
     espmethod: {
       type: String,
