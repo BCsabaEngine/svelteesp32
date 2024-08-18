@@ -4,6 +4,8 @@
 
 ### 1.4.0
 
+- ** --no-gzip changed to --gzip**
+
 - The etag and gzip compiler option: For Etag and Gzip switches, values ​​true|false|compiler can be used. In the case of a compiler value, both variants can be found in the .h file and you can decide at compile time which one should be used.
 
 - The created and version info: You can put the creation date and a version number in the .h file with the --create and --version options.
