@@ -41,20 +41,11 @@ npx svelteesp32 -e async -s ../svelteapp/dist -o ../esp32project/svelteesp32.h -
 During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP's memory allocation (gzip size)
 
 ```
-[assets/index-KwubEIf-.js]
-✓ gzip used (38850 -> 12547)
-
-[assets/index-Soe6cpLA.css]
-✓ gzip used (32494 -> 5368)
-
-[favicon.png]
-x gzip unused (33249 -> 33282)
-
-[index.html]
-✓ gzip used (472 -> 308)
-
-[roboto_regular.json]
-✓ gzip used (363757 -> 93567)
+[assets/index-KwubEIf-.js]  ✓ gzip used (38850 -> 12547)
+[assets/index-Soe6cpLA.css] ✓ gzip used (32494 -> 5368)
+[favicon.png]               x gzip unused (33249 -> 33282)
+[index.html]                ✓ gzip used (472 -> 308)
+[roboto_regular.json]       ✓ gzip used (363757 -> 93567)
 
 5 files, 458kB original size, 142kB gzip size
 ../../../Arduino/EspSvelte/svelteesp32.h 842kB size
