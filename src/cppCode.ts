@@ -28,12 +28,31 @@ const psychicTemplate = `
 {{/if}}
 //
 
-{{#ifeq etag "true" }}
-#define {{definePrefix}}_ENABLE_ETAG
-{{/ifeq}}
-{{#ifeq gzip "true" }}
-#define {{definePrefix}}_ENABLE_GZIP
-{{/ifeq}}
+{{#switch etag}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
+
+{{#switch gzip}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
 
 //
 {{#if version }}
@@ -59,17 +78,17 @@ const psychicTemplate = `
 #include <PsychicHttpsServer.h>
 
 //
-{{#switch gzip}} 
+{{#switch gzip}}
 {{#case "true"}}
   {{#each sources}}
 const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
   {{/each}}
-{{/case}} 
+{{/case}}
 {{#case "false"}}
   {{#each sources}}
 const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
   {{/each}}
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
   {{#each sources}}
@@ -80,25 +99,25 @@ const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGz
 const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
   {{/each}}
 #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
 //
-{{#switch etag}} 
+{{#switch etag}}
 {{#case "true"}}
   {{#each sources}}
 const char * etag_{{this.dataname}} = "{{this.md5}}";
   {{/each}}
-{{/case}} 
+{{/case}}
 {{#case "false"}}
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_ETAG
   {{#each sources}}
 const char * etag_{{this.dataname}} = "{{this.md5}}";
   {{/each}}
 #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
 //
@@ -109,14 +128,14 @@ void {{methodName}}(PsychicHttpServer * server) {
 // {{this.filename}}
   {{#if this.isDefault}}server->defaultEndpoint = {{/if}}server->on("/{{this.filename}}", HTTP_GET, [](PsychicRequest * request) {
 
-{{#switch ../etag}} 
+{{#switch ../etag}}
 {{#case "true"}}
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
     }
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
@@ -125,52 +144,52 @@ void {{methodName}}(PsychicHttpServer * server) {
       return response304.send();
     }
   #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
     PsychicResponse response(request);
     response.setContentType("{{this.mime}}");
 
-{{#switch ../gzip}} 
+{{#switch ../gzip}}
 {{#case "true"}}
 {{#if this.isGzip}}
     response.addHeader("Content-Encoding", "gzip");
 {{/if}}
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
   {{#if this.isGzip}}
   #ifdef {{../definePrefix}}_ENABLE_GZIP
     response.addHeader("Content-Encoding", "gzip");
   #endif 
   {{/if}}
-{{/case}} 
+{{/case}}
 {{/switch}}
 
-{{#switch ../etag}} 
+{{#switch ../etag}}
 {{#case "true"}}
     response.addHeader("ETag", etag_{{this.dataname}});
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     response.addHeader("ETag", etag_{{this.dataname}});
   #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
-{{#switch ../gzip}} 
+{{#switch ../gzip}}
 {{#case "true"}}
     response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
-{{/case}} 
+{{/case}}
 {{#case "false"}}
     response.setContent(data_{{this.dataname}}, {{this.length}});
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_GZIP
     response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
   #else
     response.setContent(data_{{this.dataname}}, {{this.length}});
   #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
     return response.send();
@@ -187,12 +206,31 @@ const asyncTemplate = `
 {{/if}}
 //
 
-{{#ifeq etag "true" }}
-#define {{definePrefix}}_ENABLE_ETAG
-{{/ifeq}}
-{{#ifeq gzip "true" }}
-#define {{definePrefix}}_ENABLE_GZIP
-{{/ifeq}}
+{{#switch etag}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
+
+{{#switch gzip}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
 
 //
 {{#if version }}
@@ -217,17 +255,17 @@ const asyncTemplate = `
 #include <ESPAsyncWebServer.h>
 
 //
-{{#switch gzip}} 
+{{#switch gzip}}
 {{#case "true"}}
   {{#each sources}}
 const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this.bytesGzip}} };
   {{/each}}
-{{/case}} 
+{{/case}}
 {{#case "false"}}
   {{#each sources}}
 const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
   {{/each}}
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
   {{#each sources}}
@@ -238,25 +276,25 @@ const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] PROGMEM = { {{this
 const uint8_t data_{{this.dataname}}[{{this.length}}] PROGMEM = { {{this.bytes}} };
   {{/each}}
 #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
 //
-{{#switch etag}} 
+{{#switch etag}}
 {{#case "true"}}
   {{#each sources}}
 const char * etag_{{this.dataname}} = "{{this.md5}}";
   {{/each}}
-{{/case}} 
+{{/case}}
 {{#case "false"}}
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_ETAG
   {{#each sources}}
 const char * etag_{{this.dataname}} = "{{this.md5}}";
   {{/each}}
 #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
 //
@@ -267,13 +305,13 @@ void {{methodName}}(AsyncWebServer * server) {
 // {{this.filename}}
   ArRequestHandlerFunction func_{{this.dataname}} = [](AsyncWebServerRequest * request) {
 
-{{#switch ../etag}} 
+{{#switch ../etag}}
 {{#case "true"}}
     if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag_{{this.dataname}})) {
       request->send(304);
       return;
     }
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag_{{this.dataname}})) {
@@ -281,19 +319,19 @@ void {{methodName}}(AsyncWebServer * server) {
       return;
     }
   #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
-{{#switch ../gzip}} 
+{{#switch ../gzip}}
 {{#case "true"}}
     AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
     {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
     {{/if}}
-{{/case}} 
+{{/case}}
 {{#case "false"}}
     AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_GZIP
     AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
@@ -303,18 +341,18 @@ void {{methodName}}(AsyncWebServer * server) {
   #else
     AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
   #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
-{{#switch ../etag}} 
+{{#switch ../etag}}
 {{#case "true"}}
     response->addHeader("ETag", etag_{{this.dataname}});
-{{/case}} 
+{{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif 
-{{/case}} 
+{{/case}}
 {{/switch}}
 
     request->send(response);
