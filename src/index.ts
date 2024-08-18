@@ -7,6 +7,7 @@ import { gzipSync } from 'node:zlib';
 import { lookup } from 'mime-types';
 
 import { cmdLine } from './commandLine';
+import { greenLog, yellowLog } from './consoleColor';
 import { CppCodeSources, ExtensionGroups, getCppCode } from './cppCode';
 import { getFiles } from './file';
 
@@ -24,6 +25,7 @@ if (files.length === 0) {
   process.exit(1);
 }
 
+const rightPad = files.reduce((p, c) => (c.length > p ? c.length : p), 0);
 for (const file of files) {
   const mime = lookup(file) || 'text/plain';
   summary.filecount++;
@@ -54,7 +56,11 @@ for (const file of files) {
       mime,
       md5
     });
-    console.log(`[${file}] ✓ gzip used (${content.length} -> ${zipContent.length} = ${zipRatio}%)`);
+    console.log(
+      greenLog(
+        `[${file}] ${' '.repeat(rightPad - file.length)} ✓ gzip used (${content.length} -> ${zipContent.length} = ${zipRatio}%)`
+      )
+    );
   } else {
     sources.push({
       filename,
@@ -67,7 +73,9 @@ for (const file of files) {
       md5
     });
     console.log(
-      `[${file}] x gzip unused ${content.length <= 1024 ? `(too small)` : ''} (${content.length} -> ${zipContent.length} = ${zipRatio}%)`
+      yellowLog(
+        `[${file}] ${' '.repeat(rightPad - file.length)} x gzip unused ${content.length <= 1024 ? `(too small) ` : ''}(${content.length} -> ${zipContent.length} = ${zipRatio}%)`
+      )
     );
   }
 }
