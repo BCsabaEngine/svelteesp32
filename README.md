@@ -44,7 +44,7 @@ During the **translation process**, the processed file details are visible, and 
 [assets/index-KwubEIf-.js]  ✓ gzip used (38850 -> 12547)
 [assets/index-Soe6cpLA.css] ✓ gzip used (32494 -> 5368)
 [favicon.png]               x gzip unused (33249 -> 33282)
-[index.html]                ✓ gzip used (472 -> 308)
+[index.html]                x gzip unused (too small) (472 -> 308)
 [roboto_regular.json]       ✓ gzip used (363757 -> 93567)
 
 5 files, 458kB original size, 142kB gzip size
