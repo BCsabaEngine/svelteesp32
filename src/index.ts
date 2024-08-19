@@ -61,7 +61,7 @@ for (const [originalFilename, content] of files) {
     });
     console.log(
       greenLog(
-        `[${originalFilename}] ${' '.repeat(longestFilename - originalFilename.length)} ✓ gzip used (${content.length} -> ${zipContent.length} = ${zipRatio}%)`
+        ` [${originalFilename}] ${' '.repeat(longestFilename - originalFilename.length)} ✓ gzip used (${content.length} -> ${zipContent.length} = ${zipRatio}%)`
       )
     );
   } else {
@@ -77,7 +77,7 @@ for (const [originalFilename, content] of files) {
     });
     console.log(
       yellowLog(
-        `[${originalFilename}] ${' '.repeat(longestFilename - originalFilename.length)} x gzip unused ${content.length <= 1024 ? `(too small) ` : ''}(${content.length} -> ${zipContent.length} = ${zipRatio}%)`
+        ` [${originalFilename}] ${' '.repeat(longestFilename - originalFilename.length)} x gzip unused ${content.length <= 1024 ? `(too small) ` : ''}(${content.length} -> ${zipContent.length} = ${zipRatio}%)`
       )
     );
   }

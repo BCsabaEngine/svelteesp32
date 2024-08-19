@@ -27,7 +27,7 @@ export const getFiles = (): Map<string, Buffer> => {
     if (['.gz', '.brottli', '.br'].includes(extension)) {
       const original = filename.slice(0, -1 * extension.length);
       if (filenames.includes(original)) {
-        console.log(redLog(`${filename} skipped because is perhaps a compressed version of ${original}`));
+        console.log(redLog(` ${filename} skipped because is perhaps a compressed version of ${original}`));
         return false;
       }
     }
@@ -38,6 +38,6 @@ export const getFiles = (): Map<string, Buffer> => {
   for (const filename of filenames)
     result.set(filename, readFileSync(path.join(cmdLine.sourcepath, filename), { flag: 'r' }));
   for (const sameFile of findSimilarFiles(result))
-    console.log(yellowLog(`${sameFile.join(', ')} files look like identical`));
+    console.log(yellowLog(` ${sameFile.join(', ')} files look like identical`));
   return result;
 };
