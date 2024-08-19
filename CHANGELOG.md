@@ -2,6 +2,12 @@
 
 ## 1.4
 
+### 1.4.1
+
+- Implemented a new function to **identify and log files with identical content**.
+
+- Added support for multiple linting tools to ensure higher code standards.
+
 ### 1.4.0
 
 - Breaking change: --no-gzip changed to --gzip
