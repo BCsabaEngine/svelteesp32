@@ -10,7 +10,7 @@ import { redLog, yellowLog } from './consoleColor';
 const findSimilarFiles = (files: Map<string, Buffer>): string[][] => {
   const contentComparer: Map<string, string[]> = new Map();
   for (const [filename, content] of files.entries()) {
-    const hash = createHash('md5').update(content.toString()).digest('hex');
+    const hash = createHash('sha256').update(content).digest('hex');
     if (contentComparer.has(hash)) contentComparer.get(hash)!.push(filename);
     else contentComparer.set(hash, [filename]);
   }
