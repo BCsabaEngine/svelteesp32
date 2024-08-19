@@ -8,9 +8,9 @@
 
 - The etag and gzip compiler option: For Etag and Gzip switches, values ​​true|false|compiler can be used. In the case of a compiler value, both variants can be found in the .h file and you can decide at compile time which one should be used.
 
-- The created and version info: You can put the creation date and a version number in the .h file with the --create and --version options.
+- The created and version info: You can put the creation date and a version number in the .h file with the --created and --version options.
 
-- 2x9 build and test system
+- 2x9 build and test system: We also run all possible parameter combinations (etag and gzip) for the Async and Psychic web servers.
 
 - Separated demo env
 

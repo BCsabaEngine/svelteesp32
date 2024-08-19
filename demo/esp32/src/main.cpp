@@ -1,6 +1,8 @@
 #ifdef ASYNC
 /* ESPAsyncWebServer example */
 
+#include "credentials.h"
+#include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include "svelteesp32async.h"
 
@@ -19,6 +21,12 @@
 AsyncWebServer server(80);
 void setup()
 {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, pass);
+  if (WiFi.waitForConnectResult() != WL_CONNECTED)
+    while (true)
+      ;
+
   initSvelteStaticFiles(&server);
   server.begin();
 }
@@ -27,6 +35,8 @@ void loop() {}
 #elif PSYCHIC
 /* PsychicHttp example */
 
+#include "credentials.h"
+#include <WiFi.h>
 #include <PsychicHttp.h>
 #include "svelteesp32psychic.h"
 
@@ -45,6 +55,12 @@ void loop() {}
 PsychicHttpServer server;
 void setup()
 {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, pass);
+  if (WiFi.waitForConnectResult() != WL_CONNECTED)
+    while (true)
+      ;
+
   server.listen(80);
   initSvelteStaticFiles(&server);
 }
