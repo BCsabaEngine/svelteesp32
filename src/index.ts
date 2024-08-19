@@ -1,6 +1,6 @@
 /* eslint-disable unicorn/prefer-string-replace-all */
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -19,18 +19,22 @@ const summary = {
 
 const sources: CppCodeSources = [];
 const filesByExtension: ExtensionGroups = [];
+
+console.log('Collecting source files');
 const files = getFiles();
-if (files.length === 0) {
+if (files.size === 0) {
   console.error(`Directory ${cmdLine.sourcepath} is empty`);
   process.exit(1);
 }
 
-const rightPad = files.reduce((p, c) => (c.length > p ? c.length : p), 0);
-for (const file of files) {
-  const mime = lookup(file) || 'text/plain';
+console.log();
+console.log('Translation to header file');
+const longestFilename = [...files.keys()].reduce((p, c) => (c.length > p ? c.length : p), 0);
+for (const [originalFilename, content] of files) {
+  const mime = lookup(originalFilename) || 'text/plain';
   summary.filecount++;
 
-  const filename = file.replace(/\\/g, '/');
+  const filename = originalFilename.replace(/\\/g, '/');
   const dataname = filename.replace(/[./-]/g, '_');
   let extension = path.extname(filename).toUpperCase();
   if (extension.startsWith('.')) extension = extension.slice(1);
@@ -39,7 +43,6 @@ for (const file of files) {
   if (group) group.count += 1;
   else filesByExtension.push({ extension, count: 1 });
 
-  const content = readFileSync(path.join(cmdLine.sourcepath, file), { flag: 'r' });
   const md5 = createHash('md5').update(content).digest('hex');
   summary.size += content.length;
   const zipContent = gzipSync(content, { level: 9 });
@@ -58,7 +61,7 @@ for (const file of files) {
     });
     console.log(
       greenLog(
-        `[${file}] ${' '.repeat(rightPad - file.length)} ✓ gzip used (${content.length} -> ${zipContent.length} = ${zipRatio}%)`
+        ` [${originalFilename}] ${' '.repeat(longestFilename - originalFilename.length)} ✓ gzip used (${content.length} -> ${zipContent.length} = ${zipRatio}%)`
       )
     );
   } else {
@@ -74,7 +77,7 @@ for (const file of files) {
     });
     console.log(
       yellowLog(
-        `[${file}] ${' '.repeat(rightPad - file.length)} x gzip unused ${content.length <= 1024 ? `(too small) ` : ''}(${content.length} -> ${zipContent.length} = ${zipRatio}%)`
+        ` [${originalFilename}] ${' '.repeat(longestFilename - originalFilename.length)} x gzip unused ${content.length <= 1024 ? `(too small) ` : ''}(${content.length} -> ${zipContent.length} = ${zipRatio}%)`
       )
     );
   }
