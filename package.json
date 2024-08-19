@@ -37,7 +37,8 @@
     "format:fix": "prettier --write .",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
-    "fix": "npm run format:fix && npm run lint:fix"
+    "fix": "npm run format:fix && npm run lint:fix",
+    "npm:reinstall": "rm -rf ./node_modules && rm -f ./package-lock.json && npm i"
   },
   "keywords": [
     "svelte",
@@ -52,7 +53,7 @@
   ],
   "devDependencies": {
     "@types/mime-types": "^2.1.4",
-    "@types/node": "^22.4.0",
+    "@types/node": "^22.4.1",
     "@typescript-eslint/eslint-plugin": "^8.1.0",
     "@typescript-eslint/parser": "^8.1.0",
     "eslint": "^9.9.0",
