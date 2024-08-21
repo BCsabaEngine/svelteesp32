@@ -167,10 +167,12 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
+    response.addHeader("cache-control", "no-cache");
     response.addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
+    response.addHeader("cache-control", "no-cache");
     response.addHeader("ETag", etag_{{this.dataname}});
   #endif 
 {{/case}}
@@ -346,10 +348,12 @@ void {{methodName}}(AsyncWebServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
+    response->addHeader("cache-control", "no-cache");
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
+    response->addHeader("cache-control", "no-cache");
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif 
 {{/case}}
