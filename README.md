@@ -12,6 +12,8 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
+> Starting with version v1.5.0, PsychicHttp v2 is also supported.
+
 > Version v1.4.0 has a breaking change! --no-gzip changed to --gzip. Starting with this version c++ compiler directives are available to setup operation in project level.
 
 > Starting with version v1.3.0, c++ defines can be used.
@@ -33,6 +35,9 @@ After a successful Svelte build (rollup/webpack/vite) **create an includeable c+
 ```bash
 // for PsychicHttpServer
 npx svelteesp32 -e psychic -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag=true
+
+// for PsychicHttpServer V2
+npx svelteesp32 -e psychic2 -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag=true
 
 // for ESPAsyncWebServer
 npx svelteesp32 -e async -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag=true
@@ -217,18 +222,18 @@ You can use the following c++ directives at the project level if you want to con
 
 ### Command line options
 
-| Option        | Description                                                      | default                 |
-| ------------- | ---------------------------------------------------------------- | ----------------------- |
-| `-s`          | **Source dist folder contains compiled web files**               |                         |
-| `-e`          | The engine for which the include file is created (psychic/async) | psychic                 |
-| `-o`          | Generated output file with path                                  | `svelteesp32.h`         |
-| `--etag`      | Use ETag header for cache (true/false/compiler)                  | false                   |
-| `--gzip`      | Compress content with gzip (true/false/compiler)                 | true                    |
-| `--created`   | Include creation time                                            | false                   |
-| `--version`   | Include a version string, `--version=v$npm_package_version`      | ''                      |
-| `--espmethod` | Name of generated method                                         | `initSvelteStaticFiles` |
-| `--define`    | Prefix of c++ defines                                            | `SVELTEESP32`           |
-| `-h`          | Show help                                                        |                         |
+| Option        | Description                                                               | default                 |
+| ------------- | ------------------------------------------------------------------------- | ----------------------- |
+| `-s`          | **Source dist folder contains compiled web files**                        |                         |
+| `-e`          | The engine for which the include file is created (psychic/psychic2/async) | psychic                 |
+| `-o`          | Generated output file with path                                           | `svelteesp32.h`         |
+| `--etag`      | Use ETag header for cache (true/false/compiler)                           | false                   |
+| `--gzip`      | Compress content with gzip (true/false/compiler)                          | true                    |
+| `--created`   | Include creation time                                                     | false                   |
+| `--version`   | Include a version string, `--version=v$npm_package_version`               | ''                      |
+| `--espmethod` | Name of generated method                                                  | `initSvelteStaticFiles` |
+| `--define`    | Prefix of c++ defines                                                     | `SVELTEESP32`           |
+| `-h`          | Show help                                                                 |                         |
 
 ### Q&A
 

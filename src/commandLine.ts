@@ -3,7 +3,7 @@ import { existsSync, statSync } from 'node:fs';
 import { parse } from 'ts-command-line-args';
 
 interface ICopyFilesArguments {
-  engine: 'psychic' | 'async';
+  engine: 'psychic' | 'psychic2' | 'async';
   sourcepath: string;
   outputfile: string;
   espmethod: string;
@@ -20,11 +20,12 @@ export const cmdLine = parse<ICopyFilesArguments>(
     engine: {
       type: (value) => {
         if (value === 'psychic') return 'psychic';
+        if (value === 'psychic2') return 'psychic2';
         if (value === 'async') return 'async';
         throw new Error(`Invalid engine: ${value}`);
       },
       alias: 'e',
-      description: 'The engine for which the include file is created (psychic|async)',
+      description: 'The engine for which the include file is created (psychic|psychic2|async)',
       defaultValue: 'psychic'
     },
     sourcepath: {
