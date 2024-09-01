@@ -200,6 +200,183 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{/each}}
 }`;
 
+const psychic2Template = `
+//engine:   PsychicHttpServerV2
+//cmdline:  {{{commandLine}}}
+{{#if created }}
+//created:  {{now}}
+{{/if}}
+//
+
+{{#switch etag}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
+
+{{#switch gzip}}
+{{#case "true"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched ON
+#endif
+{{/case}}
+{{#case "false"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched OFF
+#endif
+{{/case}}
+{{/switch}}
+
+//
+{{#if version }}
+#define {{definePrefix}}_VERSION "{{version}}"
+{{/if}}
+#define {{definePrefix}}_COUNT {{fileCount}}
+#define {{definePrefix}}_SIZE {{fileSize}}
+#define {{definePrefix}}_SIZE_GZIP {{fileGzipSize}}
+
+//
+{{#each sources}}
+#define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
+{{/each}}
+
+//
+{{#each filesByExtension}}
+#define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
+{{/each}}
+
+//
+#include <Arduino.h>
+#include <PsychicHttp.h>
+#include <PsychicHttpsServer.h>
+
+//
+{{#switch gzip}}
+{{#case "true"}}
+  {{#each sources}}
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+  {{/each}}
+{{/case}}
+{{#case "false"}}
+  {{#each sources}}
+const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+  {{/each}}
+{{/case}}
+{{#case "compiler"}}
+#ifdef {{definePrefix}}_ENABLE_GZIP
+  {{#each sources}}
+const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+  {{/each}}
+#else
+  {{#each sources}}
+const uint8_t data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+  {{/each}}
+#endif 
+{{/case}}
+{{/switch}}
+
+//
+{{#switch etag}}
+{{#case "true"}}
+  {{#each sources}}
+const char * etag_{{this.dataname}} = "{{this.md5}}";
+  {{/each}}
+{{/case}}
+{{#case "false"}}
+{{/case}}
+{{#case "compiler"}}
+#ifdef {{definePrefix}}_ENABLE_ETAG
+  {{#each sources}}
+const char * etag_{{this.dataname}} = "{{this.md5}}";
+  {{/each}}
+#endif 
+{{/case}}
+{{/switch}}
+
+//
+// Http Handlers
+void {{methodName}}(PsychicHttpServer * server) {
+{{#each sources}}
+//
+// {{this.filename}}
+  {{#if this.isDefault}}server->defaultEndpoint = {{/if}}server->on("/{{this.filename}}", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
+
+{{#switch ../etag}}
+{{#case "true"}}
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
+      response->setCode(304);
+      return response->send();
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
+      response->setCode(304);
+      return response->send();
+    }
+  #endif 
+{{/case}}
+{{/switch}}
+
+    response->setContentType("{{this.mime}}");
+
+{{#switch ../gzip}}
+{{#case "true"}}
+{{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
+{{/if}}
+{{/case}}
+{{#case "compiler"}}
+  {{#if this.isGzip}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response->addHeader("Content-Encoding", "gzip");
+  #endif 
+  {{/if}}
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+    response->addHeader("cache-control", "no-cache");
+    response->addHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    response->addHeader("cache-control", "no-cache");
+    response->addHeader("ETag", etag_{{this.dataname}});
+  #endif 
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+    response->setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+{{/case}}
+{{#case "false"}}
+    response->setContent(data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response->setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+  #else
+    response->setContent(data_{{this.dataname}}, {{this.length}});
+  #endif 
+{{/case}}
+{{/switch}}
+
+    return response->send();
+  });
+
+{{/each}}
+}`;
+
 const asyncTemplate = `
 //engine:   ESPAsyncWebServer
 //cmdline:  {{{commandLine}}}
@@ -371,7 +548,9 @@ void {{methodName}}(AsyncWebServer * server) {
 
 let switchValue: string;
 export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string =>
-  handlebarsCompile(cmdLine.engine === 'psychic' ? psychicTemplate : asyncTemplate)(
+  handlebarsCompile(
+    cmdLine.engine === 'psychic' ? psychicTemplate : cmdLine.engine === 'psychic2' ? psychic2Template : asyncTemplate
+  )(
     {
       commandLine: process.argv.slice(2).join(' '),
       now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,

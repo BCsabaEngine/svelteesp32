@@ -1,5 +1,13 @@
 # Change log
 
+## 1.5
+
+### 1.5.0
+
+- New engine type (-e psychic2) for PsychicHttp v2
+
+- Run tests with github repos instead of packages
+
 ## 1.4
 
 ### 1.4.1
