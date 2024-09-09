@@ -2,6 +2,10 @@
 
 ## 1.5
 
+### 1.5.1
+
+- bugfix: It generated an error code if there was an @ sign in the file name. We tried to protect all possible characters: `!&()+./@{}~-`
+
 ### 1.5.0
 
 - New engine type (-e psychic2) for PsychicHttp v2
