@@ -35,7 +35,7 @@ for (const [originalFilename, content] of files) {
   summary.filecount++;
 
   const filename = originalFilename.replace(/\\/g, '/');
-  const dataname = filename.replace(/[./-]/g, '_');
+  const dataname = filename.replace(/[!&()+./@{}~-]/g, '_');
   let extension = path.extname(filename).toUpperCase();
   if (extension.startsWith('.')) extension = extension.slice(1);
 
