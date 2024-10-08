@@ -38,7 +38,7 @@
     "format:fix": "prettier --write .",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
-    "fix": "npm run format:fix && npm run lint:fix",
+    "fix": "npm run format:fix && npm run lint:fix && npm run format:fix",
     "npm:reinstall": "rm -rf ./node_modules && rm -f ./package-lock.json && npm i && npm i"
   },
   "keywords": [

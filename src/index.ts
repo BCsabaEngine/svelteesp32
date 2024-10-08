@@ -29,7 +29,7 @@ if (files.size === 0) {
 
 console.log();
 console.log('Translation to header file');
-const longestFilename = [...files.keys()].reduce((p, c) => (Math.max(c.length, p)), 0);
+const longestFilename = [...files.keys()].reduce((p, c) => Math.max(c.length, p), 0);
 for (const [originalFilename, content] of files) {
   const mime = lookup(originalFilename) || 'text/plain';
   summary.filecount++;
