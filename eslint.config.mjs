@@ -59,6 +59,7 @@ export default [
       'unicorn/no-process-exit': 'off',
       'unicorn/switch-case-braces': 'off',
       'unicorn/no-array-reduce': 'off',
+      'unicorn/prefer-global-this': 'off',
       'no-alert': 'error',
       'no-debugger': 'error'
     }
