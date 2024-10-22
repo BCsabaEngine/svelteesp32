@@ -70,6 +70,7 @@ export default [
 			'simple-import-sort/imports': 'error',
 			'simple-import-sort/exports': 'error',
 			'unicorn/filename-case': 'off',
+			'unicorn/prefer-global-this': 'off',
 			'no-alert': 'error',
 			'no-console': 'error',
 			'no-debugger': 'error'
