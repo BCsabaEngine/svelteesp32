@@ -7,7 +7,7 @@ import { defineConfig } from 'vite';
 import { purgeCss } from 'vite-plugin-tailwind-purgecss';
 
 export default defineConfig({
-	plugins: [svelte()],
+	plugins: [svelte(), purgeCss()],
 	build: {
 		target: 'modules',
 		sourcemap: false,
@@ -19,7 +19,7 @@ export default defineConfig({
 		chunkSizeWarningLimit: 1500,
 		assetsInlineLimit: 0,
 		rollupOptions: {
-			plugins: [swc(), purgeCss()]
+			plugins: [swc()]
 		}
 	},
 	base: '',
