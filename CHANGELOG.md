@@ -1,5 +1,11 @@
 # Change log
 
+## 1.6
+
+### 1.6.0
+
+- Using mime npm package instead of mime-types: I prefer to use standard text/javascript. It better meets today's requirements.
+
 ## 1.5
 
 ### 1.5.2

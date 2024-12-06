@@ -12,6 +12,8 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
+> Starting with version v1.6.0, mime npm package is used instead of mime-types (application/javascript -> text/javascript)
+
 > Starting with version v1.5.0, PsychicHttp v2 is also supported.
 
 > Version v1.4.0 has a breaking change! --no-gzip changed to --gzip. Starting with this version c++ compiler directives are available to setup operation in project level.
