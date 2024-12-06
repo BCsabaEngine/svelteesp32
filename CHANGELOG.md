@@ -2,6 +2,10 @@
 
 ## 1.5
 
+### 1.5.2
+
+- chore: In the psychicHttp generated code, the minimum setting of server.config.max_uri_handlers (20 by default) is displayed as a comment so that all files can be served.
+
 ### 1.5.1
 
 - bugfix: It generated an error code if there was an @ sign in the file name. We tried to protect all possible characters: `!&()+./@{}~-`

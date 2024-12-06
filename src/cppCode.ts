@@ -23,6 +23,7 @@ export type ExtensionGroups = ExtensionGroup[];
 const psychicTemplate = `
 //engine:   PsychicHttpServer
 //cmdline:  {{{commandLine}}}
+//You should use server.config.max_uri_handlers = {{fileCount}}; or higher value to proper handles all files
 {{#if created }}
 //created:  {{now}}
 {{/if}}
