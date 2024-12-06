@@ -2,6 +2,10 @@
 
 ## 1.6
 
+### 1.6.1
+
+- Chore: force publish npm
+
 ### 1.6.0
 
 - Using mime npm package instead of mime-types: I prefer to use standard text/javascript. It better meets today's requirements.
