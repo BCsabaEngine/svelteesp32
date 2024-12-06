@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-import { lookup } from 'mime-types';
+import mime from 'mime';
 
 import { cmdLine } from './commandLine';
 import { greenLog, yellowLog } from './consoleColor';
@@ -31,7 +31,7 @@ console.log();
 console.log('Translation to header file');
 const longestFilename = [...files.keys()].reduce((p, c) => Math.max(c.length, p), 0);
 for (const [originalFilename, content] of files) {
-  const mime = lookup(originalFilename) || 'text/plain';
+  const mimeType = mime.getType(originalFilename) || 'text/plain';
   summary.filecount++;
 
   const filename = originalFilename.replace(/\\/g, '/');
@@ -56,7 +56,7 @@ for (const [originalFilename, content] of files) {
       content,
       contentGzip: zipContent,
       isGzip: true,
-      mime,
+      mime: mimeType,
       md5
     });
     console.log(
@@ -72,7 +72,7 @@ for (const [originalFilename, content] of files) {
       content,
       contentGzip: content,
       isGzip: false,
-      mime,
+      mime: mimeType,
       md5
     });
     console.log(
