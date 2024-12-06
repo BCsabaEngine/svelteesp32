@@ -7,16 +7,28 @@ on:
 
 jobs:
   check:
-    name: Source revision
+    name: Source Revision
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x, 20.x, 18.x]
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint:check
-      - run: npm run build
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Format Check
+        run: npm run format:check
+
+      - name: Run Lint Check
+        run: npm run lint:check
+
+      - name: Build
+        run: npm run build
