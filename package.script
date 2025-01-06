@@ -1,29 +1,29 @@
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/_/svelteesp32async.h --etag=false --gzip=false
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/g/svelteesp32async.h --etag=false --gzip=true
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/gc/svelteesp32async.h --etag=false --gzip=compiler
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/e/svelteesp32async.h --etag=true --gzip=false
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/eg/svelteesp32async.h --etag=true --gzip=true
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/egc/svelteesp32async.h --etag=true --gzip=compiler
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/ec/svelteesp32async.h --etag=compiler --gzip=false
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/ecg/svelteesp32async.h --etag=compiler --gzip=true
-npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/ecgc/svelteesp32async.h --etag=compiler --gzip=compiler
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/_/svelteesp32async.h --etag=false --gzip=false --cachetime=86400
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/g/svelteesp32async.h --etag=false --gzip=true --cachetime=86400
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/gc/svelteesp32async.h --etag=false --gzip=compiler --cachetime=86400
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/e/svelteesp32async.h --etag=true --gzip=false --cachetime=86400
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/eg/svelteesp32async.h --etag=true --gzip=true --cachetime=86400
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/egc/svelteesp32async.h --etag=true --gzip=compiler --cachetime=86400
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/ec/svelteesp32async.h --etag=compiler --gzip=false --cachetime=86400
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/ecg/svelteesp32async.h --etag=compiler --gzip=true --cachetime=86400
+npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/ecgc/svelteesp32async.h --etag=compiler --gzip=compiler --cachetime=86400
 
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/_/svelteesp32psychic.h --etag=false --gzip=false
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/g/svelteesp32psychic.h --etag=false --gzip=true
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/gc/svelteesp32psychic.h --etag=false --gzip=compiler
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/e/svelteesp32psychic.h --etag=true --gzip=false
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/eg/svelteesp32psychic.h --etag=true --gzip=true
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/egc/svelteesp32psychic.h --etag=true --gzip=compiler
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/ec/svelteesp32psychic.h --etag=compiler --gzip=false
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/ecg/svelteesp32psychic.h --etag=compiler --gzip=true
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/ecgc/svelteesp32psychic.h --etag=compiler --gzip=compiler
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/_/svelteesp32psychic.h --etag=false --gzip=false --cachetime=86400
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/g/svelteesp32psychic.h --etag=false --gzip=true --cachetime=86400
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/gc/svelteesp32psychic.h --etag=false --gzip=compiler --cachetime=86400
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/e/svelteesp32psychic.h --etag=true --gzip=false --cachetime=86400
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/eg/svelteesp32psychic.h --etag=true --gzip=true --cachetime=86400
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/egc/svelteesp32psychic.h --etag=true --gzip=compiler --cachetime=86400
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/ec/svelteesp32psychic.h --etag=compiler --gzip=false --cachetime=86400
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/ecg/svelteesp32psychic.h --etag=compiler --gzip=true --cachetime=86400
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/ecgc/svelteesp32psychic.h --etag=compiler --gzip=compiler --cachetime=86400
 
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/_/svelteesp32psychic2.h --etag=false --gzip=false
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/g/svelteesp32psychic2.h --etag=false --gzip=true
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/gc/svelteesp32psychic2.h --etag=false --gzip=compiler
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/e/svelteesp32psychic2.h --etag=true --gzip=false
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/eg/svelteesp32psychic2.h --etag=true --gzip=true
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/egc/svelteesp32psychic2.h --etag=true --gzip=compiler
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/ec/svelteesp32psychic2.h --etag=compiler --gzip=false
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/ecg/svelteesp32psychic2.h --etag=compiler --gzip=true
-npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/ecgc/svelteesp32psychic2.h --etag=compiler --gzip=compiler
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/_/svelteesp32psychic2.h --etag=false --gzip=false --cachetime=86400
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/g/svelteesp32psychic2.h --etag=false --gzip=true --cachetime=86400
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/gc/svelteesp32psychic2.h --etag=false --gzip=compiler --cachetime=86400
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/e/svelteesp32psychic2.h --etag=true --gzip=false --cachetime=86400
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/eg/svelteesp32psychic2.h --etag=true --gzip=true --cachetime=86400
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/egc/svelteesp32psychic2.h --etag=true --gzip=compiler --cachetime=86400
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/ec/svelteesp32psychic2.h --etag=compiler --gzip=false --cachetime=86400
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/ecg/svelteesp32psychic2.h --etag=compiler --gzip=true --cachetime=86400
+npx tsx src/index.ts -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/ecgc/svelteesp32psychic2.h --etag=compiler --gzip=compiler --cachetime=86400

@@ -168,12 +168,22 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
+{{#../cacheTime}}
+    response.addHeader("cache-control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
     response.addHeader("cache-control", "no-cache");
+{{/../cacheTime}}
     response.addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    response.addHeader("cache-control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
     response.addHeader("cache-control", "no-cache");
+{{/../cacheTime}}
     response.addHeader("ETag", etag_{{this.dataname}});
   #endif 
 {{/case}}
@@ -345,12 +355,22 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
+{{#../cacheTime}}
+    response->addHeader("cache-control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
     response->addHeader("cache-control", "no-cache");
+{{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    response->addHeader("cache-control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
     response->addHeader("cache-control", "no-cache");
+{{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif 
 {{/case}}
@@ -526,12 +546,22 @@ void {{methodName}}(AsyncWebServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
+{{#../cacheTime}}
+    response->addHeader("cache-control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
     response->addHeader("cache-control", "no-cache");
+{{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    response->addHeader("cache-control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
     response->addHeader("cache-control", "no-cache");
+{{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif 
 {{/case}}
@@ -572,6 +602,7 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
       created: cmdLine.created,
       version: cmdLine.version,
       methodName: cmdLine.espmethod,
+      cacheTime: cmdLine.cachetime ? { value: cmdLine.cachetime } : undefined,
       definePrefix: cmdLine.define
     },
     {

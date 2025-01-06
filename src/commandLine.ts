@@ -10,6 +10,7 @@ interface ICopyFilesArguments {
   define: string;
   gzip: 'true' | 'false' | 'compiler';
   etag: 'true' | 'false' | 'compiler';
+  cachetime: number;
   created: boolean;
   version: string;
   help?: boolean;
@@ -78,6 +79,11 @@ export const cmdLine = parse<ICopyFilesArguments>(
       type: String,
       description: 'Prefix of c++ defines',
       defaultValue: 'SVELTEESP32'
+    },
+    cachetime: {
+      type: Number,
+      description: 'max-age cache time in seconds',
+      defaultValue: 0
     },
     help: { type: Boolean, optional: true, alias: 'h', description: 'Shows this help' }
   },
