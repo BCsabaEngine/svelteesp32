@@ -1,5 +1,11 @@
 # Change log
 
+## 1.7
+
+### 1.7.0
+
+- Using the cachetime command line option, you can set whether the browser can cache pages. Together with the ETag switch, you can replace the default no-cache response with a max-age=xy response.
+
 ## 1.6
 
 ### 1.6.1

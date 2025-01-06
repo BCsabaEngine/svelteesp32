@@ -12,6 +12,8 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
+> Starting with version v1.7.0, with the cachetime command line option, you can set whether the browser can cache pages
+
 > Starting with version v1.6.0, mime npm package is used instead of mime-types (application/javascript -> text/javascript)
 
 > Starting with version v1.5.0, PsychicHttp v2 is also supported.
@@ -176,6 +178,12 @@ The use of ETag is **not enabled by default**, this can be achieved with the `--
 
 > This setting has three states: yes, no, and compiler mode is available. In compiler mode, you can disable/enable ETag by setting the `SVELTEESP32_ENABLE_ETAG` c++ compiler directive. For example, if using platformio, just type `-D SVELTEESP32_ENABLE_ETAG`.
 
+### Cache-control
+
+By default (when using the ETag), we send no-cache in the cache-control header of the HTTP response. Pages, subpages and other elements are downloaded every time. This is perfectly acceptable when serving small pages with ESP.
+
+At the same time, it can be an advantage that the content is cached by the browser and not even the ETag check is performed. For this, you can specify how many seconds the max-age value sent instead of no-cache should be. In the case of `--cachetime=86400` (max-age=86400), the page (and other elements) will not be downloaded by the browser **for one day**.
+
 ### Main entry point - index.html
 
 Typically, the entry point for web applications is the **index.htm or index.html** file. This does not need to be listed in the browser's address bar because web servers know that this file should be served by default. Svelteesp32 also does this: if there is an index.htm or index.html file, it sets it as the main file to be served. So using `http://esp_xxx.local` or just entering the `http://x.y.w.z/` IP address will serve this main file.
@@ -230,6 +238,7 @@ You can use the following c++ directives at the project level if you want to con
 | `-e`          | The engine for which the include file is created (psychic/psychic2/async) | psychic                 |
 | `-o`          | Generated output file with path                                           | `svelteesp32.h`         |
 | `--etag`      | Use ETag header for cache (true/false/compiler)                           | false                   |
+| `--cachetime` | Override no-cache response with a max-age=<cachetime> response            | 0                       |
 | `--gzip`      | Compress content with gzip (true/false/compiler)                          | true                    |
 | `--created`   | Include creation time                                                     | false                   |
 | `--version`   | Include a version string, `--version=v$npm_package_version`               | ''                      |
