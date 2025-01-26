@@ -2,6 +2,10 @@
 
 ## 1.7
 
+### 1.7.1
+
+- Due to ESM problems, we revert to using the **mime-types** npm module.
+
 ### 1.7.0
 
 - Using the cachetime command line option, you can set whether the browser can cache pages. Together with the ETag switch, you can replace the default no-cache response with a max-age=xy response.
