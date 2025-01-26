@@ -1,8 +1,9 @@
 {
   "name": "svelteesp32",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)",
   "author": "BCsabaEngine",
+  "type": "module",
   "license": "ISC",
   "exports": "./dist/index.js",
   "main": "./dist/index.js",
@@ -54,23 +55,24 @@
     "espasyncwebserver"
   ],
   "devDependencies": {
-    "@types/node": "^22.10.5",
-    "@typescript-eslint/eslint-plugin": "^8.19.1",
-    "@typescript-eslint/parser": "^8.19.1",
-    "eslint": "^9.17.0",
-    "eslint-config-prettier": "^9.1.0",
+    "@types/mime-types": "^2.1.4",
+    "@types/node": "^22.10.10",
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
+    "eslint": "^9.19.0",
+    "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unicorn": "^56.0.1",
     "nodemon": "^3.1.9",
     "prettier": "^3.4.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
-    "glob": "^11.0.0",
+    "glob": "^11.0.1",
     "handlebars": "^4.7.8",
-    "mime": "^4.0.6",
+    "mime-types": "^2.1.35",
     "ts-command-line-args": "^2.5.1"
   }
 }
