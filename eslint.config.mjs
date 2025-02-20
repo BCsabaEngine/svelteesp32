@@ -33,12 +33,12 @@ export default [
       '**/yarn.lock'
     ]
   },
-  ...compat.extends('eslint:recommended', 'plugin:@typescript-eslint/recommended', 'plugin:unicorn/all', 'prettier'),
+  ...compat.extends('eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'),
+  unicorn.configs.all,
   {
     plugins: {
       '@typescript-eslint': typescriptEslint,
-      'simple-import-sort': simpleImportSort,
-      unicorn
+      'simple-import-sort': simpleImportSort
     },
 
     languageOptions: {
@@ -60,6 +60,7 @@ export default [
       'unicorn/switch-case-braces': 'off',
       'unicorn/no-array-reduce': 'off',
       'unicorn/prefer-global-this': 'off',
+      'unicorn/no-nested-ternary': 'off',
       'no-alert': 'error',
       'no-debugger': 'error'
     }

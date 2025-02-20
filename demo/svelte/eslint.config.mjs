@@ -39,15 +39,14 @@ export default [
 		'eslint:recommended',
 		'plugin:@typescript-eslint/recommended',
 		'plugin:svelte/recommended',
-		'plugin:unicorn/all',
 		'plugin:tailwindcss/recommended',
 		'prettier'
 	),
+	unicorn.configs.all,
 	{
 		plugins: {
 			'@typescript-eslint': typescriptEslint,
 			'simple-import-sort': simpleImportSort,
-			unicorn,
 			tailwindcss
 		},
 

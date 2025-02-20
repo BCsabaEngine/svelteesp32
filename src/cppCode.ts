@@ -524,22 +524,22 @@ void {{methodName}}(AsyncWebServer * server) {
 
 {{#switch ../gzip}}
 {{#case "true"}}
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
     {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
     {{/if}}
 {{/case}}
 {{#case "false"}}
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_GZIP
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
     {{#if this.isGzip}}
     response->addHeader("Content-Encoding", "gzip");
     {{/if}}
   #else
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
   #endif 
 {{/case}}
 {{/switch}}

@@ -1,5 +1,11 @@
 # Change log
 
+## 1.8
+
+### 1.8.0
+
+- Using the new and maintained ESPAsyncWebserver available at https://github.com/ESP32Async/ESPAsyncWebServer, that has some deprecations.
+
 ## 1.7
 
 ### 1.7.1
