@@ -60,6 +60,7 @@ export default [
       'unicorn/switch-case-braces': 'off',
       'unicorn/no-array-reduce': 'off',
       'unicorn/prefer-global-this': 'off',
+      'unicorn/no-nested-ternary': 'off',
       'no-alert': 'error',
       'no-debugger': 'error'
     }

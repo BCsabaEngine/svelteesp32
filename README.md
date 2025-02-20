@@ -10,7 +10,7 @@ I often make small to medium-sized microcontroller solutions that run on ESP32 o
 
 In order to be able to easily update OTA, it is important - from the users' point of view - that the update file **consists of one file**. I can't use the SPIFFS/LittleFS solution for this. It is necessary that the WebUI files are included inline in the Arduino or PlatformIO c++ code.
 
-This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
+This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer (https://github.com/ESP32Async/ESPAsyncWebServer) available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
 > Starting with version v1.7.0, with the cachetime command line option, you can set whether the browser can cache pages
 
@@ -154,7 +154,7 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 ### Engines and ESP variants
 
-ESPAsyncWebServer is a popular web server that can be used on **both ESP32 and ESP8266 microcontrollers**. When you want to generate a file for this, use the `-e async` switch.
+ESPAsyncWebServer (current location https://github.com/ESP32Async/ESPAsyncWebServer) is a popular web server. When you want to generate a file for this, use the `-e async` switch.
 
 If you **only work on ESP32**, I recommend using PsychicHttpServer, which uses the native mode ESP-IDF web server inside. This way, its operation is significantly faster and more continuous. You can access this mode with the `-e psychic` switch.
 
