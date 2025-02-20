@@ -12,6 +12,8 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer (https://github.com/ESP32Async/ESPAsyncWebServer) available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
+> Starting with version v1.8.0, use the new and maintained ESPAsyncWebserver available at https://github.com/ESP32Async/ESPAsyncWebServer
+
 > Starting with version v1.7.0, with the cachetime command line option, you can set whether the browser can cache pages
 
 > Starting with version v1.6.0, mime npm package is used instead of mime-types (application/javascript -> text/javascript)
