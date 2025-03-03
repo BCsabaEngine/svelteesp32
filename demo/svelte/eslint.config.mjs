@@ -6,6 +6,7 @@ import js from '@eslint/js';
 import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import svelte from 'eslint-plugin-svelte';
 import tailwindcss from 'eslint-plugin-tailwindcss';
 import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
@@ -38,10 +39,10 @@ export default [
 	...compat.extends(
 		'eslint:recommended',
 		'plugin:@typescript-eslint/recommended',
-		'plugin:svelte/recommended',
 		'plugin:tailwindcss/recommended',
 		'prettier'
 	),
+	...svelte.configs.recommended,
 	unicorn.configs.all,
 	{
 		plugins: {
