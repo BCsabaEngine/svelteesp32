@@ -169,20 +169,20 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{#switch ../etag}}
 {{#case "true"}}
 {{#../cacheTime}}
-    response.addHeader("cache-control", "max-age={{value}}");
+    response.addHeader("Cache-Control", "max-age={{value}}");
 {{/../cacheTime}}
 {{^../cacheTime}}
-    response.addHeader("cache-control", "no-cache");
+    response.addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response.addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
 {{#../cacheTime}}
-    response.addHeader("cache-control", "max-age={{value}}");
+    response.addHeader("Cache-Control", "max-age={{value}}");
 {{/../cacheTime}}
 {{^../cacheTime}}
-    response.addHeader("cache-control", "no-cache");
+    response.addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response.addHeader("ETag", etag_{{this.dataname}});
   #endif 
@@ -356,20 +356,20 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{#switch ../etag}}
 {{#case "true"}}
 {{#../cacheTime}}
-    response->addHeader("cache-control", "max-age={{value}}");
+    response->addHeader("Cache-Control", "max-age={{value}}");
 {{/../cacheTime}}
 {{^../cacheTime}}
-    response->addHeader("cache-control", "no-cache");
+    response->addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
 {{#../cacheTime}}
-    response->addHeader("cache-control", "max-age={{value}}");
+    response->addHeader("Cache-Control", "max-age={{value}}");
 {{/../cacheTime}}
 {{^../cacheTime}}
-    response->addHeader("cache-control", "no-cache");
+    response->addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif 
@@ -547,20 +547,20 @@ void {{methodName}}(AsyncWebServer * server) {
 {{#switch ../etag}}
 {{#case "true"}}
 {{#../cacheTime}}
-    response->addHeader("cache-control", "max-age={{value}}");
+    response->addHeader("Cache-Control", "max-age={{value}}");
 {{/../cacheTime}}
 {{^../cacheTime}}
-    response->addHeader("cache-control", "no-cache");
+    response->addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
 {{#../cacheTime}}
-    response->addHeader("cache-control", "max-age={{value}}");
+    response->addHeader("Cache-Control", "max-age={{value}}");
 {{/../cacheTime}}
 {{^../cacheTime}}
-    response->addHeader("cache-control", "no-cache");
+    response->addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif 
