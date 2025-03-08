@@ -2,6 +2,10 @@
 
 ## 1.8
 
+### 1.8.1
+
+- Fix: http header casing
+
 ### 1.8.0
 
 - Using the new and maintained ESPAsyncWebserver available at https://github.com/ESP32Async/ESPAsyncWebServer, that has some deprecations.
