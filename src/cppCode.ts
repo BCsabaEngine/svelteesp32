@@ -2,6 +2,8 @@ import { compile as handlebarsCompile, HelperOptions } from 'handlebars';
 
 import { cmdLine } from './commandLine';
 
+import { espidfTemplate } from './template_espidf';
+
 export type CppCodeSource = {
   filename: string;
   dataname: string;
@@ -577,11 +579,24 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/each}}
 }`;
 
+
+const getTemplate = (engine: string): string => {
+  switch (engine) {
+    case 'psychic':
+      return psychicTemplate;
+    case 'psychic2':
+      return psychic2Template;
+    case 'espidf':
+      return espidfTemplate;
+    default:
+      return asyncTemplate;
+  }
+}
+
+
 let switchValue: string;
 export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string =>
-  handlebarsCompile(
-    cmdLine.engine === 'psychic' ? psychicTemplate : cmdLine.engine === 'psychic2' ? psychic2Template : asyncTemplate
-  )(
+  handlebarsCompile(getTemplate(cmdLine.engine))(
     {
       commandLine: process.argv.slice(2).join(' '),
       now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,

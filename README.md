@@ -47,6 +47,9 @@ npx svelteesp32 -e psychic2 -s ../svelteapp/dist -o ../esp32project/svelteesp32.
 
 // for ESPAsyncWebServer
 npx svelteesp32 -e async -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag=true
+
+// for native esp-idf
+npx svelteesp32 -e espidf -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag=true
 ```
 
 During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP's memory allocation (gzip size)
