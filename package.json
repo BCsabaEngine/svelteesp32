@@ -31,7 +31,7 @@
     "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --cachetime=86400 --version=v$npm_package_version",
     "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
     "dev:psychic2": "nodemon src/index.ts -- -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
-    "test:all": "./package.script && ~/.platformio/penv/bin/pio run -d ./demo/esp32",
+    "test:all": "./package.script && ~/.platformio/penv/bin/pio run -d ./demo/esp32 && ~/.platformio/penv/bin/pio run -d ./demo/esp32idf",
     "clean": "tsc --build --clean",
     "build": "tsc --build --clean && tsc --build --force",
     "format:check": "prettier --check .",

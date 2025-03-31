@@ -1,8 +1,7 @@
 import { compile as handlebarsCompile, HelperOptions } from 'handlebars';
 
 import { cmdLine } from './commandLine';
-
-import { espidfTemplate } from './template_espidf';
+import { espidfTemplate } from './cppCodeEspIdf';
 
 export type CppCodeSource = {
   filename: string;
@@ -579,7 +578,6 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/each}}
 }`;
 
-
 const getTemplate = (engine: string): string => {
   switch (engine) {
     case 'psychic':
@@ -591,8 +589,7 @@ const getTemplate = (engine: string): string => {
     default:
       return asyncTemplate;
   }
-}
-
+};
 
 let switchValue: string;
 export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string =>

@@ -1,5 +1,11 @@
 # Change log
 
+## 1.9
+
+### 1.9.0
+
+- Feat: allow code generator for esp-idf
+
 ## 1.8
 
 ### 1.8.1
