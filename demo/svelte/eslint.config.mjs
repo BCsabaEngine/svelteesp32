@@ -1,19 +1,14 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
 import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import svelte from 'eslint-plugin-svelte';
-import tailwindcss from 'eslint-plugin-tailwindcss';
 import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import parser from 'svelte-eslint-parser';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = import.meta.dirname;
 const compat = new FlatCompat({
 	baseDirectory: __dirname,
 	recommendedConfig: js.configs.recommended,
@@ -36,19 +31,13 @@ export default [
 			'**/yarn.lock'
 		]
 	},
-	...compat.extends(
-		'eslint:recommended',
-		'plugin:@typescript-eslint/recommended',
-		'plugin:tailwindcss/recommended',
-		'prettier'
-	),
+	...compat.extends('eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'),
 	...svelte.configs.recommended,
 	unicorn.configs.all,
 	{
 		plugins: {
 			'@typescript-eslint': typescriptEslint,
-			'simple-import-sort': simpleImportSort,
-			tailwindcss
+			'simple-import-sort': simpleImportSort
 		},
 
 		languageOptions: {

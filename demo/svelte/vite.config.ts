@@ -1,13 +1,12 @@
 /* eslint-disable unicorn/prefer-module */
 /* eslint-disable unicorn/prefer-node-protocol */
-import swc from '@rollup/plugin-swc';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import { defineConfig } from 'vite';
-import { purgeCss } from 'vite-plugin-tailwind-purgecss';
 
 export default defineConfig({
-	plugins: [svelte(), purgeCss()],
+	plugins: [svelte(), tailwindcss()],
 	build: {
 		target: 'modules',
 		sourcemap: false,
@@ -17,10 +16,7 @@ export default defineConfig({
 		emptyOutDir: true,
 		outDir: 'dist',
 		chunkSizeWarningLimit: 1500,
-		assetsInlineLimit: 0,
-		rollupOptions: {
-			plugins: [swc()]
-		}
+		assetsInlineLimit: 0
 	},
 	base: '',
 	resolve: {
