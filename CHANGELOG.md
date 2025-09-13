@@ -5,6 +5,7 @@
 ### 1.9.1
 
 - Chore: deps
+- Chore: require Node.js >=20
 
 ### 1.9.0
 
