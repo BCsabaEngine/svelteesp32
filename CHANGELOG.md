@@ -2,6 +2,10 @@
 
 ## 1.9
 
+### 1.9.1
+
+- Chore: deps
+
 ### 1.9.0
 
 - Feat: allow code generator for esp-idf
