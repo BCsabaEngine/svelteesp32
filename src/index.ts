@@ -8,10 +8,20 @@ import { lookup as mimeLookup } from 'mime-types';
 
 import { cmdLine } from './commandLine';
 import { greenLog, yellowLog } from './consoleColor';
-import { CppCodeSources, ExtensionGroups, getCppCode } from './cppCode';
+import { CppCodeSource, CppCodeSources, ExtensionGroups, getCppCode } from './cppCode';
 import { getFiles } from './file';
 
-const summary = {
+// Compression thresholds
+const GZIP_MIN_SIZE = 1024;
+const GZIP_MIN_REDUCTION_RATIO = 0.85;
+
+type ProcessingSummary = {
+  filecount: number;
+  size: number;
+  gzipsize: number;
+};
+
+const summary: ProcessingSummary = {
   filecount: 0,
   size: 0,
   gzipsize: 0
@@ -19,6 +29,73 @@ const summary = {
 
 const sources: CppCodeSources = [];
 const filesByExtension: ExtensionGroups = [];
+
+/**
+ * Determine if gzip compression should be used based on size and compression ratio
+ */
+const shouldUseGzip = (originalSize: number, compressedSize: number): boolean =>
+  originalSize > GZIP_MIN_SIZE && compressedSize < originalSize * GZIP_MIN_REDUCTION_RATIO;
+
+/**
+ * Calculate compression ratio as percentage
+ */
+const calculateCompressionRatio = (originalSize: number, compressedSize: number): number =>
+  Math.round((compressedSize / originalSize) * 100);
+
+/**
+ * Format compression log message for a file
+ */
+const formatCompressionLog = (
+  filename: string,
+  padding: string,
+  originalSize: number,
+  compressedSize: number,
+  useGzip: boolean
+): string => {
+  const ratio = calculateCompressionRatio(originalSize, compressedSize);
+  const sizeInfo = `(${originalSize} -> ${compressedSize} = ${ratio}%)`;
+
+  if (useGzip) {
+    return greenLog(` [${filename}] ${padding} ✓ gzip used ${sizeInfo}`);
+  }
+
+  const tooSmall = originalSize <= GZIP_MIN_SIZE ? '(too small) ' : '';
+  return yellowLog(` [${filename}] ${padding} x gzip unused ${tooSmall}${sizeInfo}`);
+};
+
+/**
+ * Create a source entry for C++ code generation
+ */
+const createSourceEntry = (
+  filename: string,
+  dataname: string,
+  content: Buffer,
+  contentGzip: Buffer,
+  mimeType: string,
+  md5: string,
+  isGzip: boolean
+): CppCodeSource => ({
+  filename,
+  dataname,
+  datanameUpperCase: dataname.toUpperCase(),
+  content,
+  contentGzip: isGzip ? contentGzip : content,
+  isGzip,
+  mime: mimeType,
+  md5
+});
+
+/**
+ * Update file extension group count
+ */
+const updateExtensionGroup = (extension: string): void => {
+  const group = filesByExtension.find((fe) => fe.extension === extension);
+  if (group) {
+    group.count += 1;
+  } else {
+    filesByExtension.push({ extension, count: 1 });
+  }
+};
 
 console.log('Collecting source files');
 const files = getFiles();
@@ -30,58 +107,37 @@ if (files.size === 0) {
 console.log();
 console.log('Translation to header file');
 const longestFilename = [...files.keys()].reduce((p, c) => Math.max(c.length, p), 0);
+
 for (const [originalFilename, content] of files) {
   const mimeType = mimeLookup(originalFilename) || 'text/plain';
   summary.filecount++;
 
+  // Normalize filename and generate data name
   const filename = originalFilename.replace(/\\/g, '/');
   const dataname = filename.replace(/[!&()+./@{}~-]/g, '_');
+
+  // Extract and update file extension statistics
   let extension = path.extname(filename).toUpperCase();
   if (extension.startsWith('.')) extension = extension.slice(1);
+  updateExtensionGroup(extension);
 
-  const group = filesByExtension.find((fe) => fe.extension === extension);
-  if (group) group.count += 1;
-  else filesByExtension.push({ extension, count: 1 });
-
+  // Generate MD5 hash and compress content
   const md5 = createHash('md5').update(content).digest('hex');
   summary.size += content.length;
   const zipContent = gzipSync(content, { level: 9 });
   summary.gzipsize += zipContent.length;
-  const zipRatio = Math.round((zipContent.length / content.length) * 100);
-  if (content.length > 1024 && zipContent.length < content.length * 0.85) {
-    sources.push({
-      filename,
-      dataname,
-      datanameUpperCase: dataname.toUpperCase(),
-      content,
-      contentGzip: zipContent,
-      isGzip: true,
-      mime: mimeType,
-      md5
-    });
-    console.log(
-      greenLog(
-        ` [${originalFilename}] ${' '.repeat(longestFilename - originalFilename.length)} ✓ gzip used (${content.length} -> ${zipContent.length} = ${zipRatio}%)`
-      )
-    );
-  } else {
-    sources.push({
-      filename,
-      dataname,
-      datanameUpperCase: dataname.toUpperCase(),
-      content,
-      contentGzip: content,
-      isGzip: false,
-      mime: mimeType,
-      md5
-    });
-    console.log(
-      yellowLog(
-        ` [${originalFilename}] ${' '.repeat(longestFilename - originalFilename.length)} x gzip unused ${content.length <= 1024 ? `(too small) ` : ''}(${content.length} -> ${zipContent.length} = ${zipRatio}%)`
-      )
-    );
-  }
+
+  // Determine if gzip should be used
+  const useGzip = shouldUseGzip(content.length, zipContent.length);
+
+  // Create and add source entry
+  sources.push(createSourceEntry(filename, dataname, content, zipContent, mimeType, md5, useGzip));
+
+  // Log compression result
+  const padding = ' '.repeat(longestFilename - originalFilename.length);
+  console.log(formatCompressionLog(originalFilename, padding, content.length, zipContent.length, useGzip));
 }
+
 console.log('');
 filesByExtension.sort((left, right) => left.extension.localeCompare(right.extension));
 

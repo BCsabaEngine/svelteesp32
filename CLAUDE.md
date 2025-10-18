@@ -60,6 +60,9 @@ npx svelteesp32 -e async -s ./dist -o ./output.h --etag=true --gzip=true
 
 # Generate header for ESP-IDF
 npx svelteesp32 -e espidf -s ./dist -o ./output.h --etag=true --gzip=true
+
+# Test the CLI directly using tsx (for development)
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true --gzip=true
 ```
 
 ## Architecture
@@ -75,11 +78,11 @@ npx svelteesp32 -e espidf -s ./dist -o ./output.h --etag=true --gzip=true
 
 ### Processing Pipeline
 
-1. **File Collection**: Scans source directory for web assets
-2. **Content Analysis**: Determines MIME types and calculates MD5 hashes
-3. **Compression**: Applies gzip compression when beneficial (>1024 bytes, >15% reduction)
-4. **Code Generation**: Uses Handlebars templates to generate C++ header files
-5. **Output**: Writes optimized header with embedded binary data and web server handlers
+1. **File Collection** (`src/file.ts`): Scans source directory recursively using glob, skips pre-compressed files (.gz, .br) if originals exist, detects duplicate files via SHA256 hashing
+2. **Content Analysis** (`src/index.ts`): Determines MIME types using `mime-types` library, calculates MD5 hashes for ETag generation, groups files by extension for statistics
+3. **Compression** (`src/index.ts`): Applies gzip level 9 compression, uses compressed version only when size reduction >15% and original >1024 bytes
+4. **Code Generation** (`src/cppCode.ts`, `src/cppCodeEspIdf.ts`): Uses Handlebars templates with custom helpers (switch/case), generates engine-specific C++ code with conditional compilation support
+5. **Output**: Writes optimized header with embedded binary data arrays, route handlers, ETag strings, and C++ defines for validation
 
 ### Supported Engines
 
@@ -113,15 +116,39 @@ npx svelteesp32 -e espidf -s ./dist -o ./output.h --etag=true --gzip=true
 
 ### Demo Projects
 
-- **`demo/svelte/`**: Example Svelte application for testing
-- **`demo/esp32/`**: PlatformIO project demonstrating Arduino framework usage
-- **`demo/esp32idf/`**: ESP-IDF native project example
+- **`demo/svelte/`**: Example Svelte application with Vite, TailwindCSS, gallery images
+- **`demo/esp32/`**: PlatformIO Arduino framework project with WiFi credentials example
+- **`demo/esp32idf/`**: ESP-IDF native project using native web server
 
-The `package.script` file contains comprehensive test scenarios that generate all combinations of ETag/gzip settings for validation.
+The `package.script` executable generates 36 test header files (9 combinations of etag/gzip × 4 engines) for comprehensive validation.
 
 ## Important Notes
 
 - The tool processes entire directories recursively and embeds all files as binary data
 - Generated header files can be large but compile efficiently
-- Memory usage is optimized through const array placement in program memory
+- Memory usage is optimized through const array placement in program memory (ESP32) or PROGMEM (ESP8266)
 - The CLI is designed for CI/CD integration with npm packaging workflows
+- `index.html` or `index.htm` files are automatically set as the default route for "/"
+- Pre-compressed files (.gz, .br, .brottli) in the source directory are skipped if the original file exists
+- The build uses `--clean` and `--force` flags to ensure clean builds without incremental compilation
+
+## Template System
+
+The code generation uses Handlebars with custom helpers:
+
+- **switch/case helpers**: Enable conditional C++ code generation based on etag/gzip settings
+- **Three-state options**: `etag` and `gzip` can be "true", "false", or "compiler" (for C++ directive control)
+- **Engine-specific templates**: Each engine (psychic, psychic2, async, espidf) has its own template in `src/cppCode.ts` or `src/cppCodeEspIdf.ts`
+- **Data transformation**: Binary content is converted to comma-separated byte arrays in the template data
+
+## Generated C++ Defines
+
+The generated header file includes C++ defines for build-time validation:
+
+- `{PREFIX}_COUNT`: Total number of files
+- `{PREFIX}_SIZE`: Total uncompressed size in bytes
+- `{PREFIX}_SIZE_GZIP`: Total gzip compressed size in bytes
+- `{PREFIX}_FILE_{FILENAME}`: Define for each file (e.g., `SVELTEESP32_FILE_INDEX_HTML`)
+- `{PREFIX}_{EXT}_FILES`: Count of files by extension (e.g., `SVELTEESP32_CSS_FILES`)
+
+These allow C++ code to verify expected files are present using `#ifndef` and `#error` directives.

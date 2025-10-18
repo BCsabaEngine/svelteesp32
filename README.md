@@ -18,7 +18,7 @@ This npm package provides a solution for **inserting any JS client application i
 
 > Starting with version v1.7.0, with the cachetime command line option, you can set whether the browser can cache pages
 
-> Starting with version v1.6.0, mime npm package is used instead of mime-types (application/javascript -> text/javascript)
+> Starting with version v1.6.0, mime-types package properly handles MIME types (application/javascript -> text/javascript)
 
 > Starting with version v1.5.0, PsychicHttp v2 is also supported.
 
@@ -29,6 +29,11 @@ This npm package provides a solution for **inserting any JS client application i
 > Starting with version v1.2.0, ESP8266/ESP8285 is also supported.
 
 > Starting with version v1.1.0, the ETag header is also supported.
+
+### Requirements
+
+- Node.js >= 20
+- npm >= 9
 
 ### Usage
 
@@ -54,18 +59,24 @@ npx svelteesp32 -e async -s ../svelteapp/dist -o ../esp32project/svelteesp32.h -
 npx svelteesp32 -e espidf -s ../svelteapp/dist -o ../esp32project/svelteesp32.h --etag=true
 ```
 
-During the **translation process**, the processed file details are visible, and at the end, the result shows the ESP's memory allocation (gzip size)
+During the **translation process**, the processed file details are visible with compression ratios, and at the end, the result shows the ESP's memory allocation (gzip size)
 
 ```
-[assets/index-KwubEIf-.js]  ✓ gzip used (38850 -> 12547)
-[assets/index-Soe6cpLA.css] ✓ gzip used (32494 -> 5368)
-[favicon.png]               x gzip unused (33249 -> 33282)
-[index.html]                x gzip unused (too small) (472 -> 308)
-[roboto_regular.json]       ✓ gzip used (363757 -> 93567)
+[assets/index-KwubEIf-.js]  ✓ gzip used (38850 -> 12547 = 32%)
+[assets/index-Soe6cpLA.css] ✓ gzip used (32494 -> 5368 = 17%)
+[favicon.png]               x gzip unused (33249 -> 33282 = 100%)
+[index.html]                x gzip unused (too small) (472 -> 308 = 65%)
+[roboto_regular.json]       ✓ gzip used (363757 -> 93567 = 26%)
 
 5 files, 458kB original size, 142kB gzip size
 ../../../Arduino/EspSvelte/svelteesp32.h 842kB size
 ```
+
+The tool automatically:
+
+- Compresses files with gzip level 9 when beneficial (>1024 bytes and >15% reduction)
+- Detects and reports duplicate files using SHA256 hashing
+- Skips pre-compressed files (.gz, .br, .brottli) if the original exists
 
 **Include svelteesp32.h** into your Arduino or PlatformIO c++ project (copy it next to the main c++ file)
 
@@ -111,59 +122,107 @@ void setup()
 }
 ```
 
-You can find a minimal buildable example platformio project in [demo/esp32](demo/esp32) folder.
-
-The content of **generated file** (do not edit, just use)
+or for ESP-IDF native:
 
 ```c
-#define SVELTEESP32_COUNT 5
-#define SVELTEESP32_SIZE 145633
-#define SVELTEESP32_FILE_INDEX_HTML
-#define SVELTEESP32_HTML_FILES 1
 ...
 
-const uint8_t data0[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
-const uint8_t data1[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
-const char * etag0 = "387b88e345cc56ef9091...";
+#include <esp_http_server.h>
+#include "svelteesp32.h"
+
+httpd_handle_t server = NULL;
+
+...
+
+void app_main()
+{
+    ...
+
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    httpd_start(&server, &config);
+
+    initSvelteStaticFiles(server);
+}
+```
+
+You can find minimal buildable example projects in [demo/esp32](demo/esp32) (Arduino/PlatformIO) and [demo/esp32idf](demo/esp32idf) (ESP-IDF native) folders.
+
+The content of **generated file** (do not edit, just use):
+
+```c
+//engine:   PsychicHttpServer
+//cmdline:  -e psychic -s ./dist -o ./output.h --etag=true --gzip=true
+//
+#define SVELTEESP32_COUNT 5
+#define SVELTEESP32_SIZE 468822
+#define SVELTEESP32_SIZE_GZIP 145633
+#define SVELTEESP32_FILE_INDEX_HTML
+#define SVELTEESP32_HTML_FILES 1
+#define SVELTEESP32_CSS_FILES 1
+#define SVELTEESP32_JS_FILES 1
+...
+
+#include <Arduino.h>
+#include <PsychicHttp.h>
+#include <PsychicHttpsServer.h>
+
+const uint8_t datagzip_assets_index_KwubEIf__js[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
+const uint8_t datagzip_assets_index_Soe6cpLA_css[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
+const char * etag_assets_index_KwubEIf__js = "387b88e345cc56ef9091...";
+const char * etag_assets_index_Soe6cpLA_css = "d4f23bc45ef67890ab12...";
+...
 
 void initSvelteStaticFiles(PsychicHttpServer * server) {
-  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request)
-  {
-    if (request->hasHeader("If-None-Match") && ...) {
+  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request) {
+    if (request->hasHeader("If-None-Match") &&
+        request->header("If-None-Match") == String(etag_assets_index_KwubEIf__js)) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
     }
 
     PsychicResponse response(request);
-    response.setContentType("application/javascript");
+    response.setContentType("text/javascript");
     response.addHeader("Content-Encoding", "gzip");
-    response.setContent(data0, sizeof(data0));
+    response.addHeader("Cache-Control", "no-cache");
+    response.addHeader("ETag", etag_assets_index_KwubEIf__js);
+    response.setContent(datagzip_assets_index_KwubEIf__js, 12547);
     return response.send();
   });
 
-  server->on("/assets/index-Soe6cpLA.css", HTTP_GET, [](PsychicRequest * request)
-  {
-    if (request->hasHeader("If-None-Match") && ...) {
-      ...
+  server->on("/assets/index-Soe6cpLA.css", HTTP_GET, [](PsychicRequest * request) {
+    if (request->hasHeader("If-None-Match") &&
+        request->header("If-None-Match") == String(etag_assets_index_Soe6cpLA_css)) {
+      PsychicResponse response304(request);
+      response304.setCode(304);
+      return response304.send();
     }
 
     PsychicResponse response(request);
     response.setContentType("text/css");
     response.addHeader("Content-Encoding", "gzip");
-    response.setContent(data1, sizeof(data1));
+    response.addHeader("Cache-Control", "no-cache");
+    response.addHeader("ETag", etag_assets_index_Soe6cpLA_css);
+    response.setContent(datagzip_assets_index_Soe6cpLA_css, 5368);
     return response.send();
   });
 
-    ...
+  // ... more routes
 }
 ```
 
 ### Engines and ESP variants
 
-ESPAsyncWebServer (current location https://github.com/ESP32Async/ESPAsyncWebServer) is a popular web server. When you want to generate a file for this, use the `-e async` switch.
+Four web server engines are supported:
 
-If you **only work on ESP32**, I recommend using PsychicHttpServer, which uses the native mode ESP-IDF web server inside. This way, its operation is significantly faster and more continuous. You can access this mode with the `-e psychic` switch.
+- **`-e psychic`** (default): PsychicHttpServer V1 - Fast ESP32-only server using ESP-IDF internally. Recommended for ESP32 projects.
+- **`-e psychic2`**: PsychicHttpServer V2 - Updated version with improved API
+- **`-e async`**: ESPAsyncWebServer (https://github.com/ESP32Async/ESPAsyncWebServer) - Popular async server supporting both ESP32 and ESP8266/ESP8285
+- **`-e espidf`**: Native ESP-IDF web server - For projects using ESP-IDF framework directly (not Arduino)
+
+If you **only work on ESP32**, we recommend using PsychicHttpServer (`-e psychic` or `-e psychic2`), which uses the native ESP-IDF web server internally for significantly faster and more stable operation.
+
+**Note for PsychicHttpServer users:** The generated header includes a comment suggesting to configure `server.config.max_uri_handlers` to match or exceed your file count to ensure all routes are properly registered.
 
 ### Gzip
 
@@ -239,19 +298,19 @@ You can use the following c++ directives at the project level if you want to con
 
 ### Command line options
 
-| Option        | Description                                                               | default                 |
-| ------------- | ------------------------------------------------------------------------- | ----------------------- |
-| `-s`          | **Source dist folder contains compiled web files**                        |                         |
-| `-e`          | The engine for which the include file is created (psychic/psychic2/async) | psychic                 |
-| `-o`          | Generated output file with path                                           | `svelteesp32.h`         |
-| `--etag`      | Use ETag header for cache (true/false/compiler)                           | false                   |
-| `--cachetime` | Override no-cache response with a max-age=<cachetime> response            | 0                       |
-| `--gzip`      | Compress content with gzip (true/false/compiler)                          | true                    |
-| `--created`   | Include creation time                                                     | false                   |
-| `--version`   | Include a version string, `--version=v$npm_package_version`               | ''                      |
-| `--espmethod` | Name of generated method                                                  | `initSvelteStaticFiles` |
-| `--define`    | Prefix of c++ defines                                                     | `SVELTEESP32`           |
-| `-h`          | Show help                                                                 |                         |
+| Option        | Description                                                                          | default                 |
+| ------------- | ------------------------------------------------------------------------------------ | ----------------------- |
+| `-s`          | **Source dist folder contains compiled web files**                                   | (required)              |
+| `-e`          | The engine for which the include file is created (psychic/psychic2/async/espidf)     | psychic                 |
+| `-o`          | Generated output file with path                                                      | `svelteesp32.h`         |
+| `--etag`      | Use ETag header for cache (true/false/compiler)                                      | false                   |
+| `--cachetime` | Override no-cache response with a max-age=\<cachetime\> response (seconds)           | 0                       |
+| `--gzip`      | Compress content with gzip (true/false/compiler)                                     | true                    |
+| `--created`   | Include creation time in generated header                                            | false                   |
+| `--version`   | Include a version string in generated header, e.g. `--version=v$npm_package_version` | ''                      |
+| `--espmethod` | Name of generated initialization method                                              | `initSvelteStaticFiles` |
+| `--define`    | Prefix of c++ defines (e.g., SVELTEESP32_COUNT)                                      | `SVELTEESP32`           |
+| `-h`          | Show help                                                                            |                         |
 
 ### Q&A
 
@@ -259,9 +318,9 @@ You can use the following c++ directives at the project level if you want to con
 
 - **How fast is cpp file compilation?** The cpp (.h) file can be large, but it can be compiled in a few seconds on any machine. If you don't modify your svelte/react app, it will use the already compiled cpp file (not recompile). This does not increase the speed of ESP32/ESP8266 development.
 
-- **Does the solution use PROGMEM?** No and yes. ESP32 no longer has PROGMEM. (Exists, but does not affect the translation). Instead, if we use a const array in the global namespace, its content will be placed in the code area, i.e. it will not be used from the heap or the stack, so the content of the files to be served will be placed next to the code. When working on ESP8266, PROGMEM will actually be used.
+- **Does the solution use PROGMEM?** It depends on the engine. For PsychicHttpServer (`psychic`, `psychic2`) and ESP-IDF (`espidf`) engines, const arrays are used which are automatically placed in program memory on ESP32. For ESPAsyncWebServer (`async`), PROGMEM directive is explicitly used to support ESP8266/ESP8285. In both cases, the file data is stored in flash memory, not RAM, so your heap and stack remain available for your application.
 
-- **Why is the .h file so big?** The source files are always larger than the binary compiled from them. Does the size information in the header (SVELTEESP32_SIZE, SVELTEESP32_SIZE_GZIP) show the actual memory allocation.
+- **Why is the .h file so big?** The source files are always larger than the binary compiled from them. The .h file contains byte arrays in text format (comma-separated decimal numbers), which takes more space than the binary data itself. The actual memory allocation is shown in the header file defines (SVELTEESP32_SIZE for uncompressed, SVELTEESP32_SIZE_GZIP for compressed).
 
 - **Is collaboration between groups supported?** Yes, the Frontend team produces the application, the use of svelteesp32 is part of the build process. Then, provided with a version number, the .h file is placed in git, which the ESP team translates into the platformio application.
 
