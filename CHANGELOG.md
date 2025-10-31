@@ -218,6 +218,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.9.3]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.8.1...v1.9.0
