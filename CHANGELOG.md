@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.3] - 2025-11-01
+
+### Added
+
+- ETag validation support for ESP-IDF engine (`httpd_req_get_hdr_value_len` and `httpd_req_get_hdr_value_str`)
+- HTTP 304 Not Modified response handling for ESP-IDF engine, matching behavior of other engines
+
+### Changed
+
+- Optimized generated C++ code for ESPAsyncWebServer engine:
+  - Optimized If-None-Match header lookups (single call instead of `hasHeader()` + `getHeader()`)
+  - Removed unnecessary `String()` temporary objects in ETag comparisons (use `.equals()` directly)
+- Optimized generated C++ code for PsychicHttpServer engines (psychic, psychic2):
+  - Removed unnecessary `String()` temporary objects in ETag comparisons (use `.equals()` directly)
+
 ## [1.9.2] - 2025-10-18
 
 ### Changed

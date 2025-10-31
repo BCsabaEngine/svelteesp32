@@ -81,8 +81,12 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 1. **File Collection** (`src/file.ts`): Scans source directory recursively using glob, skips pre-compressed files (.gz, .br) if originals exist, detects duplicate files via SHA256 hashing
 2. **Content Analysis** (`src/index.ts`): Determines MIME types using `mime-types` library, calculates MD5 hashes for ETag generation, groups files by extension for statistics
 3. **Compression** (`src/index.ts`): Applies gzip level 9 compression, uses compressed version only when size reduction >15% and original >1024 bytes
-4. **Code Generation** (`src/cppCode.ts`, `src/cppCodeEspIdf.ts`): Uses Handlebars templates with custom helpers (switch/case), generates engine-specific C++ code with conditional compilation support
-5. **Output**: Writes optimized header with embedded binary data arrays, route handlers, ETag strings, and C++ defines for validation
+4. **Code Generation** (`src/cppCode.ts`, `src/cppCodeEspIdf.ts`): Uses Handlebars templates with custom helpers (switch/case), generates optimized engine-specific C++ code with:
+   - Inlined lambda handlers (ESPAsyncWebServer)
+   - Optimized header lookups for ETag validation (all engines)
+   - Proper const-correctness and modern C++ patterns
+   - Conditional compilation support for etag/gzip options
+5. **Output**: Writes optimized header with embedded binary data arrays, route handlers with ETag validation, ETag MD5 strings, and C++ defines for build-time validation
 
 ### Supported Engines
 
@@ -94,11 +98,12 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 ### Key Features
 
 - **Automatic Gzip Compression**: Compresses assets when size reduction >15% and >1024 bytes
-- **ETag Support**: HTTP cache validation for reduced network traffic
+- **ETag Support**: HTTP cache validation for reduced network traffic with 304 Not Modified responses across all engines (psychic, psychic2, async, espidf)
 - **Cache Control**: Configurable browser caching with `--cachetime`
 - **Multi-Engine Support**: Generate code for different ESP web server libraries
 - **File Type Analysis**: Groups files by extension with count statistics
 - **Memory Optimization**: Binary data stored as const arrays in program memory
+- **Optimized C++ Code**: Generated code uses modern C++ best practices with minimal overhead
 
 ## Development Environment
 
@@ -131,6 +136,8 @@ The `package.script` executable generates 36 test header files (9 combinations o
 - `index.html` or `index.htm` files are automatically set as the default route for "/"
 - Pre-compressed files (.gz, .br, .brottli) in the source directory are skipped if the original file exists
 - The build uses `--clean` and `--force` flags to ensure clean builds without incremental compilation
+- ESP-IDF engine includes required headers (`string.h`, `stdlib.h`) for ETag validation support
+- All engines now fully support HTTP 304 Not Modified responses for efficient caching
 
 ## Template System
 
@@ -140,6 +147,32 @@ The code generation uses Handlebars with custom helpers:
 - **Three-state options**: `etag` and `gzip` can be "true", "false", or "compiler" (for C++ directive control)
 - **Engine-specific templates**: Each engine (psychic, psychic2, async, espidf) has its own template in `src/cppCode.ts` or `src/cppCodeEspIdf.ts`
 - **Data transformation**: Binary content is converted to comma-separated byte arrays in the template data
+
+## Generated C++ Code Quality
+
+The generated C++ code follows modern best practices and is optimized for performance and maintainability:
+
+### ETag Validation Implementation
+
+All four engines support ETag validation with HTTP 304 Not Modified responses:
+
+- **ESPAsyncWebServer (`async`)**: Uses `const AsyncWebHeader*` for proper const-correctness, single `getHeader()` call instead of `hasHeader()` + `getHeader()`, inlined lambda handlers
+- **PsychicHttpServer (`psychic`, `psychic2`)**: Uses `request->header().equals()` for direct string comparison without temporary objects
+- **ESP-IDF (`espidf`)**: Uses `httpd_req_get_hdr_value_len()` and `httpd_req_get_hdr_value_str()` for header validation with proper memory management (malloc/free)
+
+### Code Optimizations
+
+- **No intermediate variables**: Lambda handlers are inlined directly in route registration (ESPAsyncWebServer)
+- **Optimized header lookups**: Single API call instead of redundant checks
+- **No temporary String objects**: Uses `.equals()` method directly instead of `== String()` wrapper
+- **Proper const-correctness**: All pointer declarations use `const` where appropriate
+- **Minimal overhead**: Generated code has minimal runtime performance impact
+
+### Memory Management
+
+- **ESP32 (psychic, psychic2, espidf)**: Const arrays automatically placed in program memory (flash)
+- **ESP8266 (async)**: PROGMEM directive explicitly used for flash storage
+- **ESP-IDF ETag validation**: Temporary header value buffers are properly allocated and freed
 
 ## Generated C++ Defines
 

@@ -155,7 +155,7 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
@@ -163,12 +163,12 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
     }
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
@@ -265,18 +265,18 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       response->setCode(304);
       return response->send();
     }
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match") == String(etag_{{this.dataname}})) {
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       response->setCode(304);
       return response->send();
     }
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
@@ -367,22 +367,24 @@ void {{methodName}}(AsyncWebServer * server) {
 {{#each sources}}
 //
 // {{this.filename}}
-  ArRequestHandlerFunction func_{{this.dataname}} = [](AsyncWebServerRequest * request) {
+  server->on("/{{this.filename}}", HTTP_GET, [](AsyncWebServerRequest * request) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag_{{this.dataname}})) {
+    const AsyncWebHeader* h = request->getHeader("If-None-Match");
+    if (h && h->value().equals(etag_{{this.dataname}})) {
       request->send(304);
       return;
     }
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == String(etag_{{this.dataname}})) {
+    const AsyncWebHeader* h = request->getHeader("If-None-Match");
+    if (h && h->value().equals(etag_{{this.dataname}})) {
       request->send(304);
       return;
     }
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
@@ -404,7 +406,7 @@ void {{methodName}}(AsyncWebServer * server) {
     {{/if}}
   #else
     AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
@@ -427,15 +429,81 @@ void {{methodName}}(AsyncWebServer * server) {
     response->addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
     request->send(response);
-  };
-  server->on("/{{this.filename}}", HTTP_GET, func_{{this.dataname}});
+  });
   {{#if this.isDefault}}
-  server->on("/", HTTP_GET, func_{{this.dataname}});
+  server->on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
+
+{{#switch ../etag}}
+{{#case "true"}}
+    const AsyncWebHeader* h = request->getHeader("If-None-Match");
+    if (h && h->value().equals(etag_{{this.dataname}})) {
+      request->send(304);
+      return;
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    const AsyncWebHeader* h = request->getHeader("If-None-Match");
+    if (h && h->value().equals(etag_{{this.dataname}})) {
+      request->send(304);
+      return;
+    }
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    {{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
+    {{/if}}
+{{/case}}
+{{#case "false"}}
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    {{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
+    {{/if}}
+  #else
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+{{#../cacheTime}}
+    response->addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response->addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    response->addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response->addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+  #endif
+{{/case}}
+{{/switch}}
+
+    request->send(response);
+  });
   {{/if}}
 
 {{/each}}
