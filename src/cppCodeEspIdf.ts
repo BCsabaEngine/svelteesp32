@@ -51,6 +51,8 @@ export const espidfTemplate = `
 {{/each}}
 
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 #include <esp_err.h>
 #include <esp_http_server.h>
 
@@ -101,6 +103,40 @@ const char * etag_{{this.dataname}} = "{{this.md5}}";
 
 static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 {
+{{#switch ../etag}}
+{{#case "true"}}
+    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");
+    if (hdr_len > 0) {
+        char* hdr_value = malloc(hdr_len + 1);
+        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {
+            if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
+                free(hdr_value);
+                httpd_resp_set_status(req, "304 Not Modified");
+                httpd_resp_send(req, NULL, 0);
+                return ESP_OK;
+            }
+        }
+        free(hdr_value);
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");
+    if (hdr_len > 0) {
+        char* hdr_value = malloc(hdr_len + 1);
+        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {
+            if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
+                free(hdr_value);
+                httpd_resp_set_status(req, "304 Not Modified");
+                httpd_resp_send(req, NULL, 0);
+                return ESP_OK;
+            }
+        }
+        free(hdr_value);
+    }
+  #endif
+{{/case}}
+{{/switch}}
     httpd_resp_set_type(req, "{{this.mime}}");
 {{#switch ../gzip}}
 {{#case "true"}}

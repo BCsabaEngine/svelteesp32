@@ -175,7 +175,7 @@ const char * etag_assets_index_Soe6cpLA_css = "d4f23bc45ef67890ab12...";
 void initSvelteStaticFiles(PsychicHttpServer * server) {
   server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request) {
     if (request->hasHeader("If-None-Match") &&
-        request->header("If-None-Match") == String(etag_assets_index_KwubEIf__js)) {
+        request->header("If-None-Match").equals(etag_assets_index_KwubEIf__js)) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
@@ -192,7 +192,7 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
   server->on("/assets/index-Soe6cpLA.css", HTTP_GET, [](PsychicRequest * request) {
     if (request->hasHeader("If-None-Match") &&
-        request->header("If-None-Match") == String(etag_assets_index_Soe6cpLA_css)) {
+        request->header("If-None-Match").equals(etag_assets_index_Soe6cpLA_css)) {
       PsychicResponse response304(request);
       response304.setCode(304);
       return response304.send();
@@ -241,6 +241,8 @@ The ETag HTTP header can be used to significantly reduce network traffic. If the
 Since microcontroller data traffic is moderately expensive, it is an individual decision whether to use the ETag or not. We **recommend using ETag**, which adds a bit more code (about 1-3%) but results in a much cleaner operation.
 
 The use of ETag is **not enabled by default**, this can be achieved with the `--etag=true` switch.
+
+All four engines (psychic, psychic2, async, espidf) fully support ETag validation with HTTP 304 Not Modified responses, reducing bandwidth usage when clients have valid cached content.
 
 > This setting has three states: yes, no, and compiler mode is available. In compiler mode, you can disable/enable ETag by setting the `SVELTEESP32_ENABLE_ETAG` c++ compiler directive. For example, if using platformio, just type `-D SVELTEESP32_ENABLE_ETAG`.
 
