@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.4] - 2025-11-18
+
+### Changed
+
+- Solve CVE-2025-64756 glob vulnerability
+
 ## [1.9.3] - 2025-11-01
 
 ### Added
@@ -218,6 +224,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.9.4]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.0...v1.9.1
