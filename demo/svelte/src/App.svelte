@@ -37,7 +37,7 @@
 		<NavLi class="cursor-pointer">
 			Dropdown<ChevronDownOutline class="w-6 h-6 ms-2 text-primary-800 dark:text-white inline" />
 		</NavLi>
-		<Dropdown class="w-44 z-20">
+		<Dropdown simple class="w-44 z-20">
 			<DropdownItem href="/">Dashboard</DropdownItem>
 			<DropdownItem href="/docs/components/navbar">Settings</DropdownItem>
 			<DropdownItem href="/">Earnings</DropdownItem>
