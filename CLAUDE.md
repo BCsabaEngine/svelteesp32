@@ -70,7 +70,7 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 ### Core Components
 
 - **`src/index.ts`**: Main entry point that orchestrates the file processing pipeline
-- **`src/commandLine.ts`**: CLI argument parsing and validation using `ts-command-line-args`
+- **`src/commandLine.ts`**: CLI argument parsing and validation using native Node.js `process.argv` implementation
 - **`src/file.ts`**: File system operations for reading web assets
 - **`src/cppCode.ts`**: C++ code generation engine with Handlebars templates for PsychicHttp and ESPAsyncWebServer
 - **`src/cppCodeEspIdf.ts`**: Specialized C++ code generation for native ESP-IDF

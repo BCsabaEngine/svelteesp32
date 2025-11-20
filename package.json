@@ -1,6 +1,6 @@
 {
   "name": "svelteesp32",
-  "version": "1.9.4",
+  "version": "1.10.0",
   "description": "Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)",
   "author": "BCsabaEngine",
   "license": "ISC",
