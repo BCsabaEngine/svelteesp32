@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { globSync } from 'glob';
+import { globSync } from 'tinyglobby';
 
 import { cmdLine } from './commandLine';
 import { redLog, yellowLog } from './consoleColor';
@@ -57,7 +57,7 @@ const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
  * @returns Map of filename to file contents
  */
 export const getFiles = (): Map<string, Buffer> => {
-  const allFilenames = globSync('**/*', { cwd: cmdLine.sourcepath, nodir: true });
+  const allFilenames = globSync('**/*', { cwd: cmdLine.sourcepath, onlyFiles: true, dot: false });
   const filenames = allFilenames.filter((filename) => !shouldSkipFile(filename, allFilenames));
 
   const result: Map<string, Buffer> = new Map();
