@@ -7,6 +7,9 @@ dist
 # TypeScript cache
 *.tsbuildinfo
 
+# Test coverage
+coverage/
+
 # Optional npm cache directory
 .npm
 

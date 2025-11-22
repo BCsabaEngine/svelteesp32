@@ -37,6 +37,51 @@ This npm package provides a solution for **inserting any JS client application i
 - Node.js >= 20
 - npm >= 9
 
+### Development
+
+#### Testing
+
+The project includes comprehensive unit tests using Vitest:
+
+```bash
+# Run tests once
+npm run test
+
+# Run tests in watch mode (for development)
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+**Test Coverage:** ~68% overall with focus on core functionality:
+
+- `commandLine.ts`: 84.56% - CLI argument parsing and validation
+- `file.ts`: 100% - File operations and duplicate detection
+- `cppCode.ts`: 96.62% - C++ code generation and templates
+- `consoleColor.ts`: 100% - Console output utilities
+
+Coverage reports are generated in the `coverage/` directory and can be viewed by opening `coverage/index.html` in a browser.
+
+#### Code Quality
+
+```bash
+# Check formatting
+npm run format:check
+
+# Fix formatting
+npm run format:fix
+
+# Check linting
+npm run lint:check
+
+# Fix linting issues
+npm run lint:fix
+
+# Fix all formatting and linting issues
+npm run fix
+```
+
 ### Usage
 
 **Install package** as devDependency (it is practical if the package is part of the project so that you always receive updates)

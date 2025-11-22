@@ -26,7 +26,16 @@ npm run dev:psychic
 # Development with live reload (psychic2 engine)
 npm run dev:psychic2
 
-# Run comprehensive tests (requires PlatformIO)
+# Run TypeScript unit tests
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Generate test coverage report
+npm run test:coverage
+
+# Run comprehensive ESP32 tests (requires PlatformIO)
 npm run test:all
 ```
 
@@ -118,6 +127,53 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 - **ESLint**: Comprehensive rules including TypeScript, Prettier, Unicorn plugins
 - **Prettier**: 120 character line width, single quotes, no trailing commas
 - **Import Sorting**: Automatic import organization with `simple-import-sort`
+
+### Testing
+
+The project uses **Vitest** for unit testing with comprehensive coverage:
+
+**Test Structure:**
+
+```
+test/
+├── unit/
+│   ├── commandLine.test.ts    # CLI argument parsing tests
+│   ├── file.test.ts            # File operations tests
+│   ├── cppCode.test.ts         # C++ code generation tests
+│   └── consoleColor.test.ts    # Console utilities tests
+└── fixtures/
+    └── sample-files/           # Test fixture files
+```
+
+**Test Coverage (68.25% overall):**
+
+- `commandLine.ts`: 84.56% - CLI argument parsing, validation, engine/tri-state validation
+- `file.ts`: 100% - File collection, duplicate detection (SHA256), pre-compressed file skipping
+- `cppCode.ts`: 96.62% - Template rendering for all 4 engines, etag/gzip combinations, Handlebars helpers
+- `cppCodeEspIdf.ts`: 100% - ESP-IDF template (tested via `cppCode.ts`)
+- `consoleColor.ts`: 100% - ANSI color code wrapping
+- `index.ts`: 0% - Main entry point (has side effects, tested via integration)
+
+**Key Testing Features:**
+
+- **Vitest Configuration**: `vitest.config.ts` with TypeScript support, 60% coverage thresholds
+- **Mocking Strategy**: Uses `vi.mock()` for file system (`node:fs`), glob (`tinyglobby`), and module dependencies
+- **Dynamic Imports**: Tests use dynamic imports for `commandLine.ts` to test different CLI arguments without side effects
+- **Test Fixtures**: Small sample files (HTML/CSS/JS) for testing file processing pipeline
+- **Coverage Reports**: Generated in `coverage/` directory (ignored by git), viewable HTML reports at `coverage/index.html`
+
+**Testing Approach:**
+
+- **commandLine.test.ts**: Tests argument parsing (`--flag=value`, `-f value`, `--flag value`), validation errors, required arguments, directory validation. Uses dynamic imports to avoid module side effects.
+- **file.test.ts**: Mocks file system with `memfs`, tests duplicate detection, compressed file skipping, path handling
+- **cppCode.test.ts**: Tests template selection by engine, code generation for all etag/gzip combinations, byte array conversion, ETag/cache headers, default route detection
+- **consoleColor.test.ts**: Simple tests for ANSI escape code wrapping (quick coverage wins)
+
+**Running Tests:**
+
+- `npm run test` - Run all tests once (CI/CD)
+- `npm run test:watch` - Watch mode for development
+- `npm run test:coverage` - Generate coverage reports
 
 ### Demo Projects
 
