@@ -18,6 +18,7 @@ export default [
     ignores: [
       '**/.DS_Store',
       '**/node_modules',
+      '**/coverage',
       '**/bin',
       '**/dist',
       '**/demo',
