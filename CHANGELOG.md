@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Unit testing infrastructure using Vitest
+- Comprehensive test coverage (~68%) for core modules:
+  - `commandLine.ts` (84.56%): CLI argument parsing and validation
+  - `file.ts` (100%): File operations and duplicate detection
+  - `cppCode.ts` (96.62%): C++ code generation and templates
+  - `consoleColor.ts` (100%): Console utilities
+- Test fixtures for validating file processing
+- Coverage reports with HTML output
+- Development documentation for testing in README.md and CLAUDE.md
+
+### Changed
+
+- Updated `.gitignore` to exclude `coverage/` directory
+- Enhanced documentation with testing sections
+
 ## [1.10.0] - 2025-11-20
 
 ### Changed
