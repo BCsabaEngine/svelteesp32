@@ -31,6 +31,9 @@
     "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --cachetime=86400 --version=v$npm_package_version",
     "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
     "dev:psychic2": "nodemon src/index.ts -- -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:esp32": "./package.script && ~/.platformio/penv/bin/pio run -d ./demo/esp32",
     "test:esp32idf": "./package.script && ~/.platformio/penv/bin/pio run -d ./demo/esp32idf",
     "test:all": "node --run test:esp32 && node --run test:esp32idf",
@@ -41,7 +44,7 @@
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
     "fix": "node --run format:fix && node --run lint:fix && node --run format:fix",
-    "all": "node --run fix && node --run build",
+    "all": "node --run fix && node --run build && node --run test",
     "npm:reinstall": "rm -rf ./node_modules && rm -f ./package-lock.json && npm i && npm i"
   },
   "keywords": [
@@ -62,15 +65,18 @@
     "@types/picomatch": "^4.0.2",
     "@typescript-eslint/eslint-plugin": "^8.47.0",
     "@typescript-eslint/parser": "^8.47.0",
+    "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unicorn": "^62.0.0",
+    "memfs": "^4.15.0",
     "nodemon": "^3.1.11",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "handlebars": "^4.7.8",
