@@ -64,6 +64,9 @@ npm run fix
 # Generate header for PsychicHttpServer
 npx svelteesp32 -e psychic -s ./dist -o ./output.h --etag=true --gzip=true
 
+# Generate header for PsychicHttpServer V2
+npx svelteesp32 -e psychic2 -s ./dist -o ./output.h --etag=true --gzip=true
+
 # Generate header for ESPAsyncWebServer
 npx svelteesp32 -e async -s ./dist -o ./output.h --etag=true --gzip=true
 
