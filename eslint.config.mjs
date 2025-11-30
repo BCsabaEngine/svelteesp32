@@ -50,6 +50,7 @@ export default [
     },
 
     rules: {
+      curly: ['error', 'multi'],
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       'unicorn/filename-case': 'off',

@@ -106,9 +106,8 @@ function parseArguments(): ICopyFilesArguments {
           break;
         case 'cachetime':
           result.cachetime = Number.parseInt(value, 10);
-          if (Number.isNaN(result.cachetime)) {
-            throw new TypeError(`Invalid cachetime: ${value}`);
-          }
+          if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${value}`);
+
           break;
         default:
           throw new Error(`Unknown flag: ${flag}`);
@@ -190,9 +189,8 @@ function parseArguments(): ICopyFilesArguments {
           break;
         case 'cachetime':
           result.cachetime = Number.parseInt(nextArgument, 10);
-          if (Number.isNaN(result.cachetime)) {
-            throw new TypeError(`Invalid cachetime: ${nextArgument}`);
-          }
+          if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${nextArgument}`);
+
           index++;
           break;
         default:
