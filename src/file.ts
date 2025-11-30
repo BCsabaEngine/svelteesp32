@@ -22,9 +22,7 @@ const findSimilarFiles = (files: Map<string, Buffer>): string[][] => {
   }
 
   const result: string[][] = [];
-  for (const filenames of contentComparer.values()) {
-    if (filenames.length > 1) result.push(filenames);
-  }
+  for (const filenames of contentComparer.values()) if (filenames.length > 1) result.push(filenames);
 
   return result;
 };
@@ -63,9 +61,7 @@ export const getFiles = (): Map<string, Buffer> => {
 
   // Report duplicate files
   const duplicates = findSimilarFiles(result);
-  for (const sameFiles of duplicates) {
-    console.log(yellowLog(` ${sameFiles.join(', ')} files look like identical`));
-  }
+  for (const sameFiles of duplicates) console.log(yellowLog(` ${sameFiles.join(', ')} files look like identical`));
 
   return result;
 };
