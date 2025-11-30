@@ -55,9 +55,7 @@ const formatCompressionLog = (
   const ratio = calculateCompressionRatio(originalSize, compressedSize);
   const sizeInfo = `(${originalSize} -> ${compressedSize} = ${ratio}%)`;
 
-  if (useGzip) {
-    return greenLog(` [${filename}] ${padding} ✓ gzip used ${sizeInfo}`);
-  }
+  if (useGzip) return greenLog(` [${filename}] ${padding} ✓ gzip used ${sizeInfo}`);
 
   const tooSmall = originalSize <= GZIP_MIN_SIZE ? '(too small) ' : '';
   return yellowLog(` [${filename}] ${padding} x gzip unused ${tooSmall}${sizeInfo}`);
@@ -90,11 +88,8 @@ const createSourceEntry = (
  */
 const updateExtensionGroup = (extension: string): void => {
   const group = filesByExtension.find((fe) => fe.extension === extension);
-  if (group) {
-    group.count += 1;
-  } else {
-    filesByExtension.push({ extension, count: 1 });
-  }
+  if (group) group.count += 1;
+  else filesByExtension.push({ extension, count: 1 });
 };
 
 console.log('Collecting source files');

@@ -17,18 +17,13 @@ const findSimilarFiles = (files: Map<string, Buffer>): string[][] => {
     const hash = createHash('sha256').update(content).digest('hex');
     const existingFiles = contentComparer.get(hash);
 
-    if (existingFiles) {
-      existingFiles.push(filename);
-    } else {
-      contentComparer.set(hash, [filename]);
-    }
+    if (existingFiles) existingFiles.push(filename);
+    else contentComparer.set(hash, [filename]);
   }
 
   const result: string[][] = [];
   for (const filenames of contentComparer.values()) {
-    if (filenames.length > 1) {
-      result.push(filenames);
-    }
+    if (filenames.length > 1) result.push(filenames);
   }
 
   return result;
