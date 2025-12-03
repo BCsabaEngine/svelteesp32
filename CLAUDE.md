@@ -75,6 +75,9 @@ npx svelteesp32 -e espidf -s ./dist -o ./output.h --etag=true --gzip=true
 
 # Test the CLI directly using tsx (for development)
 npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true --gzip=true
+
+# Generate header with file exclusions
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --exclude="*.map" --exclude="*.md"
 ```
 
 ## Architecture
@@ -90,7 +93,7 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 
 ### Processing Pipeline
 
-1. **File Collection** (`src/file.ts`): Scans source directory recursively using glob, skips pre-compressed files (.gz, .br) if originals exist, detects duplicate files via SHA256 hashing
+1. **File Collection** (`src/file.ts`): Scans source directory recursively using glob, skips pre-compressed files (.gz, .br) if originals exist, filters files matching exclude patterns, detects duplicate files via SHA256 hashing
 2. **Content Analysis** (`src/index.ts`): Determines MIME types using `mime-types` library, calculates MD5 hashes for ETag generation, groups files by extension for statistics
 3. **Compression** (`src/index.ts`): Applies gzip level 9 compression, uses compressed version only when size reduction >15% and original >1024 bytes
 4. **Code Generation** (`src/cppCode.ts`, `src/cppCodeEspIdf.ts`): Uses Handlebars templates with custom helpers (switch/case), generates optimized engine-specific C++ code with:
@@ -112,10 +115,57 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 - **Automatic Gzip Compression**: Compresses assets when size reduction >15% and >1024 bytes
 - **ETag Support**: HTTP cache validation for reduced network traffic with 304 Not Modified responses across all engines (psychic, psychic2, async, espidf)
 - **Cache Control**: Configurable browser caching with `--cachetime`
+- **File Exclusion**: Exclude unwanted files using glob patterns with `--exclude` option
 - **Multi-Engine Support**: Generate code for different ESP web server libraries
 - **File Type Analysis**: Groups files by extension with count statistics
 - **Memory Optimization**: Binary data stored as const arrays in program memory
 - **Optimized C++ Code**: Generated code uses modern C++ best practices with minimal overhead
+
+### File Exclusion
+
+The tool supports flexible file exclusion using glob patterns to filter out unwanted files from being embedded in the ESP32 firmware.
+
+**Pattern Support:**
+
+- Simple wildcards: `*.map`, `*.txt`
+- Directory patterns: `test/**/*.js`, `docs/**/*`
+- Specific files: `.DS_Store`, `README.md`
+
+**Multiple Patterns:**
+
+- Repeated flag: `--exclude *.map --exclude *.md`
+- Comma-separated: `--exclude="*.map,*.md,*.txt"`
+- Combined: Both formats can be mixed
+
+**Default Exclusions:**
+System and development files are excluded by default:
+
+- `.DS_Store`, `Thumbs.db` (system files)
+- `.git`, `.svn` (version control)
+- `*.swp`, `*~` (editor files)
+- `.gitignore`, `.gitattributes` (git config)
+
+**Implementation:**
+
+- Uses `picomatch` library (transitive dependency via `tinyglobby`)
+- Filtering occurs after pre-compressed file detection but before file content reading
+- Excluded files are logged with count and list for verification
+- Windows path normalization for cross-platform consistency
+
+**Example Output:**
+
+```
+Collecting source files
+
+Excluded 3 file(s):
+  - assets/index.js.map
+  - README.md
+  - test/unit.test.js
+
+Translation to header file
+[index.html] ✓ gzip used (472 -> 308 = 65%)
+...
+```
 
 ## Development Environment
 

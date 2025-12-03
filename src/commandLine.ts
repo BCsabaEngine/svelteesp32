@@ -11,6 +11,7 @@ interface ICopyFilesArguments {
   cachetime: number;
   created: boolean;
   version: string;
+  exclude: string[];
   help?: boolean;
 }
 
@@ -30,6 +31,8 @@ Options:
   --espmethod <name>         Name of generated method (default: "initSvelteStaticFiles")
   --define <prefix>          Prefix of c++ defines (default: "SVELTEESP32")
   --cachetime <seconds>      max-age cache time in seconds (default: 0)
+  --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
+                             Examples: --exclude="*.map" --exclude="test/**/*.ts"
   -h, --help                 Shows this help
 `);
   process.exit(0);
@@ -47,6 +50,17 @@ function validateTriState(value: string, name: string): 'true' | 'false' | 'comp
   throw new Error(`Invalid ${name}: ${value}`);
 }
 
+const DEFAULT_EXCLUDE_PATTERNS = [
+  '.DS_Store', // macOS system file
+  'Thumbs.db', // Windows thumbnail cache
+  '.git', // Git directory
+  '.svn', // SVN directory
+  '*.swp', // Vim swap files
+  '*~', // Backup files
+  '.gitignore', // Git ignore file
+  '.gitattributes' // Git attributes file
+];
+
 function parseArguments(): ICopyFilesArguments {
   const arguments_ = process.argv.slice(2);
   const result: Partial<ICopyFilesArguments> = {
@@ -58,7 +72,8 @@ function parseArguments(): ICopyFilesArguments {
     version: '',
     espmethod: 'initSvelteStaticFiles',
     define: 'SVELTEESP32',
-    cachetime: 0
+    cachetime: 0,
+    exclude: [...DEFAULT_EXCLUDE_PATTERNS]
   };
 
   for (let index = 0; index < arguments_.length; index++) {
@@ -109,6 +124,15 @@ function parseArguments(): ICopyFilesArguments {
           if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${value}`);
 
           break;
+        case 'exclude': {
+          const patterns = value
+            .split(',')
+            .map((p) => p.trim())
+            .filter(Boolean);
+          result.exclude = result.exclude || [...DEFAULT_EXCLUDE_PATTERNS];
+          result.exclude.push(...patterns);
+          break;
+        }
         default:
           throw new Error(`Unknown flag: ${flag}`);
       }
@@ -193,6 +217,16 @@ function parseArguments(): ICopyFilesArguments {
 
           index++;
           break;
+        case 'exclude': {
+          const patterns = nextArgument
+            .split(',')
+            .map((p) => p.trim())
+            .filter(Boolean);
+          result.exclude = result.exclude || [...DEFAULT_EXCLUDE_PATTERNS];
+          result.exclude.push(...patterns);
+          index++;
+          break;
+        }
         default:
           throw new Error(`Unknown flag: --${flag}`);
       }

@@ -7,22 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2025-12-03
+
 ### Added
 
+- **File Exclusion Feature**: New `--exclude` flag for filtering files using glob patterns
+  - Support for simple wildcards (`*.map`, `*.txt`) and directory patterns (`test/**/*.js`)
+  - Multiple pattern formats: repeated flags (`--exclude *.map --exclude *.md`) and comma-separated (`--exclude="*.map,*.md"`)
+  - Default exclusions for common system and development files (`.DS_Store`, `Thumbs.db`, `.git`, `.svn`, `*.swp`, `*~`, `.gitignore`, `.gitattributes`)
+  - Cyan-colored console output showing excluded file count and list
+  - Cross-platform path normalization for Windows compatibility
+  - Uses `picomatch` library (transitive dependency via `tinyglobby`) for pattern matching
 - Unit testing infrastructure using Vitest
-- Comprehensive test coverage (~68%) for core modules:
-  - `commandLine.ts` (84.56%): CLI argument parsing and validation
-  - `file.ts` (100%): File operations and duplicate detection
+- Comprehensive test coverage (~72%) for core modules:
+  - `commandLine.ts` (~90%): CLI argument parsing and validation including exclude patterns
+  - `file.ts` (100%): File operations, duplicate detection, and exclusion filtering
   - `cppCode.ts` (96.62%): C++ code generation and templates
-  - `consoleColor.ts` (100%): Console utilities
+  - `consoleColor.ts` (100%): Console utilities including new `cyanLog` function
+- 15 new unit tests for file exclusion feature (8 for CLI parsing, 7 for exclusion logic)
 - Test fixtures for validating file processing
 - Coverage reports with HTML output
-- Development documentation for testing in README.md and CLAUDE.md
+- `cyanLog()` color function for exclusion output messages
 
 ### Changed
 
+- Updated file collection pipeline to filter excluded files after pre-compressed detection
+- Enhanced `commandLine.ts` with exclude pattern parsing for three argument formats
+- Enhanced `file.ts` with `isExcluded()` function and exclusion reporting
 - Updated `.gitignore` to exclude `coverage/` directory
-- Enhanced documentation with testing sections
+- Enhanced documentation with testing sections and comprehensive file exclusion guide
+- Updated README.md with file exclusion section including usage examples, pattern syntax, and default exclusions
+- Updated CLAUDE.md with technical file exclusion implementation details and example output
 
 ## [1.10.0] - 2025-11-20
 
@@ -251,6 +266,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.11.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.4...v1.10.0
 [1.9.4]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.2...v1.9.3

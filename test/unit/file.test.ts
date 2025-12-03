@@ -16,7 +16,8 @@ vi.mock('../../src/commandLine', () => ({
     cachetime: 86_400,
     created: false,
     version: 'test-version',
-    prefix: 'SVELTEESP32'
+    prefix: 'SVELTEESP32',
+    exclude: []
   }
 }));
 
@@ -144,6 +145,137 @@ describe('file', () => {
       getFiles();
 
       expect(tinyglobby.globSync).toHaveBeenCalledWith('**/*', { cwd: '/test/path', onlyFiles: true, dot: false });
+    });
+  });
+
+  describe('file exclusion', () => {
+    beforeEach(async () => {
+      // Reset cmdLine mock before each test
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).exclude = [];
+    });
+
+    it('should exclude files matching simple glob pattern', async () => {
+      const mockFiles = ['index.html', 'script.js', 'script.js.map', 'style.css'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      // Mock cmdLine to include exclude pattern
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).exclude = ['*.map'];
+
+      const result = getFiles();
+
+      expect(result.size).toBe(3);
+      expect(result.has('index.html')).toBe(true);
+      expect(result.has('script.js')).toBe(true);
+      expect(result.has('style.css')).toBe(true);
+      expect(result.has('script.js.map')).toBe(false);
+    });
+
+    it('should exclude files matching directory glob pattern', async () => {
+      const mockFiles = ['index.html', 'src/app.js', 'test/unit.test.js', 'test/integration.test.js'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).exclude = ['test/**/*.js'];
+
+      const result = getFiles();
+
+      expect(result.size).toBe(2);
+      expect(result.has('index.html')).toBe(true);
+      expect(result.has('src/app.js')).toBe(true);
+      expect(result.has('test/unit.test.js')).toBe(false);
+      expect(result.has('test/integration.test.js')).toBe(false);
+    });
+
+    it('should exclude files matching multiple patterns', async () => {
+      const mockFiles = ['index.html', 'script.js', 'script.js.map', 'README.md', 'docs.txt'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).exclude = ['*.map', '*.md', '*.txt'];
+
+      const result = getFiles();
+
+      expect(result.size).toBe(2);
+      expect(result.has('index.html')).toBe(true);
+      expect(result.has('script.js')).toBe(true);
+    });
+
+    it('should exclude default system files', async () => {
+      const mockFiles = ['index.html', '.DS_Store', 'Thumbs.db', '.gitignore'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).exclude = ['.DS_Store', 'Thumbs.db', '.gitignore'];
+
+      const result = getFiles();
+
+      expect(result.size).toBe(1);
+      expect(result.has('index.html')).toBe(true);
+    });
+
+    it('should not exclude when patterns array is empty', async () => {
+      const mockFiles = ['index.html', 'script.js', 'style.css'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).exclude = [];
+
+      const result = getFiles();
+
+      expect(result.size).toBe(3);
+    });
+
+    it('should handle Windows-style paths in exclusion', async () => {
+      const mockFiles = [String.raw`src\app.js`, String.raw`test\unit.test.js`];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).exclude = ['test/**/*.js'];
+
+      const result = getFiles();
+
+      // Should normalize backslashes and match pattern
+      expect(result.size).toBe(1);
+      expect(result.has(String.raw`src\app.js`)).toBe(true);
+    });
+
+    it('should log excluded files with count and list', async () => {
+      const mockFiles = ['index.html', 'script.js.map', 'README.md'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const consoleLogSpy = vi.spyOn(console, 'log');
+
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).exclude = ['*.map', '*.md'];
+
+      getFiles();
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Excluded 2 file(s)'));
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('script.js.map'));
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('README.md'));
     });
   });
 });

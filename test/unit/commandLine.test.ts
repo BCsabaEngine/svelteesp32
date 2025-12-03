@@ -130,6 +130,86 @@ describe('commandLine', () => {
     });
   });
 
+  describe('exclude patterns', () => {
+    it('should parse single exclude pattern with --exclude=value format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.exclude).toContain('*.map');
+      expect(cmdLine.exclude).toContain('.DS_Store'); // Default patterns still present
+    });
+
+    it('should parse multiple exclude patterns with repeated flag', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map', '--exclude=*.md'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.exclude).toContain('*.map');
+      expect(cmdLine.exclude).toContain('*.md');
+    });
+
+    it('should parse comma-separated exclude patterns', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map,*.md,test/**/*.ts'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.exclude).toContain('*.map');
+      expect(cmdLine.exclude).toContain('*.md');
+      expect(cmdLine.exclude).toContain('test/**/*.ts');
+    });
+
+    it('should combine repeated flags and comma-separated patterns', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map,*.md', '--exclude=test/**/*.ts'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.exclude).toContain('*.map');
+      expect(cmdLine.exclude).toContain('*.md');
+      expect(cmdLine.exclude).toContain('test/**/*.ts');
+    });
+
+    it('should include default exclude patterns by default', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.exclude).toContain('.DS_Store');
+      expect(cmdLine.exclude).toContain('Thumbs.db');
+      expect(cmdLine.exclude).toContain('.git');
+    });
+
+    it('should handle patterns with spaces after comma', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map, *.md,  test/**/*.ts'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.exclude).toContain('*.map');
+      expect(cmdLine.exclude).toContain('*.md');
+      expect(cmdLine.exclude).toContain('test/**/*.ts');
+    });
+
+    it('should filter empty patterns after split', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map,,*.md'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.exclude).toContain('*.map');
+      expect(cmdLine.exclude).toContain('*.md');
+      // Empty string should not be in array
+      expect(cmdLine.exclude.filter((p) => p === '').length).toBe(0);
+    });
+
+    it('should parse exclude pattern with --flag value format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude', '*.map,*.md'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.exclude).toContain('*.map');
+      expect(cmdLine.exclude).toContain('*.md');
+    });
+  });
+
   describe('validation', () => {
     it('should validate engine values', async () => {
       process.argv = ['node', 'script.js', '--engine=invalid', '--sourcepath=/test/dist'];
