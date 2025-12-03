@@ -2,10 +2,11 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import picomatch from 'picomatch';
 import { globSync } from 'tinyglobby';
 
 import { cmdLine } from './commandLine';
-import { redLog, yellowLog } from './consoleColor';
+import { cyanLog, redLog, yellowLog } from './consoleColor';
 
 /**
  * Find files with identical content based on SHA256 hash
@@ -46,12 +47,61 @@ const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
 };
 
 /**
+ * Check if a file matches any of the exclude patterns
+ * @param filename - Relative file path to check
+ * @param excludePatterns - Array of glob patterns to match against
+ * @returns true if file should be excluded
+ */
+const isExcluded = (filename: string, excludePatterns: string[]): boolean => {
+  if (excludePatterns.length === 0) return false;
+
+  // Normalize path separators for consistent matching (Windows compatibility)
+  // eslint-disable-next-line unicorn/prefer-string-replace-all
+  const normalizedFilename = filename.replace(/\\/g, '/');
+
+  // Create matcher function for all patterns
+  const isMatch = picomatch(excludePatterns, {
+    dot: true, // Match dotfiles
+    noglobstar: false, // Enable ** for directory recursion
+    matchBase: false // Don't match basename only (require full path)
+  });
+
+  return isMatch(normalizedFilename);
+};
+
+/**
  * Get all files from the source directory, excluding pre-compressed variants
  * @returns Map of filename to file contents
  */
 export const getFiles = (): Map<string, Buffer> => {
   const allFilenames = globSync('**/*', { cwd: cmdLine.sourcepath, onlyFiles: true, dot: false });
-  const filenames = allFilenames.filter((filename) => !shouldSkipFile(filename, allFilenames));
+
+  // Filter pre-compressed files
+  const withoutCompressed = allFilenames.filter((filename) => !shouldSkipFile(filename, allFilenames));
+
+  // Filter excluded files
+  const excludePatterns = cmdLine.exclude || [];
+  const excludedFiles: string[] = [];
+  const filenames = withoutCompressed.filter((filename) => {
+    if (isExcluded(filename, excludePatterns)) {
+      excludedFiles.push(filename);
+      return false;
+    }
+    return true;
+  });
+
+  // Report excluded files
+  if (excludedFiles.length > 0) {
+    console.log(cyanLog(`\n Excluded ${excludedFiles.length} file(s):`));
+    // Show first 10 excluded files, then summarize if more
+    const displayLimit = 10;
+    for (const file of excludedFiles.slice(0, displayLimit)) console.log(cyanLog(`  - ${file}`));
+
+    if (excludedFiles.length > displayLimit)
+      console.log(cyanLog(`  ... and ${excludedFiles.length - displayLimit} more`));
+
+    console.log(); // Blank line for readability
+  }
 
   const result: Map<string, Buffer> = new Map();
   for (const filename of filenames) {

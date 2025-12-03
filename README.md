@@ -303,6 +303,71 @@ At the same time, it can be an advantage that the content is cached by the brows
 
 Typically, the entry point for web applications is the **index.htm or index.html** file. This does not need to be listed in the browser's address bar because web servers know that this file should be served by default. Svelteesp32 also does this: if there is an index.htm or index.html file, it sets it as the main file to be served. So using `http://esp_xxx.local` or just entering the `http://x.y.w.z/` IP address will serve this main file.
 
+### File Exclusion
+
+The `--exclude` option allows you to exclude files from being embedded in the ESP32 firmware using glob patterns. This is useful for excluding source maps, documentation, and test files that shouldn't be part of the deployed application.
+
+#### Basic Usage
+
+```bash
+# Exclude source maps
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --exclude="*.map"
+
+# Exclude documentation files
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --exclude="*.md"
+
+# Exclude multiple file types (comma-separated)
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --exclude="*.map,*.md,*.txt"
+
+# Exclude using multiple flags
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --exclude="*.map" --exclude="*.md"
+
+# Exclude entire directories
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --exclude="test/**/*"
+
+# Combine multiple approaches
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --exclude="*.map,*.md" --exclude="docs/**/*"
+```
+
+#### Pattern Syntax
+
+The exclude patterns use standard glob syntax:
+
+- `*.map` - Match all files ending with `.map`
+- `**/*.test.js` - Match all `.test.js` files in any directory
+- `test/**/*` - Match all files in the `test` directory and subdirectories
+- `.DS_Store` - Match specific filename
+
+#### Default Exclusions
+
+By default, the following system and development files are automatically excluded:
+
+- `.DS_Store` (macOS system file)
+- `Thumbs.db` (Windows thumbnail cache)
+- `.git` (Git directory)
+- `.svn` (SVN directory)
+- `*.swp` (Vim swap files)
+- `*~` (Backup files)
+- `.gitignore` (Git ignore file)
+- `.gitattributes` (Git attributes file)
+
+Custom exclude patterns are added to these defaults.
+
+#### Exclusion Output
+
+When files are excluded, you'll see a summary in the build output:
+
+```
+Excluded 5 file(s):
+  - assets/index.js.map
+  - assets/vendor.js.map
+  - README.md
+  - docs/guide.md
+  - test/unit.test.js
+```
+
+This helps you verify that the correct files are being excluded from your build.
+
 ### C++ defines
 
 To make it easy to integrate into a larger c++ project, we have made a couple of variables available as c++ defines.
@@ -352,6 +417,7 @@ You can use the following c++ directives at the project level if you want to con
 | `-s`          | **Source dist folder contains compiled web files**                                   | (required)              |
 | `-e`          | The engine for which the include file is created (psychic/psychic2/async/espidf)     | psychic                 |
 | `-o`          | Generated output file with path                                                      | `svelteesp32.h`         |
+| `--exclude`   | Exclude files matching glob pattern (repeatable or comma-separated)                  | Default system files    |
 | `--etag`      | Use ETag header for cache (true/false/compiler)                                      | false                   |
 | `--cachetime` | Override no-cache response with a max-age=\<cachetime\> response (seconds)           | 0                       |
 | `--gzip`      | Compress content with gzip (true/false/compiler)                                     | true                    |
