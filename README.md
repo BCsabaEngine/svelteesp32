@@ -12,6 +12,8 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer (https://github.com/ESP32Async/ESPAsyncWebServer) and ESP-IDF available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
+> Starting with version v1.13.0, RC files support npm package variable interpolation
+
 > Starting with version v1.12.0, you can use RC file for configuration
 
 > Starting with version v1.11.0, you can exclude files by pattern
@@ -539,6 +541,89 @@ To keep defaults, explicitly list them in your RC file:
   "exclude": [".DS_Store", "Thumbs.db", ".git", "*.map", "*.md"]
 }
 ```
+
+#### NPM Package Variable Interpolation
+
+RC files support automatic variable interpolation from your `package.json`. This allows you to reference package.json fields in your RC configuration using npm-style variable syntax.
+
+**Syntax:** `$npm_package_<field_name>`
+
+**Supported in:** All string fields (`version`, `define`, `sourcepath`, `outputfile`, `espmethod`, `exclude` patterns)
+
+**Example:**
+
+```json
+// .svelteesp32rc.json
+{
+  "engine": "psychic",
+  "version": "v$npm_package_version",
+  "define": "$npm_package_name",
+  "sourcepath": "./dist",
+  "outputfile": "./output.h"
+}
+```
+
+With `package.json` containing:
+
+```json
+{
+  "name": "my-esp32-app",
+  "version": "2.1.0"
+}
+```
+
+The variables are automatically interpolated to:
+
+```json
+{
+  "version": "v2.1.0",
+  "define": "my_esp32_app"
+}
+```
+
+**Nested Fields:**
+
+You can access nested package.json fields using underscores:
+
+```json
+// package.json
+{
+  "name": "myapp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/user/repo.git"
+  }
+}
+
+// .svelteesp32rc.json
+{
+  "version": "$npm_package_repository_type"
+}
+// Results in: "version": "git"
+```
+
+**Multiple Variables:**
+
+Combine multiple variables in a single field:
+
+```json
+{
+  "version": "$npm_package_name-v$npm_package_version-release"
+}
+// Results in: "my-esp32-app-v2.1.0-release"
+```
+
+**Requirements:**
+
+- `package.json` must exist in the same directory as the RC file
+- If variables are used but `package.json` is not found, an error is thrown with details about which fields contain variables
+- Unknown variables are left unchanged (e.g., `$npm_package_nonexistent` stays as-is)
+
+**Use Cases:**
+
+- **Version Synchronization:** Keep header version in sync with npm package version
+- **Dynamic Naming:** Use package name for C++ defines automatically
+- **CI/CD Integration:** Reusable RC files across projects with different package names
 
 ### Q&A
 

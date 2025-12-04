@@ -600,5 +600,349 @@ describe('commandLine', () => {
         expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Unknown property 'anotherUnknown'"));
       });
     });
+
+    describe('npm variable interpolation', () => {
+      describe('getNpmPackageVariable', () => {
+        const mockPackageJson = {
+          name: 'svelteesp32',
+          version: '1.12.1',
+          author: 'BCsabaEngine',
+          repository: {
+            type: 'git',
+            url: 'https://github.com/BCsabaEngine/svelteesp32.git'
+          },
+          keywords: ['svelte', 'esp32'],
+          engines: {
+            node: '>=20'
+          }
+        };
+
+        it('should extract simple field (version)', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const result = getNpmPackageVariable(mockPackageJson, '$npm_package_version');
+          expect(result).toBe('1.12.1');
+        });
+
+        it('should extract simple field (name)', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const result = getNpmPackageVariable(mockPackageJson, '$npm_package_name');
+          expect(result).toBe('svelteesp32');
+        });
+
+        it('should extract nested field (repository.type)', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const result = getNpmPackageVariable(mockPackageJson, '$npm_package_repository_type');
+          expect(result).toBe('git');
+        });
+
+        it('should extract deep nested field (repository.url)', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const result = getNpmPackageVariable(mockPackageJson, '$npm_package_repository_url');
+          expect(result).toBe('https://github.com/BCsabaEngine/svelteesp32.git');
+        });
+
+        it('should return undefined for non-existent field', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const result = getNpmPackageVariable(mockPackageJson, '$npm_package_nonexistent');
+          expect(result).toBeUndefined();
+        });
+
+        it('should return undefined for variable without prefix', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const result = getNpmPackageVariable(mockPackageJson, 'version');
+          expect(result).toBeUndefined();
+        });
+
+        it('should convert non-string values to strings', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const packageJsonWithNumber = { count: 42 };
+          const result = getNpmPackageVariable(packageJsonWithNumber, '$npm_package_count');
+          expect(result).toBe('42');
+        });
+
+        it('should handle null values', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const packageJsonWithNull = { field: undefined };
+          const result = getNpmPackageVariable(packageJsonWithNull, '$npm_package_field');
+          expect(result).toBeUndefined();
+        });
+
+        it('should handle undefined values', async () => {
+          const { getNpmPackageVariable } = await import('../../src/commandLine');
+          const result = getNpmPackageVariable(mockPackageJson, '$npm_package_undefined_field');
+          expect(result).toBeUndefined();
+        });
+      });
+
+      describe('hasNpmVariables', () => {
+        it('should return false when no variables present', async () => {
+          const { hasNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            engine: 'psychic' as const,
+            sourcepath: './dist',
+            outputfile: './output.h'
+          };
+          expect(hasNpmVariables(config)).toBe(false);
+        });
+
+        it('should return true when variable in version', async () => {
+          const { hasNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: 'v$npm_package_version'
+          };
+          expect(hasNpmVariables(config)).toBe(true);
+        });
+
+        it('should return true when variable in sourcepath', async () => {
+          const { hasNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            sourcepath: './$npm_package_name/dist'
+          };
+          expect(hasNpmVariables(config)).toBe(true);
+        });
+
+        it('should return true when variable in define', async () => {
+          const { hasNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            define: '$npm_package_name_STATIC'
+          };
+          expect(hasNpmVariables(config)).toBe(true);
+        });
+
+        it('should return true when variable in exclude array', async () => {
+          const { hasNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            exclude: ['*.map', '$npm_package_name.test.js']
+          };
+          expect(hasNpmVariables(config)).toBe(true);
+        });
+
+        it('should return true for multiple fields with variables', async () => {
+          const { hasNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: 'v$npm_package_version',
+            define: '$npm_package_name',
+            exclude: ['$npm_package_name/**/*']
+          };
+          expect(hasNpmVariables(config)).toBe(true);
+        });
+      });
+
+      describe('interpolateNpmVariables', () => {
+        it('should return config unchanged when no variables present', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(true);
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            engine: 'psychic' as const,
+            sourcepath: './dist',
+            outputfile: './output.h'
+          };
+          const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
+          expect(result).toEqual(config);
+        });
+
+        it('should interpolate version field', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(true);
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+            return '{}';
+          });
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: 'v$npm_package_version'
+          };
+          const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
+          expect(result.version).toBe('v1.2.3');
+        });
+
+        it('should interpolate multiple fields', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(true);
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+
+            return '{}';
+          });
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: 'v$npm_package_version',
+            define: '$npm_package_name_STATIC',
+            outputfile: './$npm_package_name.h'
+          };
+          const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
+          expect(result.version).toBe('v1.2.3');
+          expect(result.define).toBe('testapp_STATIC');
+          expect(result.outputfile).toBe('./testapp.h');
+        });
+
+        it('should interpolate exclude array patterns', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(true);
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+
+            return '{}';
+          });
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            exclude: ['*.map', '$npm_package_name/**/*.test.js']
+          };
+          const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
+          expect(result.exclude).toEqual(['*.map', 'testapp/**/*.test.js']);
+        });
+
+        it('should handle mixed static and variable content', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(true);
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+
+            return '{}';
+          });
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: '$npm_package_name-v$npm_package_version-release'
+          };
+          const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
+          expect(result.version).toBe('testapp-v1.2.3-release');
+        });
+
+        it('should leave unknown variables unchanged', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(true);
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+
+            return '{}';
+          });
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: 'v$npm_package_unknown_field'
+          };
+          const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
+          expect(result.version).toBe('v$npm_package_unknown_field');
+        });
+
+        it('should throw error when variables present but package.json not found', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(false);
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: 'v$npm_package_version'
+          };
+
+          expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow(
+            'RC file uses npm package variables but package.json not found'
+          );
+        });
+
+        it('should list affected fields in error message', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(false);
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: 'v$npm_package_version',
+            define: '$npm_package_name'
+          };
+
+          expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('version, define');
+        });
+
+        it('should handle nested package.json fields', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(true);
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('package.json'))
+              return JSON.stringify({
+                name: 'testapp',
+                repository: { type: 'git', url: 'https://github.com/test/repo.git' }
+              });
+
+            return '{}';
+          });
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: '$npm_package_repository_type'
+          };
+          const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
+          expect(result.version).toBe('git');
+        });
+      });
+
+      describe('RC file with npm variables integration', () => {
+        it('should load RC file with interpolated variables', async () => {
+          const mockRcContent = JSON.stringify({
+            engine: 'psychic',
+            sourcepath: '/test/dist',
+            version: 'v$npm_package_version',
+            define: '$npm_package_name'
+          });
+
+          const mockPackageJson = JSON.stringify({
+            name: 'testapp',
+            version: '2.0.0'
+          });
+
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return true;
+            if (path.includes('.svelteesp32rc')) return true;
+            if (path === '/test/dist') return true;
+            return false;
+          });
+
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return mockPackageJson;
+            if (path.includes('.svelteesp32rc')) return mockRcContent;
+            return '{}';
+          });
+
+          vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+          process.argv = ['node', 'script.js'];
+
+          const module = await import('../../src/commandLine');
+
+          // The module should execute successfully with interpolated values
+          expect(module).toBeDefined();
+        });
+
+        it('should fail when using variables without package.json', async () => {
+          const mockRcContent = JSON.stringify({
+            sourcepath: '/test/dist',
+            version: 'v$npm_package_version'
+          });
+
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return false; // package.json doesn't exist
+            if (path.includes('.svelteesp32rc')) return true;
+            return false;
+          });
+
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('.svelteesp32rc')) return mockRcContent;
+            return '{}';
+          });
+
+          process.argv = ['node', 'script.js'];
+
+          await expect(import('../../src/commandLine')).rejects.toThrow(
+            'RC file uses npm package variables but package.json not found'
+          );
+        });
+      });
+    });
   });
 });

@@ -122,11 +122,113 @@ function findRcFile(customConfigPath?: string): string | undefined {
   return undefined;
 }
 
+function findPackageJson(rcFilePath: string): string | undefined {
+  const rcDirectory = path.dirname(rcFilePath);
+  const packageJsonPath = path.join(rcDirectory, 'package.json');
+  return existsSync(packageJsonPath) ? packageJsonPath : undefined;
+}
+
+function parsePackageJson(packageJsonPath: string): Record<string, unknown> {
+  try {
+    const content = readFileSync(packageJsonPath, 'utf8');
+    return JSON.parse(content);
+  } catch (error) {
+    throw new Error(`Failed to parse package.json at ${packageJsonPath}: ${(error as Error).message}`);
+  }
+}
+
+function getNpmPackageVariable(packageJson: Record<string, unknown>, variableName: string): string | undefined {
+  const prefix = '$npm_package_';
+  if (!variableName.startsWith(prefix)) return undefined;
+
+  const pathString = variableName.slice(prefix.length);
+  const pathSegments = pathString.split('_');
+
+  let current: unknown = packageJson;
+  for (const segment of pathSegments) {
+    if (current === null || current === undefined) return undefined;
+    if (typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  if (current === null || current === undefined) return undefined;
+  return String(current);
+}
+
+function checkStringForNpmVariable(value: string | undefined): boolean {
+  return value?.includes('$npm_package_') ?? false;
+}
+
+function hasNpmVariables(config: IRcFileConfig): boolean {
+  return (
+    checkStringForNpmVariable(config.sourcepath) ||
+    checkStringForNpmVariable(config.outputfile) ||
+    checkStringForNpmVariable(config.espmethod) ||
+    checkStringForNpmVariable(config.define) ||
+    checkStringForNpmVariable(config.version) ||
+    (Array.isArray(config.exclude) && config.exclude.some((pattern) => checkStringForNpmVariable(pattern))) ||
+    false
+  );
+}
+
+function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRcFileConfig {
+  // Quick check - return unchanged if no variables
+  if (!hasNpmVariables(config)) return config;
+
+  // Find package.json
+  const packageJsonPath = findPackageJson(rcFilePath);
+  if (!packageJsonPath) {
+    const affectedFields: string[] = [];
+    if (config.sourcepath?.includes('$npm_package_')) affectedFields.push('sourcepath');
+    if (config.outputfile?.includes('$npm_package_')) affectedFields.push('outputfile');
+    if (config.version?.includes('$npm_package_')) affectedFields.push('version');
+    if (config.espmethod?.includes('$npm_package_')) affectedFields.push('espmethod');
+    if (config.define?.includes('$npm_package_')) affectedFields.push('define');
+    if (config.exclude)
+      for (const [index, pattern] of config.exclude.entries())
+        if (pattern.includes('$npm_package_')) affectedFields.push(`exclude[${index}]`);
+
+    throw new Error(
+      `RC file uses npm package variables but package.json not found in ${path.dirname(rcFilePath)}\n` +
+        `Variables found in fields: ${affectedFields.join(', ')}\n` +
+        `Please ensure package.json exists in the same directory as your RC file.`
+    );
+  }
+
+  // Parse package.json
+  const packageJson = parsePackageJson(packageJsonPath);
+
+  // Interpolation function
+  const interpolateString = (value: string): string => {
+    // Match $npm_package_ followed by field name (stops at _ + uppercase)
+    // This allows: version, repository_type, but stops at _STATIC
+    const regex = /\$npm_package_[\dA-Za-z]+(?:_[a-z][\dA-Za-z]*)*/g;
+    // eslint-disable-next-line unicorn/prefer-string-replace-all -- replaceAll not available in ES2020
+    return value.replace(regex, (match: string) => getNpmPackageVariable(packageJson, match) ?? match);
+  };
+
+  // Create new config with interpolated values
+  const result: IRcFileConfig = { ...config };
+
+  if (result.sourcepath) result.sourcepath = interpolateString(result.sourcepath);
+  if (result.outputfile) result.outputfile = interpolateString(result.outputfile);
+  if (result.espmethod) result.espmethod = interpolateString(result.espmethod);
+  if (result.define) result.define = interpolateString(result.define);
+  if (result.version) result.version = interpolateString(result.version);
+  if (result.exclude) result.exclude = result.exclude.map((pattern) => interpolateString(pattern));
+
+  return result;
+}
+
 function loadRcFile(rcPath: string): IRcFileConfig {
   try {
     const content = readFileSync(rcPath, 'utf8');
     const config = JSON.parse(content);
-    return validateRcConfig(config, rcPath);
+
+    // Interpolate npm package variables before validation
+    const interpolatedConfig = interpolateNpmVariables(config, rcPath);
+
+    return validateRcConfig(interpolatedConfig, rcPath);
   } catch (error) {
     if (error instanceof SyntaxError) throw new Error(`Invalid JSON in RC file ${rcPath}: ${error.message}`);
 
@@ -417,6 +519,9 @@ function parseArguments(): ICopyFilesArguments {
 
   return result as ICopyFilesArguments;
 }
+
+// Export functions for testing
+export { getNpmPackageVariable, hasNpmVariables, interpolateNpmVariables };
 
 export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   const parts: string[] = [

@@ -1,4 +1,5 @@
 {
+  "_comment": "This RC file demonstrates npm variable interpolation. Variables like $npm_package_version are replaced with values from package.json in the same directory.",
   "engine": "psychic",
   "sourcepath": "./demo/svelte/dist",
   "outputfile": "./output.h",
@@ -6,8 +7,8 @@
   "gzip": "true",
   "cachetime": 0,
   "created": false,
-  "version": "",
+  "version": "v$npm_package_version",
   "espmethod": "initSvelteStaticFiles",
-  "define": "SVELTEESP32",
+  "define": "$npm_package_name",
   "exclude": ["*.map", "*.md", "test/**/*"]
 }
