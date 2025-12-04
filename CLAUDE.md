@@ -310,3 +310,92 @@ The generated header file includes a `//config:` comment at the top that display
 - Shows all configuration parameters: `engine`, `sourcepath`, `outputfile`, `etag`, `gzip`, `cachetime`, `espmethod`, `define`, and `exclude` patterns
 - Works consistently whether configuration comes from RC file, CLI arguments, or both
 - Provides complete traceability of the configuration used for code generation
+
+## NPM Package Variable Interpolation
+
+RC files support automatic variable interpolation from `package.json`, allowing dynamic configuration based on project metadata.
+
+**Feature:** Variables like `$npm_package_version` and `$npm_package_name` in RC files are automatically replaced with values from `package.json` located in the same directory as the RC file.
+
+**Supported Fields:** All string fields in RC configuration:
+
+- `version` - e.g., `"v$npm_package_version"`
+- `define` - e.g., `"$npm_package_name_STATIC"`
+- `sourcepath` - e.g., `"./$npm_package_name/dist"`
+- `outputfile` - e.g., `"./output_$npm_package_version.h"`
+- `espmethod` - e.g., `"init$npm_package_name"`
+- `exclude` patterns - e.g., `["$npm_package_name.map"]`
+
+**Variable Syntax:**
+
+- Simple fields: `$npm_package_version` → `packageJson.version`
+- Nested fields: `$npm_package_repository_type` → `packageJson.repository.type`
+- Multiple variables: `"$npm_package_name-v$npm_package_version"` → `"myapp-v1.2.3"`
+
+**Implementation** (`src/commandLine.ts` lines 125-220):
+
+**Core Functions:**
+
+1. **`findPackageJson(rcFilePath: string)`** - Locates package.json in the same directory as RC file
+2. **`parsePackageJson(packageJsonPath: string)`** - Reads and parses package.json with error handling
+3. **`getNpmPackageVariable(packageJson, variableName)`** - Extracts values from package.json using underscore-separated path segments (e.g., `$npm_package_repository_type` traverses `packageJson.repository.type`)
+4. **`checkStringForNpmVariable(value)`** - Helper to check if a string contains npm package variables
+5. **`hasNpmVariables(config)`** - Quick check if RC config contains any npm variables (optimization to skip interpolation when not needed)
+6. **`interpolateNpmVariables(config, rcFilePath)`** - Main interpolation function that processes all string fields
+
+**Processing Flow:**
+
+1. Load RC file JSON
+2. **Check for npm variables** - If present, find and parse package.json
+3. **Interpolate variables** - Replace `$npm_package_*` patterns using regex: `/\$npm_package_[\dA-Za-z]+(?:_[a-z][\dA-Za-z]*)*/g`
+4. Validate interpolated configuration
+5. Merge with CLI arguments
+
+**Error Handling:**
+
+- If variables are used but package.json not found: Throws error listing affected fields
+- If variable doesn't exist in package.json: Left unchanged (not an error)
+- If package.json is invalid JSON: Clear error message with file path
+
+**Regex Pattern Design:**
+
+- Matches: `$npm_package_version`, `$npm_package_repository_type`
+- Stops at: `_STATIC`, `_CONSTANT` (underscore followed by uppercase)
+- Example: `"$npm_package_name_STATIC"` → interpolates `name`, keeps `_STATIC` suffix
+
+**Testing** (`test/unit/commandLine.test.ts` lines 604-952):
+
+- 20+ comprehensive tests covering all edge cases
+- Tests for simple fields, nested fields, multiple variables, error scenarios
+- 100% coverage of new interpolation functions
+
+**Example Usage:**
+
+```json
+// .svelteesp32rc.json
+{
+  "engine": "psychic",
+  "version": "v$npm_package_version",
+  "define": "$npm_package_name",
+  "sourcepath": "./dist"
+}
+
+// package.json
+{
+  "name": "esp32-webui",
+  "version": "2.1.0"
+}
+
+// Result after interpolation:
+{
+  "version": "v2.1.0",
+  "define": "esp32-webui"
+}
+```
+
+**Benefits:**
+
+- **Version synchronization**: Header version automatically matches package version
+- **Dynamic naming**: C++ defines use actual package name
+- **CI/CD friendly**: Reusable RC files across projects
+- **Consistency**: Single source of truth for project metadata

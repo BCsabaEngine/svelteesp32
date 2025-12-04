@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.0] - 2025-12-04
+
+### Added
+
+- **NPM Package Variable Interpolation**: RC files now support automatic variable substitution from `package.json`
+  - Syntax: `$npm_package_<field_name>` (e.g., `$npm_package_version`, `$npm_package_name`)
+  - Supported in all string fields: `version`, `define`, `sourcepath`, `outputfile`, `espmethod`, and `exclude` patterns
+  - Nested field support: `$npm_package_repository_type` accesses `packageJson.repository.type`
+  - Multiple variables in one field: `"$npm_package_name-v$npm_package_version"` → `"myapp-v1.2.3"`
+  - Smart regex pattern stops at underscore + uppercase (e.g., `$npm_package_name_STATIC` → interpolates `name`, keeps `_STATIC`)
+  - `package.json` must exist in same directory as RC file
+  - Clear error messages when variables are used but `package.json` not found, listing affected fields
+  - Unknown variables left unchanged (not an error) for flexibility
+- 5 new core functions in `src/commandLine.ts` (lines 125-220):
+  - `findPackageJson()` - Locates package.json in RC file directory
+  - `parsePackageJson()` - Reads and parses package.json with error handling
+  - `getNpmPackageVariable()` - Extracts values using underscore-separated path traversal
+  - `checkStringForNpmVariable()` - Helper for variable detection
+  - `hasNpmVariables()` - Optimization to skip interpolation when not needed
+  - `interpolateNpmVariables()` - Main function processing all string fields
+- 20+ comprehensive unit tests in `test/unit/commandLine.test.ts` (lines 604-952):
+  - Simple field extraction (`$npm_package_version`)
+  - Nested field extraction (`$npm_package_repository_type`)
+  - Multiple variables in one string
+  - Exclude array pattern interpolation
+  - Error handling (missing package.json, invalid JSON)
+  - Integration tests with RC file loading
+- Updated `.svelteesp32rc.example.json` with variable interpolation examples
+
+### Changed
+
+- Enhanced RC file loading flow to interpolate npm variables before validation
+- Interpolation integrated seamlessly: defaults → RC file (with interpolation) → CLI arguments
+- Updated README.md with comprehensive "NPM Package Variable Interpolation" section:
+  - Syntax explanation and examples
+  - Nested field access documentation
+  - Multiple variable usage examples
+  - Requirements and error behavior
+  - Common use cases (version sync, dynamic naming, CI/CD)
+- Updated CLAUDE.md with detailed implementation documentation:
+  - Core functions and processing flow
+  - Regex pattern design rationale
+  - Error handling strategy
+  - Testing coverage details
+  - Example usage and benefits
+- All 118 tests passing (69 commandLine tests including 20 new npm interpolation tests)
+
+### Use Cases
+
+- **Version Synchronization**: `"version": "v$npm_package_version"` keeps header version in sync with package.json
+- **Dynamic C++ Defines**: `"define": "$npm_package_name"` uses actual package name for defines
+- **CI/CD Integration**: Reusable RC files across different projects with variable package names
+- **Single Source of Truth**: Project metadata maintained only in package.json
+
 ## [1.12.1] - 2025-12-04
 
 ### Changed
@@ -320,6 +374,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.13.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.12.1...v1.13.0
 [1.12.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.12.0...v1.12.1
 [1.12.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.10.0...v1.11.0
