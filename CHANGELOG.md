@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.1] - 2025-12-04
+
+### Changed
+
+- **Configuration Display in Generated Headers**: Renamed `//cmdline:` to `//config:` in all generated header files
+  - Now displays effective configuration values regardless of source (RC file, CLI arguments, or both)
+  - Shows all active configuration parameters: `engine`, `sourcepath`, `outputfile`, `etag`, `gzip`, `cachetime`, `espmethod`, `define`, and `exclude` patterns
+  - Provides complete traceability of configuration used for code generation
+  - Format: `//config:   engine=psychic sourcepath=./dist outputfile=./output.h etag=true gzip=true ...`
+
+### Fixed
+
+- Configuration comment in generated headers now displays values when using RC file (previously showed empty when using RC file without CLI arguments)
+
 ## [1.12.0] - 2025-12-04
 
 ### Added
@@ -306,6 +320,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.12.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.12.0...v1.12.1
 [1.12.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.4...v1.10.0

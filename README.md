@@ -202,7 +202,7 @@ The content of **generated file** (do not edit, just use):
 
 ```c
 //engine:   PsychicHttpServer
-//cmdline:  -e psychic -s ./dist -o ./output.h --etag=true --gzip=true
+//config:   engine=psychic sourcepath=./dist outputfile=./output.h etag=true gzip=true cachetime=0 espmethod=initSvelteStaticFiles define=SVELTEESP32
 //
 #define SVELTEESP32_COUNT 5
 #define SVELTEESP32_SIZE 468822

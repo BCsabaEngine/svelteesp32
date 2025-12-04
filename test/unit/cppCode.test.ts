@@ -13,8 +13,12 @@ vi.mock('../../src/commandLine', () => ({
     created: false,
     version: 'v1.0.0',
     espmethod: 'initSvelteStaticFiles',
-    define: 'SVELTEESP32'
-  }
+    define: 'SVELTEESP32',
+    exclude: []
+  },
+  formatConfiguration: vi.fn((cmdLine) => {
+    return `engine=${cmdLine.engine} sourcepath=${cmdLine.sourcepath} outputfile=${cmdLine.outputfile} etag=${cmdLine.etag} gzip=${cmdLine.gzip} cachetime=${cmdLine.cachetime}`;
+  })
 }));
 
 const createMockSource = (filename: string, content: string): CppCodeSource => ({
@@ -208,8 +212,10 @@ describe('cppCode', () => {
           created: false,
           version: '',
           espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32'
-        }
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
       }));
 
       const { getCppCode } = await import('../../src/cppCode');
@@ -231,8 +237,10 @@ describe('cppCode', () => {
           created: false,
           version: '',
           espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32'
-        }
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
       }));
 
       const { getCppCode } = await import('../../src/cppCode');
@@ -254,8 +262,10 @@ describe('cppCode', () => {
           created: false,
           version: '',
           espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32'
-        }
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
       }));
 
       const { getCppCode } = await import('../../src/cppCode');
@@ -278,8 +288,10 @@ describe('cppCode', () => {
           created: false,
           version: '',
           espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32'
-        }
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
       }));
 
       const { getCppCode } = await import('../../src/cppCode');
@@ -303,8 +315,10 @@ describe('cppCode', () => {
           created: false,
           version: '',
           espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32'
-        }
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
       }));
 
       const { getCppCode } = await import('../../src/cppCode');
@@ -327,8 +341,10 @@ describe('cppCode', () => {
           created: false,
           version: '',
           espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32'
-        }
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
       }));
 
       const { getCppCode } = await import('../../src/cppCode');

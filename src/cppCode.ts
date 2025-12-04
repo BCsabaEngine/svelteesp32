@@ -1,6 +1,6 @@
 import { compile as handlebarsCompile, HelperOptions } from 'handlebars';
 
-import { cmdLine } from './commandLine';
+import { cmdLine, formatConfiguration } from './commandLine';
 import { espidfTemplate } from './cppCodeEspIdf';
 
 export type CppCodeSource = {
@@ -126,7 +126,7 @@ const char * etag_{{this.dataname}} = "{{this.md5}}";
 
 const psychicTemplate = `
 //engine:   PsychicHttpServer
-//cmdline:  {{{commandLine}}}
+//config:   {{{config}}}
 //You should use server.config.max_uri_handlers = {{fileCount}}; or higher value to proper handles all files
 {{#if created }}
 //created:  {{now}}
@@ -237,7 +237,7 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 const psychic2Template = `
 //engine:   PsychicHttpServerV2
-//cmdline:  {{{commandLine}}}
+//config:   {{{config}}}
 {{#if created }}
 //created:  {{now}}
 {{/if}}
@@ -344,7 +344,7 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 const asyncTemplate = `
 //engine:   ESPAsyncWebServer
-//cmdline:  {{{commandLine}}}
+//config:   {{{config}}}
 {{#if created }}
 //created:  {{now}}
 {{/if}}
@@ -573,7 +573,7 @@ const createHandlebarsHelpers = () => {
 export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string => {
   const template = handlebarsCompile(getTemplate(cmdLine.engine));
   const templateData = {
-    commandLine: process.argv.slice(2).join(' '),
+    config: formatConfiguration(cmdLine),
     now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
     fileCount: sources.length.toString(),
     fileSize: sources.reduce((previous, current) => previous + current.content.length, 0).toString(),

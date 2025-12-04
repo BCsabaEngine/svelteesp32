@@ -1,6 +1,6 @@
 export const espidfTemplate = `
 //engine:   espidf
-//cmdline:  {{{commandLine}}}
+//config:   {{{config}}}
 {{#if created }}
 //created:  {{now}}
 {{/if}}
