@@ -418,6 +418,29 @@ function parseArguments(): ICopyFilesArguments {
   return result as ICopyFilesArguments;
 }
 
+export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
+  const parts: string[] = [
+    `engine=${cmdLine.engine}`,
+    `sourcepath=${cmdLine.sourcepath}`,
+    `outputfile=${cmdLine.outputfile}`,
+    `etag=${cmdLine.etag}`,
+    `gzip=${cmdLine.gzip}`,
+    `cachetime=${cmdLine.cachetime}`
+  ];
+
+  if (cmdLine.created) parts.push(`created=${cmdLine.created}`);
+
+  if (cmdLine.version) parts.push(`version=${cmdLine.version}`);
+
+  if (cmdLine.espmethod) parts.push(`espmethod=${cmdLine.espmethod}`);
+
+  if (cmdLine.define) parts.push(`define=${cmdLine.define}`);
+
+  if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
+
+  return parts.join(' ');
+}
+
 export const cmdLine = parseArguments();
 
 if (!existsSync(cmdLine.sourcepath) || !statSync(cmdLine.sourcepath).isDirectory()) {
