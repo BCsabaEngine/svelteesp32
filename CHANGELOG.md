@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2025-12-04
+
+### Added
+
+- **Configuration File Support**: New RC file feature (`.svelteesp32rc.json`) for storing frequently-used options
+  - Automatic search in current directory and user home directory
+  - `--config` flag for specifying custom RC file path
+  - All CLI options can be configured in RC file using long-form property names
+  - CLI arguments always override RC file values (3-stage merge: defaults → RC → CLI)
+  - **Replace mode** for exclude patterns: RC or CLI exclude completely replaces defaults
+  - Cyan-colored console output showing which RC file was loaded
+  - Comprehensive validation with unknown property warnings to catch typos
+  - Example RC file (`.svelteesp32rc.example.json`) included in repository
+- 16 new unit tests for RC file functionality:
+  - RC file discovery (current directory, home directory, custom path)
+  - RC file parsing and validation (invalid JSON, invalid values, unknown properties)
+  - CLI override behavior
+  - Exclude pattern replace mode
+  - Backward compatibility
+- Updated test coverage to 84.32% for `commandLine.ts` (up from 84.56%)
+- TypeScript type safety improvements: replaced `any` with `unknown` in `validateRcConfig()`
+
+### Changed
+
+- Enhanced `commandLine.ts` with RC file loading, validation, and merging logic
+- Updated help text with RC file documentation and examples
+- Enhanced README.md with comprehensive "Configuration File" section:
+  - Quick start guide with example RC file
+  - Configuration reference table mapping RC properties to CLI flags
+  - CLI override examples
+  - Multiple environment setup guide (dev/prod configs)
+  - Exclude pattern behavior documentation
+- Updated command line options table with `--config` flag
+- Error message for missing `--sourcepath` now mentions RC file option
+- All 92 tests passing with new RC file test suite
+
+### Fixed
+
+- ESLint error: replaced `any` type with `unknown` in configuration validation
+
 ## [1.11.0] - 2025-12-03
 
 ### Added
@@ -266,6 +306,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.12.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.4...v1.10.0
 [1.9.4]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.9.3...v1.9.4

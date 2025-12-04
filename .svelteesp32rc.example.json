@@ -1,0 +1,13 @@
+{
+  "engine": "psychic",
+  "sourcepath": "./demo/svelte/dist",
+  "outputfile": "./output.h",
+  "etag": "true",
+  "gzip": "true",
+  "cachetime": 0,
+  "created": false,
+  "version": "",
+  "espmethod": "initSvelteStaticFiles",
+  "define": "SVELTEESP32",
+  "exclude": ["*.map", "*.md", "test/**/*"]
+}

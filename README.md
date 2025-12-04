@@ -12,6 +12,10 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer (https://github.com/ESP32Async/ESPAsyncWebServer) and ESP-IDF available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
+> Starting with version v1.12.0, you can use RC file for configuration
+
+> Starting with version v1.11.0, you can exclude files by pattern
+
 > Starting with version v1.10.0, we reduced npm dependencies
 
 > Starting with version v1.9.0, code generator for esp-idf is available
@@ -84,13 +88,13 @@ npm run fix
 
 ### Usage
 
-**Install package** as devDependency (it is practical if the package is part of the project so that you always receive updates)
+**Install package** as dev dependency (it is practical if the package is part of the project so that you always receive updates)
 
 ```bash
 npm install -D svelteesp32
 ```
 
-After a successful Svelte build (rollup/webpack/vite) **create an includeable c++ header** file
+After a successful Svelte build (rollup/webpack/vite) **create an includable c++ header** file
 
 ```bash
 // for PsychicHttpServer
@@ -425,7 +429,116 @@ You can use the following c++ directives at the project level if you want to con
 | `--version`   | Include a version string in generated header, e.g. `--version=v$npm_package_version` | ''                      |
 | `--espmethod` | Name of generated initialization method                                              | `initSvelteStaticFiles` |
 | `--define`    | Prefix of c++ defines (e.g., SVELTEESP32_COUNT)                                      | `SVELTEESP32`           |
+| `--config`    | Use custom RC file path                                                              | `.svelteesp32rc.json`   |
 | `-h`          | Show help                                                                            |                         |
+
+### Configuration File
+
+You can store frequently-used options in a configuration file to avoid repeating command line arguments. This is especially useful for CI/CD pipelines and team collaboration.
+
+#### Quick Start
+
+Create `.svelteesp32rc.json` in your project directory:
+
+```json
+{
+  "engine": "psychic",
+  "sourcepath": "./dist",
+  "outputfile": "./esp32/include/svelteesp32.h",
+  "etag": "true",
+  "gzip": "true",
+  "cachetime": 86400,
+  "exclude": ["*.map", "*.md"]
+}
+```
+
+Then simply run:
+
+```bash
+npx svelteesp32
+```
+
+No command line arguments needed!
+
+#### Search Locations
+
+The tool automatically searches for `.svelteesp32rc.json` in:
+
+1. Current working directory
+2. User home directory
+
+Or specify a custom location:
+
+```bash
+npx svelteesp32 --config=.svelteesp32rc.prod.json
+```
+
+#### Configuration Reference
+
+All CLI options can be specified in the RC file using long-form property names:
+
+| RC Property  | CLI Flag      | Type    | Example                                          |
+| ------------ | ------------- | ------- | ------------------------------------------------ |
+| `engine`     | `-e`          | string  | `"psychic"`, `"psychic2"`, `"async"`, `"espidf"` |
+| `sourcepath` | `-s`          | string  | `"./dist"`                                       |
+| `outputfile` | `-o`          | string  | `"./output.h"`                                   |
+| `etag`       | `--etag`      | string  | `"true"`, `"false"`, `"compiler"`                |
+| `gzip`       | `--gzip`      | string  | `"true"`, `"false"`, `"compiler"`                |
+| `cachetime`  | `--cachetime` | number  | `86400`                                          |
+| `created`    | `--created`   | boolean | `true`, `false`                                  |
+| `version`    | `--version`   | string  | `"v1.0.0"`                                       |
+| `espmethod`  | `--espmethod` | string  | `"initSvelteStaticFiles"`                        |
+| `define`     | `--define`    | string  | `"SVELTEESP32"`                                  |
+| `exclude`    | `--exclude`   | array   | `["*.map", "*.md"]`                              |
+
+#### CLI Override
+
+Command line arguments always take precedence over RC file values:
+
+```bash
+# Use RC settings but override etag
+npx svelteesp32 --etag=false
+
+# Use RC settings but add different exclude pattern
+npx svelteesp32 --exclude="*.txt"
+```
+
+#### Multiple Environments
+
+Create different config files for different environments:
+
+```bash
+# Development build
+npx svelteesp32 --config=.svelteesp32rc.dev.json
+
+# Production build
+npx svelteesp32 --config=.svelteesp32rc.prod.json
+```
+
+#### Exclude Pattern Behavior
+
+**Replace mode**: When you specify `exclude` patterns in RC file or CLI, they completely replace the defaults.
+
+- **No exclude specified**: Uses default system exclusions (`.DS_Store`, `Thumbs.db`, `.git`, etc.)
+- **RC file has exclude**: Replaces defaults with RC patterns
+- **CLI has --exclude**: Replaces RC patterns (or defaults if no RC)
+
+Example:
+
+```json
+// .svelteesp32rc.json
+{ "exclude": ["*.map"] }
+```
+
+Result: Only `*.map` is excluded (default patterns are replaced)
+
+To keep defaults, explicitly list them in your RC file:
+
+```json
+{
+  "exclude": [".DS_Store", "Thumbs.db", ".git", "*.map", "*.md"]
+}
+```
 
 ### Q&A
 

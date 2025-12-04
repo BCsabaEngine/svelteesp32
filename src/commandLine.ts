@@ -1,4 +1,8 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
+import path from 'node:path';
+
+import { cyanLog, yellowLog } from './consoleColor';
 
 interface ICopyFilesArguments {
   engine: 'psychic' | 'psychic2' | 'async' | 'espidf';
@@ -15,9 +19,26 @@ interface ICopyFilesArguments {
   help?: boolean;
 }
 
+interface IRcFileConfig {
+  engine?: 'psychic' | 'psychic2' | 'async' | 'espidf';
+  sourcepath?: string;
+  outputfile?: string;
+  espmethod?: string;
+  define?: string;
+  gzip?: 'true' | 'false' | 'compiler';
+  etag?: 'true' | 'false' | 'compiler';
+  cachetime?: number;
+  created?: boolean;
+  version?: string;
+  exclude?: string[];
+}
+
 function showHelp(): never {
   console.log(`
 svelteesp32 - Svelte JS to ESP32 converter
+
+Configuration:
+  --config <path>            Use custom RC file (default: search for .svelteesp32rc.json)
 
 Options:
   -e, --engine <value>       The engine for which the include file is created
@@ -34,6 +55,23 @@ Options:
   --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
                              Examples: --exclude="*.map" --exclude="test/**/*.ts"
   -h, --help                 Shows this help
+
+RC File:
+  The tool searches for .svelteesp32rc.json in:
+    1. Current directory (./.svelteesp32rc.json)
+    2. User home directory (~/.svelteesp32rc.json)
+
+  Example RC file (all fields optional):
+    {
+      "engine": "psychic",
+      "sourcepath": "./dist",
+      "outputfile": "./output.h",
+      "etag": "true",
+      "gzip": "true",
+      "exclude": ["*.map", "*.md"]
+    }
+
+  CLI arguments override RC file values.
 `);
   process.exit(0);
 }
@@ -61,8 +99,117 @@ const DEFAULT_EXCLUDE_PATTERNS = [
   '.gitattributes' // Git attributes file
 ];
 
+function findRcFile(customConfigPath?: string): string | undefined {
+  // If --config specified, use that exclusively
+  if (customConfigPath) {
+    if (existsSync(customConfigPath)) return customConfigPath;
+    throw new Error(`Config file not found: ${customConfigPath}`);
+  }
+
+  // Check current directory
+  for (const filename of ['.svelteesp32rc.json', '.svelteesp32rc']) {
+    const cwdPath = path.join(process.cwd(), filename);
+    if (existsSync(cwdPath)) return cwdPath;
+  }
+
+  // Check home directory
+  const homeDirectory = homedir();
+  for (const filename of ['.svelteesp32rc.json', '.svelteesp32rc']) {
+    const homePath = path.join(homeDirectory, filename);
+    if (existsSync(homePath)) return homePath;
+  }
+
+  return undefined;
+}
+
+function loadRcFile(rcPath: string): IRcFileConfig {
+  try {
+    const content = readFileSync(rcPath, 'utf8');
+    const config = JSON.parse(content);
+    return validateRcConfig(config, rcPath);
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new Error(`Invalid JSON in RC file ${rcPath}: ${error.message}`);
+
+    throw error;
+  }
+}
+
+function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
+  if (typeof config !== 'object' || config === null) throw new Error(`RC file ${rcPath} must contain a JSON object`);
+
+  // Type assertion after runtime check
+  const configObject = config as Record<string, unknown>;
+
+  const validKeys = new Set([
+    'engine',
+    'sourcepath',
+    'outputfile',
+    'espmethod',
+    'define',
+    'gzip',
+    'etag',
+    'cachetime',
+    'created',
+    'version',
+    'exclude'
+  ]);
+
+  // Warn about unknown keys
+  for (const key of Object.keys(configObject))
+    if (!validKeys.has(key)) console.warn(yellowLog(`Warning: Unknown property '${key}' in RC file ${rcPath}`));
+
+  // Validate individual properties
+  if (configObject['engine'] !== undefined) configObject['engine'] = validateEngine(configObject['engine'] as string);
+
+  if (configObject['etag'] !== undefined)
+    configObject['etag'] = validateTriState(configObject['etag'] as string, 'etag');
+
+  if (configObject['gzip'] !== undefined)
+    configObject['gzip'] = validateTriState(configObject['gzip'] as string, 'gzip');
+
+  if (
+    configObject['cachetime'] !== undefined &&
+    (typeof configObject['cachetime'] !== 'number' || Number.isNaN(configObject['cachetime']))
+  )
+    throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']}`);
+
+  if (configObject['exclude'] !== undefined) {
+    if (!Array.isArray(configObject['exclude'])) throw new TypeError("'exclude' in RC file must be an array");
+
+    // Validate each exclude pattern is a string
+    for (const pattern of configObject['exclude'])
+      if (typeof pattern !== 'string') throw new TypeError('All exclude patterns must be strings');
+  }
+
+  return configObject as IRcFileConfig;
+}
+
 function parseArguments(): ICopyFilesArguments {
   const arguments_ = process.argv.slice(2);
+
+  // STEP 1: Check for --config flag first
+  let customConfigPath: string | undefined;
+  for (let index = 0; index < arguments_.length; index++) {
+    const argument = arguments_[index];
+    if (!argument) continue;
+
+    if (argument === '--config' && arguments_[index + 1]) {
+      customConfigPath = arguments_[index + 1];
+      break;
+    }
+    if (argument.startsWith('--config=')) {
+      customConfigPath = argument.slice('--config='.length);
+      break;
+    }
+  }
+
+  // STEP 2: Find and load RC file
+  const rcPath = findRcFile(customConfigPath);
+  const rcConfig = rcPath ? loadRcFile(rcPath) : {};
+
+  if (rcPath) console.log(cyanLog(`[SvelteESP32] Using config from: ${rcPath}`));
+
+  // STEP 3: Initialize with defaults
   const result: Partial<ICopyFilesArguments> = {
     engine: 'psychic',
     outputfile: 'svelteesp32.h',
@@ -75,6 +222,24 @@ function parseArguments(): ICopyFilesArguments {
     cachetime: 0,
     exclude: [...DEFAULT_EXCLUDE_PATTERNS]
   };
+
+  // STEP 4: Merge RC file values
+  if (rcConfig.engine) result.engine = rcConfig.engine;
+  if (rcConfig.sourcepath) result.sourcepath = rcConfig.sourcepath;
+  if (rcConfig.outputfile) result.outputfile = rcConfig.outputfile;
+  if (rcConfig.etag) result.etag = rcConfig.etag;
+  if (rcConfig.gzip) result.gzip = rcConfig.gzip;
+  if (rcConfig.cachetime !== undefined) result.cachetime = rcConfig.cachetime;
+  if (rcConfig.created !== undefined) result.created = rcConfig.created;
+  if (rcConfig.version) result.version = rcConfig.version;
+  if (rcConfig.espmethod) result.espmethod = rcConfig.espmethod;
+  if (rcConfig.define) result.define = rcConfig.define;
+
+  // Replace defaults with RC exclude if provided
+  if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
+
+  // STEP 5: Parse CLI arguments
+  const cliExclude: string[] = [];
 
   for (let index = 0; index < arguments_.length; index++) {
     const argument = arguments_[index];
@@ -95,6 +260,9 @@ function parseArguments(): ICopyFilesArguments {
       const flagName = flag.slice(2);
 
       switch (flagName) {
+        case 'config':
+          // Already processed, skip
+          break;
         case 'engine':
           result.engine = validateEngine(value);
           break;
@@ -129,8 +297,7 @@ function parseArguments(): ICopyFilesArguments {
             .split(',')
             .map((p) => p.trim())
             .filter(Boolean);
-          result.exclude = result.exclude || [...DEFAULT_EXCLUDE_PATTERNS];
-          result.exclude.push(...patterns);
+          cliExclude.push(...patterns);
           break;
         }
         default:
@@ -179,6 +346,10 @@ function parseArguments(): ICopyFilesArguments {
       if (!nextArgument || nextArgument.startsWith('-')) throw new Error(`Missing value for flag: ${argument}`);
 
       switch (flag) {
+        case 'config':
+          // Already processed, skip
+          index++;
+          break;
         case 'engine':
           result.engine = validateEngine(nextArgument);
           index++;
@@ -222,8 +393,7 @@ function parseArguments(): ICopyFilesArguments {
             .split(',')
             .map((p) => p.trim())
             .filter(Boolean);
-          result.exclude = result.exclude || [...DEFAULT_EXCLUDE_PATTERNS];
-          result.exclude.push(...patterns);
+          cliExclude.push(...patterns);
           index++;
           break;
         }
@@ -236,9 +406,12 @@ function parseArguments(): ICopyFilesArguments {
     throw new Error(`Unknown argument: ${argument}`);
   }
 
-  // Validate required arguments
+  // STEP 6: Apply CLI exclude (replaces RC/defaults)
+  if (cliExclude.length > 0) result.exclude = [...cliExclude];
+
+  // STEP 7: Validate required arguments
   if (!result.sourcepath) {
-    console.error('Error: --sourcepath is required');
+    console.error('Error: --sourcepath is required (can be specified in RC file or CLI)');
     showHelp();
   }
 

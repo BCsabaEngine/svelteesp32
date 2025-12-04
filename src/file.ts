@@ -92,13 +92,13 @@ export const getFiles = (): Map<string, Buffer> => {
 
   // Report excluded files
   if (excludedFiles.length > 0) {
-    console.log(cyanLog(`\n Excluded ${excludedFiles.length} file(s):`));
+    console.log(`\nExcluded ${excludedFiles.length} file(s):`);
     // Show first 10 excluded files, then summarize if more
     const displayLimit = 10;
-    for (const file of excludedFiles.slice(0, displayLimit)) console.log(cyanLog(`  - ${file}`));
+    for (const file of excludedFiles.slice(0, displayLimit)) console.log(cyanLog(`- ${file}`));
 
     if (excludedFiles.length > displayLimit)
-      console.log(cyanLog(`  ... and ${excludedFiles.length - displayLimit} more`));
+      console.log(cyanLog(`... and ${excludedFiles.length - displayLimit} more`));
 
     console.log(); // Blank line for readability
   }
