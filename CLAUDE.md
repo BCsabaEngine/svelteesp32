@@ -294,3 +294,19 @@ The generated header file includes C++ defines for build-time validation:
 - `{PREFIX}_{EXT}_FILES`: Count of files by extension (e.g., `SVELTEESP32_CSS_FILES`)
 
 These allow C++ code to verify expected files are present using `#ifndef` and `#error` directives.
+
+## Generated Header Configuration Comment
+
+The generated header file includes a `//config:` comment at the top that displays the effective configuration used during code generation:
+
+```cpp
+//engine:   PsychicHttpServer
+//config:   engine=psychic sourcepath=./dist outputfile=./output.h etag=true gzip=true cachetime=0 espmethod=initSvelteStaticFiles define=SVELTEESP32 exclude=[*.map, *.md]
+```
+
+**Implementation** (`src/commandLine.ts`, `src/cppCode.ts`):
+
+- `formatConfiguration()` function creates a formatted string from the `ICopyFilesArguments` object
+- Shows all configuration parameters: `engine`, `sourcepath`, `outputfile`, `etag`, `gzip`, `cachetime`, `espmethod`, `define`, and `exclude` patterns
+- Works consistently whether configuration comes from RC file, CLI arguments, or both
+- Provides complete traceability of the configuration used for code generation
