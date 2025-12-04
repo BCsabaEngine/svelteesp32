@@ -12,7 +12,7 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer (https://github.com/ESP32Async/ESPAsyncWebServer) and ESP-IDF available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
-> Starting with version v1.12.0, you can use .rc file to config
+> Starting with version v1.12.0, you can use RC file for configuration
 
 > Starting with version v1.11.0, you can exclude files by pattern
 
@@ -88,13 +88,13 @@ npm run fix
 
 ### Usage
 
-**Install package** as devDependency (it is practical if the package is part of the project so that you always receive updates)
+**Install package** as dev dependency (it is practical if the package is part of the project so that you always receive updates)
 
 ```bash
 npm install -D svelteesp32
 ```
 
-After a successful Svelte build (rollup/webpack/vite) **create an includeable c++ header** file
+After a successful Svelte build (rollup/webpack/vite) **create an includable c++ header** file
 
 ```bash
 // for PsychicHttpServer
