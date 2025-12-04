@@ -134,9 +134,11 @@ function loadRcFile(rcPath: string): IRcFileConfig {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function validateRcConfig(config: any, rcPath: string): IRcFileConfig {
+function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (typeof config !== 'object' || config === null) throw new Error(`RC file ${rcPath} must contain a JSON object`);
+
+  // Type assertion after runtime check
+  const configObject = config as Record<string, unknown>;
 
   const validKeys = new Set([
     'engine',
@@ -153,28 +155,33 @@ function validateRcConfig(config: any, rcPath: string): IRcFileConfig {
   ]);
 
   // Warn about unknown keys
-  for (const key of Object.keys(config))
+  for (const key of Object.keys(configObject))
     if (!validKeys.has(key)) console.warn(yellowLog(`Warning: Unknown property '${key}' in RC file ${rcPath}`));
 
   // Validate individual properties
-  if (config.engine !== undefined) config.engine = validateEngine(config.engine);
+  if (configObject['engine'] !== undefined) configObject['engine'] = validateEngine(configObject['engine'] as string);
 
-  if (config.etag !== undefined) config.etag = validateTriState(config.etag, 'etag');
+  if (configObject['etag'] !== undefined)
+    configObject['etag'] = validateTriState(configObject['etag'] as string, 'etag');
 
-  if (config.gzip !== undefined) config.gzip = validateTriState(config.gzip, 'gzip');
+  if (configObject['gzip'] !== undefined)
+    configObject['gzip'] = validateTriState(configObject['gzip'] as string, 'gzip');
 
-  if (config.cachetime !== undefined && (typeof config.cachetime !== 'number' || Number.isNaN(config.cachetime)))
-    throw new TypeError(`Invalid cachetime in RC file: ${config.cachetime}`);
+  if (
+    configObject['cachetime'] !== undefined &&
+    (typeof configObject['cachetime'] !== 'number' || Number.isNaN(configObject['cachetime']))
+  )
+    throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']}`);
 
-  if (config.exclude !== undefined) {
-    if (!Array.isArray(config.exclude)) throw new TypeError("'exclude' in RC file must be an array");
+  if (configObject['exclude'] !== undefined) {
+    if (!Array.isArray(configObject['exclude'])) throw new TypeError("'exclude' in RC file must be an array");
 
     // Validate each exclude pattern is a string
-    for (const pattern of config.exclude)
+    for (const pattern of configObject['exclude'])
       if (typeof pattern !== 'string') throw new TypeError('All exclude patterns must be strings');
   }
 
-  return config;
+  return configObject as IRcFileConfig;
 }
 
 function parseArguments(): ICopyFilesArguments {
