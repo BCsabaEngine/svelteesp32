@@ -61,10 +61,10 @@
   ],
   "devDependencies": {
     "@types/mime-types": "^3.0.1",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.0",
     "@types/picomatch": "^4.0.2",
-    "@typescript-eslint/eslint-plugin": "^8.48.1",
-    "@typescript-eslint/parser": "^8.48.1",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
     "@vitest/coverage-v8": "^4.0.15",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
