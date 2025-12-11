@@ -9,6 +9,7 @@ import { lookup as mimeLookup } from 'mime-types';
 import { cmdLine } from './commandLine';
 import { greenLog, yellowLog } from './consoleColor';
 import { CppCodeSource, CppCodeSources, ExtensionGroups, getCppCode } from './cppCode';
+import { getMaxUriHandlersHint } from './errorMessages';
 import { getFiles } from './file';
 
 // Compression thresholds
@@ -145,3 +146,7 @@ console.log(
 );
 
 console.log(`${cmdLine.outputfile} ${Math.round(cppFile.length / 1024)}kB size`);
+
+// Show max_uri_handlers hint for applicable engines
+if (cmdLine.engine === 'psychic' || cmdLine.engine === 'psychic2' || cmdLine.engine === 'espidf')
+  console.log('\n' + getMaxUriHandlersHint(cmdLine.engine, sources.length));

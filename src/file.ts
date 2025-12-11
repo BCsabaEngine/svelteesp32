@@ -7,6 +7,7 @@ import { globSync } from 'tinyglobby';
 
 import { cmdLine } from './commandLine';
 import { cyanLog, redLog, yellowLog } from './consoleColor';
+import { getMissingIndexError } from './errorMessages';
 
 /**
  * Find files with identical content based on SHA256 hash
@@ -112,6 +113,16 @@ export const getFiles = (): Map<string, Buffer> => {
   // Report duplicate files
   const duplicates = findSimilarFiles(result);
   for (const sameFiles of duplicates) console.log(yellowLog(` ${sameFiles.join(', ')} files look like identical`));
+
+  // Check for index.html or index.htm (in root or subdirectories)
+  const hasIndex = [...result.keys()].some(
+    (f) => f === 'index.html' || f === 'index.htm' || f.endsWith('/index.html') || f.endsWith('/index.htm')
+  );
+
+  if (!hasIndex && !cmdLine.noIndexCheck) {
+    console.error('\n' + getMissingIndexError(cmdLine.engine));
+    process.exit(1);
+  }
 
   return result;
 };
