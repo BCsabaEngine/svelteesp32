@@ -4,398 +4,181 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SvelteESP32 is a TypeScript CLI tool that converts frontend JS applications (Svelte, React, Angular, Vue) into C++ header files that can be embedded in ESP32/ESP8266 microcontroller web servers. The tool processes web assets and generates optimized C++ code with optional gzip compression and ETag support for different web server engines.
+SvelteESP32 is a TypeScript CLI tool that converts frontend JS applications (Svelte, React, Angular, Vue) into C++ header files embedded in ESP32/ESP8266 microcontroller web servers. Generates optimized C++ code with gzip compression and ETag support for 4 web server engines.
 
-## Key Commands
-
-### Development Commands
+## Quick Commands
 
 ```bash
-# Build the project
-npm run build
+# Build & Quality
+npm run build                  # Build TypeScript
+npm run clean                  # Clean build artifacts
+npm run fix                    # Fix all formatting and linting
+npm run test                   # Run unit tests
+npm run test:coverage          # Generate coverage report
 
-# Clean build artifacts
-npm run clean
-
-# Development with live reload (async engine)
-npm run dev:async
-
-# Development with live reload (psychic engine)
-npm run dev:psychic
-
-# Development with live reload (psychic2 engine)
-npm run dev:psychic2
-
-# Run TypeScript unit tests
-npm run test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Generate test coverage report
-npm run test:coverage
-
-# Run comprehensive ESP32 tests (requires PlatformIO)
-npm run test:all
-```
-
-### Code Quality Commands
-
-```bash
-# Check formatting
-npm run format:check
-
-# Fix formatting
-npm run format:fix
-
-# Check linting
-npm run lint:check
-
-# Fix linting issues
-npm run lint:fix
-
-# Fix all formatting and linting issues
-npm run fix
-```
-
-### CLI Usage
-
-```bash
-# Generate header for PsychicHttpServer
-npx svelteesp32 -e psychic -s ./dist -o ./output.h --etag=true --gzip=true
-
-# Generate header for PsychicHttpServer V2
-npx svelteesp32 -e psychic2 -s ./dist -o ./output.h --etag=true --gzip=true
-
-# Generate header for ESPAsyncWebServer
-npx svelteesp32 -e async -s ./dist -o ./output.h --etag=true --gzip=true
-
-# Generate header for ESP-IDF
-npx svelteesp32 -e espidf -s ./dist -o ./output.h --etag=true --gzip=true
-
-# Test the CLI directly using tsx (for development)
+# Development
+npm run dev:psychic            # Live reload (psychic engine)
 npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true --gzip=true
 
-# Generate header with file exclusions
-npx svelteesp32 -e psychic -s ./dist -o ./output.h --exclude="*.map" --exclude="*.md"
+# CLI Usage
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --etag=true --gzip=true --exclude="*.map"
+npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 ```
 
 ## Architecture
 
-### Core Components
+### Core Files
 
-- **`src/index.ts`**: Main entry point that orchestrates the file processing pipeline
-- **`src/commandLine.ts`**: CLI argument parsing and validation using native Node.js `process.argv` implementation
-- **`src/file.ts`**: File system operations for reading web assets
-- **`src/cppCode.ts`**: C++ code generation engine with Handlebars templates for PsychicHttp and ESPAsyncWebServer
-- **`src/cppCodeEspIdf.ts`**: Specialized C++ code generation for native ESP-IDF
-- **`src/consoleColor.ts`**: Colored console output utilities
+- **`src/index.ts`** - Main entry point, orchestrates file processing pipeline
+- **`src/commandLine.ts`** - CLI parsing using native `process.argv`, supports RC files with npm variable interpolation
+- **`src/file.ts`** - File operations: glob scanning, duplicate detection (SHA256), index.html validation
+- **`src/cppCode.ts`** - C++ code generation (Handlebars templates) for psychic/psychic2/async engines
+- **`src/cppCodeEspIdf.ts`** - C++ code generation for ESP-IDF native engine
+- **`src/errorMessages.ts`** - Framework-specific error messages with actionable hints
 
 ### Processing Pipeline
 
-1. **File Collection** (`src/file.ts`): Scans source directory recursively using glob, skips pre-compressed files (.gz, .br) if originals exist, filters files matching exclude patterns, detects duplicate files via SHA256 hashing
-2. **Content Analysis** (`src/index.ts`): Determines MIME types using `mime-types` library, calculates MD5 hashes for ETag generation, groups files by extension for statistics
-3. **Compression** (`src/index.ts`): Applies gzip level 9 compression, uses compressed version only when size reduction >15% and original >1024 bytes
-4. **Code Generation** (`src/cppCode.ts`, `src/cppCodeEspIdf.ts`): Uses Handlebars templates with custom helpers (switch/case), generates optimized engine-specific C++ code with:
-   - Inlined lambda handlers (ESPAsyncWebServer)
-   - Optimized header lookups for ETag validation (all engines)
-   - Proper const-correctness and modern C++ patterns
-   - Conditional compilation support for etag/gzip options
-5. **Output**: Writes optimized header with embedded binary data arrays, route handlers with ETag validation, ETag MD5 strings, and C++ defines for build-time validation
+1. **File Collection** (`file.ts`): Glob scan → skip pre-compressed (.gz/.br) if original exists → filter exclude patterns → validate index.html (unless `--no-index-check`)
+2. **Content Analysis** (`index.ts`): MIME types → MD5 ETags → extension grouping
+3. **Compression** (`index.ts`): Gzip level 9 if >1024 bytes AND >15% reduction
+4. **Code Generation** (`cppCode.ts`): Handlebars templates → engine-specific C++ → byte arrays + route handlers + ETags
+5. **Output**: Write header with binary data, route handlers, ETag validation, C++ defines
 
 ### Supported Engines
 
-- **psychic**: PsychicHttpServer (ESP32 only, fastest performance)
-- **psychic2**: PsychicHttpServer V2
-- **async**: ESPAsyncWebServer (ESP32/ESP8266 compatible)
-- **espidf**: Native ESP-IDF web server
+- **psychic** - PsychicHttpServer V1 (ESP32 only, fastest)
+- **psychic2** - PsychicHttpServer V2 (ESP32 only, modern API)
+- **async** - ESPAsyncWebServer (ESP32/ESP8266, uses PROGMEM)
+- **espidf** - Native ESP-IDF web server
 
-### Key Features
+## Key Features
 
-- **Automatic Gzip Compression**: Compresses assets when size reduction >15% and >1024 bytes
-- **ETag Support**: HTTP cache validation for reduced network traffic with 304 Not Modified responses across all engines (psychic, psychic2, async, espidf)
-- **Cache Control**: Configurable browser caching with `--cachetime`
-- **File Exclusion**: Exclude unwanted files using glob patterns with `--exclude` option
-- **Multi-Engine Support**: Generate code for different ESP web server libraries
-- **File Type Analysis**: Groups files by extension with count statistics
-- **Memory Optimization**: Binary data stored as const arrays in program memory
-- **Optimized C++ Code**: Generated code uses modern C++ best practices with minimal overhead
+- **Single Binary OTA**: All files embedded in firmware (vs SPIFFS/LittleFS requiring separate partition)
+- **Automatic Gzip**: Build-time compression (>1024 bytes, >15% reduction)
+- **ETag Support**: HTTP 304 Not Modified responses on all engines (MD5 hashes, If-None-Match validation)
+- **CI/CD Integration**: npm package, RC files, variable interpolation from package.json
+- **File Exclusion**: Glob patterns (`--exclude="*.map,*.md"`)
+- **Index.html Validation**: Ensures default entry point exists (skip with `--no-index-check` for APIs)
+- **Multi-Engine**: Generates optimized C++ for 4 different web server frameworks
+- **C++ Defines**: Build-time validation (`SVELTEESP32_COUNT`, `SVELTEESP32_FILE_INDEX_HTML`, etc.)
 
-### File Exclusion
+## Configuration
 
-The tool supports flexible file exclusion using glob patterns to filter out unwanted files from being embedded in the ESP32 firmware.
+### RC File Support (.svelteesp32rc.json)
 
-**Pattern Support:**
+All CLI options can be stored in RC files. Searched in: current directory, home directory, or `--config=path`.
 
-- Simple wildcards: `*.map`, `*.txt`
-- Directory patterns: `test/**/*.js`, `docs/**/*`
-- Specific files: `.DS_Store`, `README.md`
+### NPM Variable Interpolation
 
-**Multiple Patterns:**
+RC files support `$npm_package_*` variables from package.json:
 
-- Repeated flag: `--exclude *.map --exclude *.md`
-- Comma-separated: `--exclude="*.map,*.md,*.txt"`
-- Combined: Both formats can be mixed
+- `"version": "v$npm_package_version"` → `"v2.1.0"`
+- `"define": "$npm_package_name"` → `"my-esp32-app"`
+- Nested: `$npm_package_repository_type` → `packageJson.repository.type`
+- Implementation: `src/commandLine.ts` lines 125-220
 
-**Default Exclusions:**
-System and development files are excluded by default:
+### CLI Options
 
-- `.DS_Store`, `Thumbs.db` (system files)
-- `.git`, `.svn` (version control)
-- `*.swp`, `*~` (editor files)
-- `.gitignore`, `.gitattributes` (git config)
+Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--no-index-check`, `--cachetime`, `--version`, `--define`, `--espmethod`
 
-**Implementation:**
+## Generated C++ Code
 
-- Uses `picomatch` library (transitive dependency via `tinyglobby`)
-- Filtering occurs after pre-compressed file detection but before file content reading
-- Excluded files are logged with count and list for verification
-- Windows path normalization for cross-platform consistency
+### ETag Implementation (All Engines)
 
-**Example Output:**
-
-```
-Collecting source files
-
-Excluded 3 file(s):
-  - assets/index.js.map
-  - README.md
-  - test/unit.test.js
-
-Translation to header file
-[index.html] ✓ gzip used (472 -> 308 = 65%)
-...
-```
-
-## Development Environment
-
-### Build System
-
-- **TypeScript**: Compiled to CommonJS in `dist/` directory
-- **Target**: ES2020 with strict type checking
-- **Incremental**: Disabled to ensure clean builds
-
-### Code Quality
-
-- **ESLint**: Comprehensive rules including TypeScript, Prettier, Unicorn plugins
-- **Prettier**: 120 character line width, single quotes, no trailing commas
-- **Import Sorting**: Automatic import organization with `simple-import-sort`
-
-### Testing
-
-The project uses **Vitest** for unit testing with comprehensive coverage:
-
-**Test Structure:**
-
-```
-test/
-├── unit/
-│   ├── commandLine.test.ts    # CLI argument parsing tests
-│   ├── file.test.ts            # File operations tests
-│   ├── cppCode.test.ts         # C++ code generation tests
-│   └── consoleColor.test.ts    # Console utilities tests
-└── fixtures/
-    └── sample-files/           # Test fixture files
-```
-
-**Test Coverage (68.25% overall):**
-
-- `commandLine.ts`: 84.56% - CLI argument parsing, validation, engine/tri-state validation
-- `file.ts`: 100% - File collection, duplicate detection (SHA256), pre-compressed file skipping
-- `cppCode.ts`: 96.62% - Template rendering for all 4 engines, etag/gzip combinations, Handlebars helpers
-- `cppCodeEspIdf.ts`: 100% - ESP-IDF template (tested via `cppCode.ts`)
-- `consoleColor.ts`: 100% - ANSI color code wrapping
-- `index.ts`: 0% - Main entry point (has side effects, tested via integration)
-
-**Key Testing Features:**
-
-- **Vitest Configuration**: `vitest.config.ts` with TypeScript support, 60% coverage thresholds
-- **Mocking Strategy**: Uses `vi.mock()` for file system (`node:fs`), glob (`tinyglobby`), and module dependencies
-- **Dynamic Imports**: Tests use dynamic imports for `commandLine.ts` to test different CLI arguments without side effects
-- **Test Fixtures**: Small sample files (HTML/CSS/JS) for testing file processing pipeline
-- **Coverage Reports**: Generated in `coverage/` directory (ignored by git), viewable HTML reports at `coverage/index.html`
-
-**Testing Approach:**
-
-- **commandLine.test.ts**: Tests argument parsing (`--flag=value`, `-f value`, `--flag value`), validation errors, required arguments, directory validation. Uses dynamic imports to avoid module side effects.
-- **file.test.ts**: Mocks file system with `memfs`, tests duplicate detection, compressed file skipping, path handling
-- **cppCode.test.ts**: Tests template selection by engine, code generation for all etag/gzip combinations, byte array conversion, ETag/cache headers, default route detection
-- **consoleColor.test.ts**: Simple tests for ANSI escape code wrapping (quick coverage wins)
-
-**Running Tests:**
-
-- `npm run test` - Run all tests once (CI/CD)
-- `npm run test:watch` - Watch mode for development
-- `npm run test:coverage` - Generate coverage reports
-
-### Demo Projects
-
-- **`demo/svelte/`**: Example Svelte application with Vite, TailwindCSS, gallery images
-- **`demo/esp32/`**: PlatformIO Arduino framework project with WiFi credentials example
-- **`demo/esp32idf/`**: ESP-IDF native project using native web server
-
-The `package.script` executable generates 36 test header files (9 combinations of etag/gzip × 4 engines) for comprehensive validation.
-
-## Important Notes
-
-- The tool processes entire directories recursively and embeds all files as binary data
-- Generated header files can be large but compile efficiently
-- Memory usage is optimized through const array placement in program memory (ESP32) or PROGMEM (ESP8266)
-- The CLI is designed for CI/CD integration with npm packaging workflows
-- `index.html` or `index.htm` files are automatically set as the default route for "/"
-- Pre-compressed files (.gz, .br, .brottli) in the source directory are skipped if the original file exists
-- The build uses `--clean` and `--force` flags to ensure clean builds without incremental compilation
-- ESP-IDF engine includes required headers (`string.h`, `stdlib.h`) for ETag validation support
-- All engines now fully support HTTP 304 Not Modified responses for efficient caching
-
-## Template System
-
-The code generation uses Handlebars with custom helpers:
-
-- **switch/case helpers**: Enable conditional C++ code generation based on etag/gzip settings
-- **Three-state options**: `etag` and `gzip` can be "true", "false", or "compiler" (for C++ directive control)
-- **Engine-specific templates**: Each engine (psychic, psychic2, async, espidf) has its own template in `src/cppCode.ts` or `src/cppCodeEspIdf.ts`
-- **Data transformation**: Binary content is converted to comma-separated byte arrays in the template data
-
-## Generated C++ Code Quality
-
-The generated C++ code follows modern best practices and is optimized for performance and maintainability:
-
-### ETag Validation Implementation
-
-All four engines support ETag validation with HTTP 304 Not Modified responses:
-
-- **ESPAsyncWebServer (`async`)**: Uses `const AsyncWebHeader*` for proper const-correctness, single `getHeader()` call instead of `hasHeader()` + `getHeader()`, inlined lambda handlers
-- **PsychicHttpServer (`psychic`, `psychic2`)**: Uses `request->header().equals()` for direct string comparison without temporary objects
-- **ESP-IDF (`espidf`)**: Uses `httpd_req_get_hdr_value_len()` and `httpd_req_get_hdr_value_str()` for header validation with proper memory management (malloc/free)
-
-### Code Optimizations
-
-- **No intermediate variables**: Lambda handlers are inlined directly in route registration (ESPAsyncWebServer)
-- **Optimized header lookups**: Single API call instead of redundant checks
-- **No temporary String objects**: Uses `.equals()` method directly instead of `== String()` wrapper
-- **Proper const-correctness**: All pointer declarations use `const` where appropriate
-- **Minimal overhead**: Generated code has minimal runtime performance impact
+- **async**: `const AsyncWebHeader*`, single `getHeader()` call, inlined lambdas
+- **psychic/psychic2**: `request->header().equals()`, no temporary String objects
+- **espidf**: `httpd_req_get_hdr_value_len()` + `httpd_req_get_hdr_value_str()`, malloc/free
 
 ### Memory Management
 
-- **ESP32 (psychic, psychic2, espidf)**: Const arrays automatically placed in program memory (flash)
-- **ESP8266 (async)**: PROGMEM directive explicitly used for flash storage
-- **ESP-IDF ETag validation**: Temporary header value buffers are properly allocated and freed
+- **ESP32** (psychic/psychic2/espidf): Const arrays → automatic program memory (flash)
+- **ESP8266** (async): PROGMEM directive → explicit flash storage
+- All: Binary data in flash, not RAM
 
-## Generated C++ Defines
+### Configuration Comment
 
-The generated header file includes C++ defines for build-time validation:
+Generated headers include `//config:` comment showing all settings used (engine, sourcepath, etag, gzip, exclude, etc.) for traceability.
 
-- `{PREFIX}_COUNT`: Total number of files
-- `{PREFIX}_SIZE`: Total uncompressed size in bytes
-- `{PREFIX}_SIZE_GZIP`: Total gzip compressed size in bytes
-- `{PREFIX}_FILE_{FILENAME}`: Define for each file (e.g., `SVELTEESP32_FILE_INDEX_HTML`)
-- `{PREFIX}_{EXT}_FILES`: Count of files by extension (e.g., `SVELTEESP32_CSS_FILES`)
+## Testing (Vitest)
 
-These allow C++ code to verify expected files are present using `#ifndef` and `#error` directives.
+**Coverage**: ~68% overall
 
-## Generated Header Configuration Comment
+- `commandLine.ts`: 84.56% - CLI parsing, validation, npm variable interpolation
+- `file.ts`: 100% - File ops, duplicate detection, index.html validation
+- `cppCode.ts`: 96.62% - Template rendering, all 4 engines, etag/gzip combos
+- `consoleColor.ts`: 100% - ANSI colors
+- `index.ts`: 0% - Main entry (side effects, tested via integration)
 
-The generated header file includes a `//config:` comment at the top that displays the effective configuration used during code generation:
+**Test Files**:
 
-```cpp
-//engine:   PsychicHttpServer
-//config:   engine=psychic sourcepath=./dist outputfile=./output.h etag=true gzip=true cachetime=0 espmethod=initSvelteStaticFiles define=SVELTEESP32 exclude=[*.map, *.md]
+- `test/unit/commandLine.test.ts` - Dynamic imports, argument parsing, npm variable interpolation (20+ tests)
+- `test/unit/file.test.ts` - memfs mocking, duplicate detection, index.html validation
+- `test/unit/cppCode.test.ts` - Template selection, code generation, byte arrays
+- `test/unit/errorMessages.test.ts` - Error message validation
+
+**Key Patterns**:
+
+- Mock fs with `vi.mock('node:fs')` and memfs
+- Dynamic imports for commandLine tests (avoid side effects)
+- Test fixtures in `test/fixtures/sample-files/`
+
+## Important Implementation Details
+
+### File Exclusion
+
+- Default exclusions: `.DS_Store`, `Thumbs.db`, `.git`, `.svn`, `*.swp`, `*~`, `.gitignore`, `.gitattributes`
+- Uses `picomatch` (via tinyglobby transitive dependency)
+- Filtering after pre-compressed detection, before file reading
+- Windows path normalization for cross-platform compatibility
+
+### Index.html Validation (`src/file.ts` lines 117-125)
+
+- Checks for `index.html` or `index.htm` in root or subdirectories
+- Shows engine-specific hints on error: `server->defaultEndpoint` (psychic), `server.on("/")` (async), etc.
+- Skip with `--no-index-check` flag for API-only applications
+
+### Template System (`src/cppCode.ts`)
+
+- Handlebars with custom `switch`/`case` helpers
+- Tri-state options: `etag`/`gzip` can be "true", "false", or "compiler" (C++ directives)
+- Engine-specific templates inline in source file
+- Binary data converted to comma-separated byte arrays
+
+### Compression Thresholds (`src/index.ts`)
+
+```typescript
+const GZIP_MIN_SIZE = 1024;
+const GZIP_MIN_REDUCTION_RATIO = 0.85; // Use gzip if <85% of original
 ```
 
-**Implementation** (`src/commandLine.ts`, `src/cppCode.ts`):
+### Demo Projects
 
-- `formatConfiguration()` function creates a formatted string from the `ICopyFilesArguments` object
-- Shows all configuration parameters: `engine`, `sourcepath`, `outputfile`, `etag`, `gzip`, `cachetime`, `espmethod`, `define`, and `exclude` patterns
-- Works consistently whether configuration comes from RC file, CLI arguments, or both
-- Provides complete traceability of the configuration used for code generation
+- `demo/svelte/` - Example Svelte app (Vite + TailwindCSS)
+- `demo/esp32/` - PlatformIO Arduino project
+- `demo/esp32idf/` - ESP-IDF native project
+- `package.script` generates 36 test headers (9 etag/gzip combos × 4 engines)
 
-## NPM Package Variable Interpolation
+## Recent Updates
 
-RC files support automatic variable interpolation from `package.json`, allowing dynamic configuration based on project metadata.
+### Comparison Table (README)
 
-**Feature:** Variables like `$npm_package_version` and `$npm_package_name` in RC files are automatically replaced with values from `package.json` located in the same directory as the RC file.
+README includes comparison table: SvelteESP32 vs Traditional Filesystem (SPIFFS/LittleFS/AsyncStaticWebHandler)
 
-**Supported Fields:** All string fields in RC configuration:
+- Highlights: Single Binary OTA, Automatic Gzip, Built-in ETag, CI/CD integration
+- Location: README lines 15-29, after "Forget SPIFFS and LittleFS" intro
 
-- `version` - e.g., `"v$npm_package_version"`
-- `define` - e.g., `"$npm_package_name_STATIC"`
-- `sourcepath` - e.g., `"./$npm_package_name/dist"`
-- `outputfile` - e.g., `"./output_$npm_package_version.h"`
-- `espmethod` - e.g., `"init$npm_package_name"`
-- `exclude` patterns - e.g., `["$npm_package_name.map"]`
+### Error Messages (v1.13.1)
 
-**Variable Syntax:**
+Enhanced error messages with framework-specific hints:
 
-- Simple fields: `$npm_package_version` → `packageJson.version`
-- Nested fields: `$npm_package_repository_type` → `packageJson.repository.type`
-- Multiple variables: `"$npm_package_name-v$npm_package_version"` → `"myapp-v1.2.3"`
+- **Missing index.html**: Engine-specific routing examples, `--no-index-check` flag
+- **Invalid engine**: Lists all 4 engines with descriptions
+- **Sourcepath not found**: Build tool hints (Vite, Webpack, Rollup)
+- **max_uri_handlers**: Console hints after generation (psychic, psychic2, espidf)
 
-**Implementation** (`src/commandLine.ts` lines 125-220):
+## Build Configuration
 
-**Core Functions:**
-
-1. **`findPackageJson(rcFilePath: string)`** - Locates package.json in the same directory as RC file
-2. **`parsePackageJson(packageJsonPath: string)`** - Reads and parses package.json with error handling
-3. **`getNpmPackageVariable(packageJson, variableName)`** - Extracts values from package.json using underscore-separated path segments (e.g., `$npm_package_repository_type` traverses `packageJson.repository.type`)
-4. **`checkStringForNpmVariable(value)`** - Helper to check if a string contains npm package variables
-5. **`hasNpmVariables(config)`** - Quick check if RC config contains any npm variables (optimization to skip interpolation when not needed)
-6. **`interpolateNpmVariables(config, rcFilePath)`** - Main interpolation function that processes all string fields
-
-**Processing Flow:**
-
-1. Load RC file JSON
-2. **Check for npm variables** - If present, find and parse package.json
-3. **Interpolate variables** - Replace `$npm_package_*` patterns using regex: `/\$npm_package_[\dA-Za-z]+(?:_[a-z][\dA-Za-z]*)*/g`
-4. Validate interpolated configuration
-5. Merge with CLI arguments
-
-**Error Handling:**
-
-- If variables are used but package.json not found: Throws error listing affected fields
-- If variable doesn't exist in package.json: Left unchanged (not an error)
-- If package.json is invalid JSON: Clear error message with file path
-
-**Regex Pattern Design:**
-
-- Matches: `$npm_package_version`, `$npm_package_repository_type`
-- Stops at: `_STATIC`, `_CONSTANT` (underscore followed by uppercase)
-- Example: `"$npm_package_name_STATIC"` → interpolates `name`, keeps `_STATIC` suffix
-
-**Testing** (`test/unit/commandLine.test.ts` lines 604-952):
-
-- 20+ comprehensive tests covering all edge cases
-- Tests for simple fields, nested fields, multiple variables, error scenarios
-- 100% coverage of new interpolation functions
-
-**Example Usage:**
-
-```json
-// .svelteesp32rc.json
-{
-  "engine": "psychic",
-  "version": "v$npm_package_version",
-  "define": "$npm_package_name",
-  "sourcepath": "./dist"
-}
-
-// package.json
-{
-  "name": "esp32-webui",
-  "version": "2.1.0"
-}
-
-// Result after interpolation:
-{
-  "version": "v2.1.0",
-  "define": "esp32-webui"
-}
-```
-
-**Benefits:**
-
-- **Version synchronization**: Header version automatically matches package version
-- **Dynamic naming**: C++ defines use actual package name
-- **CI/CD friendly**: Reusable RC files across projects
-- **Consistency**: Single source of truth for project metadata
+- **TypeScript**: Target ES2020, CommonJS output, strict mode
+- **Build**: `--clean` and `--force` flags ensure clean builds (no incremental)
+- **ESLint**: TypeScript, Prettier, Unicorn plugins
+- **Prettier**: 120 char width, single quotes, no trailing commas
