@@ -17,7 +17,8 @@ vi.mock('../../src/commandLine', () => ({
     created: false,
     version: 'test-version',
     prefix: 'SVELTEESP32',
-    exclude: []
+    exclude: [],
+    noIndexCheck: false
   }
 }));
 
@@ -35,6 +36,12 @@ describe('file', () => {
   });
 
   describe('getFiles', () => {
+    beforeEach(async () => {
+      // Set noIndexCheck to true for most tests (index.html validation has its own section)
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).noIndexCheck = true;
+    });
+
     it('should read all files from source directory', () => {
       const mockFiles = ['index.html', 'style.css', 'script.js'];
       const mockContent = Buffer.from('test content');
@@ -153,6 +160,7 @@ describe('file', () => {
       // Reset cmdLine mock before each test
       const commandLineModule = await import('../../src/commandLine');
       vi.mocked(commandLineModule.cmdLine).exclude = [];
+      vi.mocked(commandLineModule.cmdLine).noIndexCheck = true; // Skip index.html validation for these tests
     });
 
     it('should exclude files matching simple glob pattern', async () => {
@@ -276,6 +284,98 @@ describe('file', () => {
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Excluded 2 file(s)'));
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('script.js.map'));
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('README.md'));
+    });
+  });
+
+  describe('index.html validation', () => {
+    const originalExit = process.exit;
+
+    beforeEach(async () => {
+      process.exit = vi.fn() as never;
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Reset noIndexCheck to false
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).noIndexCheck = false;
+    });
+
+    afterEach(() => {
+      process.exit = originalExit;
+    });
+
+    it('should fail if no index.html or index.htm exists', async () => {
+      const mockFiles = ['style.css', 'script.js'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      getFiles();
+
+      expect(console.error).toHaveBeenCalled();
+      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+      expect(errorMessage).toContain('[ERROR]');
+      expect(errorMessage).toContain('No index.html or index.htm found');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('should pass if index.html exists', async () => {
+      const mockFiles = ['index.html', 'style.css'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const result = getFiles();
+
+      expect(result.size).toBe(2);
+      expect(console.error).not.toHaveBeenCalled();
+      expect(process.exit).not.toHaveBeenCalled();
+    });
+
+    it('should pass if index.htm exists', async () => {
+      const mockFiles = ['index.htm', 'style.css'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const result = getFiles();
+
+      expect(result.size).toBe(2);
+      expect(console.error).not.toHaveBeenCalled();
+      expect(process.exit).not.toHaveBeenCalled();
+    });
+
+    it('should skip validation if --no-index-check is true', async () => {
+      const mockFiles = ['style.css', 'script.js'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const commandLineModule = await import('../../src/commandLine');
+      vi.mocked(commandLineModule.cmdLine).noIndexCheck = true;
+
+      const result = getFiles();
+
+      expect(result.size).toBe(2);
+      expect(console.error).not.toHaveBeenCalled();
+      expect(process.exit).not.toHaveBeenCalled();
+    });
+
+    it('should pass if index.html is in subdirectory', async () => {
+      const mockFiles = ['assets/index.html', 'style.css'];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const result = getFiles();
+
+      expect(result.size).toBe(2);
+      expect(console.error).not.toHaveBeenCalled();
+      expect(process.exit).not.toHaveBeenCalled();
     });
   });
 });

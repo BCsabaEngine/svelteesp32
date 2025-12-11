@@ -110,6 +110,14 @@ describe('commandLine', () => {
       expect(cmdLine.created).toBe(true);
     });
 
+    it('should parse --no-index-check flag', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--no-index-check'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.noIndexCheck).toBe(true);
+    });
+
     it('should parse version, espmethod, define, and cachetime', async () => {
       process.argv = [
         'node',
@@ -219,10 +227,19 @@ describe('commandLine', () => {
   });
 
   describe('validation', () => {
-    it('should validate engine values', async () => {
+    it('should show enhanced error for invalid engine', async () => {
       process.argv = ['node', 'script.js', '--engine=invalid', '--sourcepath=/test/dist'];
 
-      await expect(import('../../src/commandLine')).rejects.toThrow('Invalid engine: invalid');
+      await import('../../src/commandLine').catch(() => {});
+
+      expect(console.error).toHaveBeenCalled();
+      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+      expect(errorMessage).toContain('[ERROR]');
+      expect(errorMessage).toContain('Invalid engine');
+      expect(errorMessage).toContain("'invalid'");
+      expect(errorMessage).toContain('psychic');
+      expect(errorMessage).toContain('async');
+      expect(process.exit).toHaveBeenCalledWith(1);
     });
 
     it('should accept all valid engine values', async () => {
@@ -296,7 +313,7 @@ describe('commandLine', () => {
   });
 
   describe('directory validation', () => {
-    it('should exit when source directory does not exist', async () => {
+    it('should show enhanced error when source directory does not exist', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/nonexistent/path'];
 
       const fsModule = await import('node:fs');
@@ -304,11 +321,16 @@ describe('commandLine', () => {
 
       await import('../../src/commandLine').catch(() => {});
 
-      expect(console.error).toHaveBeenCalledWith('Directory /nonexistent/path not exists or not a directory');
+      expect(console.error).toHaveBeenCalled();
+      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+      expect(errorMessage).toContain('[ERROR]');
+      expect(errorMessage).toContain('Source directory not found');
+      expect(errorMessage).toContain('/nonexistent/path');
+      expect(errorMessage).toContain('npm run build');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
-    it('should exit when source path is not a directory', async () => {
+    it('should show enhanced error when source path is not a directory', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/file.txt'];
 
       const fsModule = await import('node:fs');
@@ -317,7 +339,11 @@ describe('commandLine', () => {
 
       await import('../../src/commandLine').catch(() => {});
 
-      expect(console.error).toHaveBeenCalledWith('Directory /test/file.txt not exists or not a directory');
+      expect(console.error).toHaveBeenCalled();
+      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+      expect(errorMessage).toContain('[ERROR]');
+      expect(errorMessage).toContain('not a directory');
+      expect(errorMessage).toContain('/test/file.txt');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
@@ -532,7 +558,14 @@ describe('commandLine', () => {
 
         process.argv = ['node', 'script.js'];
 
-        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid engine: invalid');
+        await import('../../src/commandLine').catch(() => {});
+
+        expect(console.error).toHaveBeenCalled();
+        const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+        expect(errorMessage).toContain('[ERROR]');
+        expect(errorMessage).toContain('Invalid engine');
+        expect(errorMessage).toContain("'invalid'");
+        expect(process.exit).toHaveBeenCalledWith(1);
       });
 
       it('should validate etag tri-state values from RC file', async () => {
@@ -832,8 +865,15 @@ describe('commandLine', () => {
         });
 
         it('should throw error when variables present but package.json not found', async () => {
+          process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
           const fsModule = await import('node:fs');
-          vi.mocked(fsModule.existsSync).mockReturnValue(false);
+          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+            if (path === '/test/dist') return true; // sourcepath exists
+            if (path.includes('package.json')) return false; // package.json does not exist
+            return false;
+          });
+          vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
           const config = {
@@ -846,8 +886,15 @@ describe('commandLine', () => {
         });
 
         it('should list affected fields in error message', async () => {
+          process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
           const fsModule = await import('node:fs');
-          vi.mocked(fsModule.existsSync).mockReturnValue(false);
+          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+            if (path === '/test/dist') return true; // sourcepath exists
+            if (path.includes('package.json')) return false; // package.json does not exist
+            return false;
+          });
+          vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
           const config = {

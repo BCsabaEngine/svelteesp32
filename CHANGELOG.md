@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.1] - 2025-12-11
+
+### Added
+
+- **Enhanced Error Messages with Framework-Specific Hints**: Comprehensive error messages with actionable "How to fix" guidance for all 4 engines (psychic, psychic2, async, espidf)
+  - **Missing index.html Validation**: Automatic check for default entry point with engine-specific routing examples
+    - Framework-specific hints: `server->defaultEndpoint` (psychic/psychic2), `server.on("/")` (async), `httpd_register_uri_handler` (espidf)
+    - Detects index.html/index.htm in root or subdirectories
+    - `--no-index-check` flag to bypass validation for API-only applications
+    - Clear explanation of why index.html matters and alternative solutions
+  - **Invalid Engine Error**: Enhanced error message with complete engine reference
+    - Lists all 4 valid engines with descriptions and platform compatibility
+    - Example commands and RC file format
+    - Documentation link for further reference
+  - **Sourcepath Not Found Error**: Detailed troubleshooting guidance
+    - Build tool configuration hints (Vite, Webpack, Rollup)
+    - Framework-specific build commands (Svelte, React, Vue, Angular)
+    - Shows current directory and resolved path for debugging
+    - Separate messages for "not found" vs "not a directory" scenarios
+  - **max_uri_handlers Configuration Hints**: Console output after successful generation
+    - Only shown for engines that require it (psychic, psychic2, espidf)
+    - Calculates recommended value: `routeCount + 5` (safety margin)
+    - Engine-specific configuration examples with code snippets
+    - Lists runtime symptoms to watch for (404 errors, ESP_ERR_HTTPD_HANDLERS_FULL)
+- New `src/errorMessages.ts` module (~180 lines) with pure, testable functions:
+  - `getMissingIndexError()` - Engine-specific index.html error messages
+  - `getInvalidEngineError()` - Comprehensive invalid engine guidance
+  - `getSourcepathNotFoundError()` - Build tool and framework hints
+  - `getMaxUriHandlersHint()` - Configuration guidance for handler limits
+  - Consistent multi-line error format with color-coded sections
+- 32 comprehensive unit tests in `test/unit/errorMessages.test.ts` with 100% coverage:
+  - Tests for all 4 engines (psychic, psychic2, async, espidf)
+  - Message content validation (error title, explanations, hints)
+  - Edge cases (unknown engines, empty strings)
+  - Framework-specific code snippet verification
+- Enhanced test suite with 156 total tests passing:
+  - Updated `test/unit/commandLine.test.ts` with enhanced error validation
+  - Updated `test/unit/file.test.ts` with index.html validation tests
+  - All tests use proper TypeScript types (replaced `any` with `vi.mocked()`)
+
+### Changed
+
+- Improved developer experience with clear, actionable error messages
+- Error messages now include framework-specific code examples
+- Console output uses color-coded sections for better readability
+- Validation happens early with helpful guidance before processing begins
+- Updated `src/commandLine.ts` to use enhanced error messages (lines 84-85, 559-567)
+- Updated `src/file.ts` with index.html validation (lines 117-125)
+- Updated `src/index.ts` to show max_uri_handlers hints (lines 150-153)
+
+### Fixed
+
+- Linting errors: renamed `currentDir` to `currentDirectory` (unicorn/prevent-abbreviations)
+- Test type safety: replaced explicit `any` types with `vi.mocked()` helper
+
 ## [1.13.0] - 2025-12-04
 
 ### Added
@@ -374,6 +429,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.13.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.12.1...v1.13.0
 [1.12.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.12.0...v1.12.1
 [1.12.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.11.0...v1.12.0

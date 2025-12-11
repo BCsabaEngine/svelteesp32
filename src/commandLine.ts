@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 
 import { cyanLog, yellowLog } from './consoleColor';
+import { getInvalidEngineError, getSourcepathNotFoundError } from './errorMessages';
 
 interface ICopyFilesArguments {
   engine: 'psychic' | 'psychic2' | 'async' | 'espidf';
@@ -16,6 +17,7 @@ interface ICopyFilesArguments {
   created: boolean;
   version: string;
   exclude: string[];
+  noIndexCheck?: boolean;
   help?: boolean;
 }
 
@@ -79,7 +81,8 @@ RC File:
 function validateEngine(value: string): 'psychic' | 'psychic2' | 'async' | 'espidf' {
   if (value === 'psychic' || value === 'psychic2' || value === 'async' || value === 'espidf') return value;
 
-  throw new Error(`Invalid engine: ${value}`);
+  console.error(getInvalidEngineError(value));
+  process.exit(1);
 }
 
 function validateTriState(value: string, name: string): 'true' | 'false' | 'compiler' {
@@ -414,6 +417,11 @@ function parseArguments(): ICopyFilesArguments {
       continue;
     }
 
+    if (argument === '--no-index-check') {
+      result.noIndexCheck = true;
+      continue;
+    }
+
     // Handle -flag value format
     if (argument.startsWith('-') && !argument.startsWith('--')) {
       const flag = argument.slice(1);
@@ -548,8 +556,13 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
 
 export const cmdLine = parseArguments();
 
-if (!existsSync(cmdLine.sourcepath) || !statSync(cmdLine.sourcepath).isDirectory()) {
-  console.error(`Directory ${cmdLine.sourcepath} not exists or not a directory`);
+if (!existsSync(cmdLine.sourcepath)) {
+  console.error(getSourcepathNotFoundError(cmdLine.sourcepath, 'not_found'));
+  process.exit(1);
+}
+
+if (!statSync(cmdLine.sourcepath).isDirectory()) {
+  console.error(getSourcepathNotFoundError(cmdLine.sourcepath, 'not_directory'));
   process.exit(1);
 }
 

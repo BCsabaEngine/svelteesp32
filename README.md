@@ -12,6 +12,23 @@ In order to be able to easily update OTA, it is important - from the users' poin
 
 This npm package provides a solution for **inserting any JS client application into the ESP web server** (PsychicHttp and also ESPAsyncWebServer (https://github.com/ESP32Async/ESPAsyncWebServer) and ESP-IDF available, PsychicHttp is the default). For this, JS, html, css, font, assets, etc. files must be converted to binary byte array. Npm mode is easy to use and easy to **integrate into your CI/CD pipeline**.
 
+**Quick Comparison:**
+
+| Feature               | SvelteESP32                             | Traditional Filesystem (SPIFFS/LittleFS) |
+| --------------------- | --------------------------------------- | ---------------------------------------- |
+| **Single Binary OTA** | ✓ Everything embedded in firmware       | ✗ Requires separate partition upload     |
+| **Gzip Compression**  | ✓ Automatic build-time (>15% reduction) | Manual or runtime compression            |
+| **ETag Support**      | ✓ Built-in MD5 ETags with 304 responses | Manual implementation required           |
+| **CI/CD Integration** | ✓ npm package, simple build step        | Complex with upload_fs tools             |
+| **Memory Efficiency** | Flash only (PROGMEM/const arrays)       | Flash partition + filesystem overhead    |
+| **Performance**       | Direct byte array serving               | Filesystem read overhead                 |
+| **Setup Complexity**  | Include header, call init function      | Partition setup, upload tools, handlers  |
+
+**When to use:**
+
+- **SvelteESP32**: Single-binary OTA updates, CI/CD pipelines, static web content that doesn't change at runtime
+- **SPIFFS/LittleFS**: Dynamic content, user-uploadable files, configuration that changes at runtime
+
 > Starting with version v1.13.0, RC files support npm package variable interpolation
 
 > Starting with version v1.12.0, you can use RC file for configuration
@@ -309,6 +326,18 @@ At the same time, it can be an advantage that the content is cached by the brows
 
 Typically, the entry point for web applications is the **index.htm or index.html** file. This does not need to be listed in the browser's address bar because web servers know that this file should be served by default. Svelteesp32 also does this: if there is an index.htm or index.html file, it sets it as the main file to be served. So using `http://esp_xxx.local` or just entering the `http://x.y.w.z/` IP address will serve this main file.
 
+**Validation**: By default, svelteesp32 validates that an `index.html` or `index.htm` file exists in your source directory (in the root or any subdirectory). This ensures users won't get a 404 error when visiting your ESP32's root URL.
+
+**Skipping Validation**: If you're building an API-only application (REST endpoints without a web UI) or using a different entry point (e.g., `main.html`), you can skip this validation with the `--no-index-check` flag:
+
+```bash
+# API-only application (no web UI)
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --no-index-check
+
+# Custom entry point (users must visit /main.html explicitly)
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --no-index-check
+```
+
 ### File Exclusion
 
 The `--exclude` option allows you to exclude files from being embedded in the ESP32 firmware using glob patterns. This is useful for excluding source maps, documentation, and test files that shouldn't be part of the deployed application.
@@ -418,21 +447,22 @@ You can use the following c++ directives at the project level if you want to con
 
 ### Command line options
 
-| Option        | Description                                                                          | default                 |
-| ------------- | ------------------------------------------------------------------------------------ | ----------------------- |
-| `-s`          | **Source dist folder contains compiled web files**                                   | (required)              |
-| `-e`          | The engine for which the include file is created (psychic/psychic2/async/espidf)     | psychic                 |
-| `-o`          | Generated output file with path                                                      | `svelteesp32.h`         |
-| `--exclude`   | Exclude files matching glob pattern (repeatable or comma-separated)                  | Default system files    |
-| `--etag`      | Use ETag header for cache (true/false/compiler)                                      | false                   |
-| `--cachetime` | Override no-cache response with a max-age=\<cachetime\> response (seconds)           | 0                       |
-| `--gzip`      | Compress content with gzip (true/false/compiler)                                     | true                    |
-| `--created`   | Include creation time in generated header                                            | false                   |
-| `--version`   | Include a version string in generated header, e.g. `--version=v$npm_package_version` | ''                      |
-| `--espmethod` | Name of generated initialization method                                              | `initSvelteStaticFiles` |
-| `--define`    | Prefix of c++ defines (e.g., SVELTEESP32_COUNT)                                      | `SVELTEESP32`           |
-| `--config`    | Use custom RC file path                                                              | `.svelteesp32rc.json`   |
-| `-h`          | Show help                                                                            |                         |
+| Option             | Description                                                                          | default                 |
+| ------------------ | ------------------------------------------------------------------------------------ | ----------------------- |
+| `-s`               | **Source dist folder contains compiled web files**                                   | (required)              |
+| `-e`               | The engine for which the include file is created (psychic/psychic2/async/espidf)     | psychic                 |
+| `-o`               | Generated output file with path                                                      | `svelteesp32.h`         |
+| `--exclude`        | Exclude files matching glob pattern (repeatable or comma-separated)                  | Default system files    |
+| `--etag`           | Use ETag header for cache (true/false/compiler)                                      | false                   |
+| `--cachetime`      | Override no-cache response with a max-age=\<cachetime\> response (seconds)           | 0                       |
+| `--gzip`           | Compress content with gzip (true/false/compiler)                                     | true                    |
+| `--created`        | Include creation time in generated header                                            | false                   |
+| `--version`        | Include a version string in generated header, e.g. `--version=v$npm_package_version` | ''                      |
+| `--espmethod`      | Name of generated initialization method                                              | `initSvelteStaticFiles` |
+| `--define`         | Prefix of c++ defines (e.g., SVELTEESP32_COUNT)                                      | `SVELTEESP32`           |
+| `--config`         | Use custom RC file path                                                              | `.svelteesp32rc.json`   |
+| `--no-index-check` | Skip validation for index.html/index.htm (for API-only or custom entry points)       | false                   |
+| `-h`               | Show help                                                                            |                         |
 
 ### Configuration File
 
@@ -479,19 +509,20 @@ npx svelteesp32 --config=.svelteesp32rc.prod.json
 
 All CLI options can be specified in the RC file using long-form property names:
 
-| RC Property  | CLI Flag      | Type    | Example                                          |
-| ------------ | ------------- | ------- | ------------------------------------------------ |
-| `engine`     | `-e`          | string  | `"psychic"`, `"psychic2"`, `"async"`, `"espidf"` |
-| `sourcepath` | `-s`          | string  | `"./dist"`                                       |
-| `outputfile` | `-o`          | string  | `"./output.h"`                                   |
-| `etag`       | `--etag`      | string  | `"true"`, `"false"`, `"compiler"`                |
-| `gzip`       | `--gzip`      | string  | `"true"`, `"false"`, `"compiler"`                |
-| `cachetime`  | `--cachetime` | number  | `86400`                                          |
-| `created`    | `--created`   | boolean | `true`, `false`                                  |
-| `version`    | `--version`   | string  | `"v1.0.0"`                                       |
-| `espmethod`  | `--espmethod` | string  | `"initSvelteStaticFiles"`                        |
-| `define`     | `--define`    | string  | `"SVELTEESP32"`                                  |
-| `exclude`    | `--exclude`   | array   | `["*.map", "*.md"]`                              |
+| RC Property    | CLI Flag           | Type    | Example                                          |
+| -------------- | ------------------ | ------- | ------------------------------------------------ |
+| `engine`       | `-e`               | string  | `"psychic"`, `"psychic2"`, `"async"`, `"espidf"` |
+| `sourcepath`   | `-s`               | string  | `"./dist"`                                       |
+| `outputfile`   | `-o`               | string  | `"./output.h"`                                   |
+| `etag`         | `--etag`           | string  | `"true"`, `"false"`, `"compiler"`                |
+| `gzip`         | `--gzip`           | string  | `"true"`, `"false"`, `"compiler"`                |
+| `cachetime`    | `--cachetime`      | number  | `86400`                                          |
+| `created`      | `--created`        | boolean | `true`, `false`                                  |
+| `version`      | `--version`        | string  | `"v1.0.0"`                                       |
+| `espmethod`    | `--espmethod`      | string  | `"initSvelteStaticFiles"`                        |
+| `define`       | `--define`         | string  | `"SVELTEESP32"`                                  |
+| `exclude`      | `--exclude`        | array   | `["*.map", "*.md"]`                              |
+| `noIndexCheck` | `--no-index-check` | boolean | `true`, `false`                                  |
 
 #### CLI Override
 
