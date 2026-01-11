@@ -378,4 +378,60 @@ describe('file', () => {
       expect(process.exit).not.toHaveBeenCalled();
     });
   });
+
+  describe('excluded files display', () => {
+    it('should show "... and X more" message when more than 10 files are excluded', async () => {
+      // Create 15 files that will be excluded (match exclude pattern)
+      const mockFiles = [
+        'index.html',
+        'file1.map',
+        'file2.map',
+        'file3.map',
+        'file4.map',
+        'file5.map',
+        'file6.map',
+        'file7.map',
+        'file8.map',
+        'file9.map',
+        'file10.map',
+        'file11.map',
+        'file12.map',
+        'file13.map',
+        'file14.map'
+      ];
+      const mockContent = Buffer.from('test content');
+
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      // Mock picomatch to exclude .map files
+      vi.doMock('picomatch', () => ({
+        default: vi.fn((patterns: string[]) => {
+          return (file: string) => {
+            return patterns.some((pattern) => {
+              if (pattern === '*.map') return file.endsWith('.map');
+              return false;
+            });
+          };
+        })
+      }));
+
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          sourcepath: '/test/path',
+          exclude: ['*.map'],
+          noindexcheck: false
+        }
+      }));
+
+      vi.resetModules();
+      const { getFiles } = await import('../../src/file');
+      const result = getFiles();
+
+      // Should only have index.html (14 .map files excluded)
+      expect(result.size).toBe(1);
+      // Should log "... and 4 more" since we show first 10 and have 14 excluded
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('... and 4 more'));
+    });
+  });
 });

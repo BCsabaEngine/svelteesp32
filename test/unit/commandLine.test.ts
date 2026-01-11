@@ -992,4 +992,239 @@ describe('commandLine', () => {
       });
     });
   });
+
+  describe('formatConfiguration', () => {
+    beforeEach(() => {
+      vi.resetModules();
+      process.argv = [
+        'node',
+        'script.js',
+        '--engine=psychic',
+        '--sourcepath=/test/dist',
+        '--outputfile=/test/output.h'
+      ];
+      // Ensure the mocks return expected values
+      vi.mocked(fs.readFileSync).mockReturnValue('{}');
+      vi.mocked(fs.existsSync).mockReturnValue(false); // No RC file exists
+    });
+
+    it('should format basic configuration', async () => {
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+
+      expect(result).toContain('engine=psychic');
+      expect(result).toContain('sourcepath=/test/dist');
+      expect(result).toContain('outputfile=/test/output.h');
+      expect(result).toContain('etag=');
+      expect(result).toContain('gzip=');
+      expect(result).toContain('cachetime=');
+    });
+
+    it('should include created when true', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false,
+        created: true
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('created=true');
+    });
+
+    it('should omit created when false or undefined', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).not.toContain('created=');
+    });
+
+    it('should include version when present', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false,
+        version: 'v1.2.3'
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('version=v1.2.3');
+    });
+
+    it('should omit version when empty or undefined', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).not.toContain('version=');
+    });
+
+    it('should include espmethod when present', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'GET'
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('espmethod=GET');
+    });
+
+    it('should include define when present', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false,
+        define: 'MY_DEFINE'
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('define=MY_DEFINE');
+    });
+
+    it('should format exclude array correctly', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: ['*.map', '*.md'],
+        noindexcheck: false
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('exclude=[*.map, *.md]');
+    });
+
+    it('should omit exclude when empty array', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).not.toContain('exclude=');
+    });
+
+    it('should handle all optional fields present', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: ['*.map'],
+        noindexcheck: false,
+        created: true,
+        version: 'v1.0.0',
+        espmethod: 'GET',
+        define: 'MY_APP'
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('created=true');
+      expect(result).toContain('version=v1.0.0');
+      expect(result).toContain('espmethod=GET');
+      expect(result).toContain('define=MY_APP');
+      expect(result).toContain('exclude=[*.map]');
+    });
+
+    it('should handle all optional fields absent', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).not.toContain('created=');
+      expect(result).not.toContain('version=');
+      expect(result).not.toContain('espmethod=');
+      expect(result).not.toContain('define=');
+      expect(result).not.toContain('exclude=');
+    });
+  });
 });
