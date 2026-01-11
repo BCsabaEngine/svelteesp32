@@ -5,6 +5,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    onConsoleLog: () => false, // Suppress console output from tests
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

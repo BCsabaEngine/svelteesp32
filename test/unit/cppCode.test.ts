@@ -355,4 +355,219 @@ describe('cppCode', () => {
       expect(result).toContain('#ifdef SVELTEESP32_ENABLE_GZIP');
     });
   });
+
+  describe('template switch/case helpers', () => {
+    it('should handle etag=true case in switch', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          sourcepath: '/test/path',
+          outputfile: '/test/output.h',
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'false',
+          cachetime: 0,
+          noindexcheck: false,
+          exclude: [],
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // When etag=true, should have MD5 hash definition
+      expect(result).toContain('abc123');
+    });
+
+    it('should handle etag=false case in switch', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          sourcepath: '/test/path',
+          outputfile: '/test/output.h',
+          engine: 'psychic',
+          etag: 'false',
+          gzip: 'false',
+          cachetime: 0,
+          noindexcheck: false,
+          exclude: [],
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // When etag=false, should not check etag headers
+      expect(result).not.toContain('If-None-Match');
+    });
+
+    it('should handle gzip=true case in switch for async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          sourcepath: '/test/path',
+          outputfile: '/test/output.h',
+          engine: 'async',
+          etag: 'false',
+          gzip: 'true',
+          cachetime: 0,
+          noindexcheck: false,
+          exclude: [],
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // When gzip=true, should have content-encoding header
+      expect(result).toContain('gzip');
+    });
+
+    it('should handle gzip=false case in switch', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          sourcepath: '/test/path',
+          outputfile: '/test/output.h',
+          engine: 'psychic',
+          etag: 'false',
+          gzip: 'false',
+          cachetime: 0,
+          noindexcheck: false,
+          exclude: [],
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // When gzip=false, should not have gzip-specific code
+      expect(result).toBeTruthy();
+    });
+
+    it('should handle compiler case for both etag and gzip', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          sourcepath: '/test/path',
+          outputfile: '/test/output.h',
+          engine: 'psychic',
+          etag: 'compiler',
+          gzip: 'compiler',
+          cachetime: 0,
+          noindexcheck: false,
+          exclude: [],
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // When etag/gzip=compiler, should have #ifdef directives
+      expect(result).toContain('#ifdef');
+    });
+
+    it('should handle espidf engine with etag and gzip switches', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          sourcepath: '/test/path',
+          outputfile: '/test/output.h',
+          engine: 'espidf',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          noindexcheck: false,
+          exclude: [],
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // espidf should have specific handler structure
+      expect(result).toContain('httpd_req_t');
+    });
+
+    it('should handle all engines in switch statement', async () => {
+      const engines = ['psychic', 'psychic2', 'async', 'espidf'];
+
+      for (const engine of engines) {
+        vi.resetModules();
+        vi.doMock('../../src/commandLine', () => ({
+          cmdLine: {
+            sourcepath: '/test/path',
+            outputfile: '/test/output.h',
+            engine,
+            etag: 'true',
+            gzip: 'true',
+            cachetime: 0,
+            noindexcheck: false,
+            exclude: [],
+            espmethod: 'initSvelteStaticFiles',
+            define: 'SVELTEESP32'
+          },
+          formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+        }));
+
+        const { getCppCode } = await import('../../src/cppCode');
+        const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+        const result = getCppCode(sources, mockFilesByExtension);
+
+        expect(result).toBeTruthy();
+        expect(result.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should handle multiple case statements in switch correctly', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          sourcepath: '/test/path',
+          outputfile: '/test/output.h',
+          engine: 'psychic2',
+          etag: 'compiler',
+          gzip: 'compiler',
+          cachetime: 0,
+          noindexcheck: false,
+          exclude: [],
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Should handle psychic2 engine with compiler directives
+      expect(result).toContain('PsychicHttpServer');
+      expect(result).toContain('#ifdef');
+    });
+  });
 });

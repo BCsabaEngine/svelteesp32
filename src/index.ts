@@ -150,3 +150,6 @@ console.log(`${cmdLine.outputfile} ${Math.round(cppFile.length / 1024)}kB size`)
 // Show max_uri_handlers hint for applicable engines
 if (cmdLine.engine === 'psychic' || cmdLine.engine === 'psychic2' || cmdLine.engine === 'espidf')
   console.log('\n' + getMaxUriHandlersHint(cmdLine.engine, sources.length));
+
+// Export helper functions for testing
+export { calculateCompressionRatio, createSourceEntry, formatCompressionLog, shouldUseGzip, updateExtensionGroup };
