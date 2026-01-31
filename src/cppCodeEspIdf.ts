@@ -99,6 +99,23 @@ const char * etag_{{this.dataname}} = "{{this.sha256}}";
 {{/case}}
 {{/switch}}
 
+// File manifest struct
+struct {{definePrefix}}_FileInfo {
+  const char* path;
+  uint32_t size;
+  uint32_t gzipSize;
+  const char* etag;
+  const char* contentType;
+};
+
+// File manifest array
+const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
+{{#each sources}}
+  { "/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
+{{/each}}
+};
+const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
+
 {{#each sources}}
 
 static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
