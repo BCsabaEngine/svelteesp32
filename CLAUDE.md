@@ -62,6 +62,7 @@ npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 - **Multi-Engine**: Generates optimized C++ for 4 different web server frameworks
 - **C++ Defines**: Build-time validation (`SVELTEESP32_COUNT`, `SVELTEESP32_FILE_INDEX_HTML`, etc.)
 - **File Manifest**: Runtime introspection of embedded files (path, size, gzipSize, etag, contentType)
+- **onFileServed Hook**: Weak function called on every file serve (path, statusCode) for metrics/logging
 
 ## Configuration
 
@@ -122,6 +123,24 @@ const size_t {{definePrefix}}_FILE_COUNT = ...;
 - **ESP-IDF**: Uses C-compatible `typedef struct` syntax (inline in `cppCodeEspIdf.ts`)
 - **Implementation**: `manifestSection` template in `src/cppCode.ts`, computed fields in `transformSourceToTemplateData()`
 
+### onFileServed Hook
+
+Generated headers include a weak function that's called whenever a file is served. Users can override it for metrics, logging, or telemetry:
+
+```cpp
+// C++ engines (psychic, psychic2, async)
+extern "C" void __attribute__((weak)) {{definePrefix}}_onFileServed(const char* path, int statusCode) {}
+
+// C engine (espidf)
+__attribute__((weak)) void {{definePrefix}}_onFileServed(const char* path, int statusCode) {}
+```
+
+- **Parameters**: `path` (URL being served, e.g., "/index.html"), `statusCode` (200 or 304)
+- **Always generated**: No CLI flag needed, zero overhead when unused (weak linkage)
+- **Hook uses `--define` prefix**: Default `SVELTEESP32_onFileServed`, custom with `--define=MYAPP` becomes `MYAPP_onFileServed`
+- **Called before every send()**: Both 200 (content) and 304 (cache hit) responses
+- **Implementation**: `hookSection` template in `src/cppCode.ts`, inline in `src/cppCodeEspIdf.ts`
+
 ## Testing (Vitest)
 
 **Coverage**: ~68% overall
@@ -136,7 +155,7 @@ const size_t {{definePrefix}}_FILE_COUNT = ...;
 
 - `test/unit/commandLine.test.ts` - Dynamic imports, argument parsing, npm variable interpolation (20+ tests)
 - `test/unit/file.test.ts` - memfs mocking, duplicate detection, index.html validation
-- `test/unit/cppCode.test.ts` - Template selection, code generation, byte arrays, file manifest
+- `test/unit/cppCode.test.ts` - Template selection, code generation, byte arrays, file manifest, onFileServed hook
 - `test/unit/errorMessages.test.ts` - Error message validation
 
 **Key Patterns**:
@@ -166,7 +185,7 @@ const size_t {{definePrefix}}_FILE_COUNT = ...;
 - Tri-state options: `etag`/`gzip` can be "true", "false", or "compiler" (C++ directives)
 - Engine-specific templates inline in source file
 - Binary data converted to comma-separated byte arrays
-- Template sections: `commonHeaderSection`, `dataArraysSection`, `etagArraysSection`, `manifestSection`
+- Template sections: `commonHeaderSection`, `dataArraysSection`, `etagArraysSection`, `manifestSection`, `hookSection`
 - `transformSourceToTemplateData()` computes derived fields: `gzipSizeForManifest`, `etagForManifest`
 
 ### Compression Thresholds (`src/index.ts`)
