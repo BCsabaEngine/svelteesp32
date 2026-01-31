@@ -1037,6 +1037,61 @@ describe('cppCode', () => {
       expect(result).toContain('server->on("/dashboard", HTTP_GET'); // Default route
       expect(result).toContain('SVELTEESP32_onFileServed("/dashboard/index.html", 200)');
     });
+
+    it('should generate hook call for basePath default route in psychic2 engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic2',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/admin'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Verify the basePath default route handler has the hook call with 200
+      expect(result).toContain('SVELTEESP32_onFileServed("/admin", 200)');
+      // Verify it also has response->send() in the basePath handler
+      expect(result).toContain('return response->send();');
+    });
+
+    it('should generate 304 hook call for basePath default route in psychic2 engine with etag', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic2',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/panel'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Verify the basePath default route handler has the 304 hook call
+      expect(result).toContain('SVELTEESP32_onFileServed("/panel", 304)');
+      expect(result).toContain('SVELTEESP32_onFileServed("/panel", 200)');
+    });
   });
 
   describe('onFileServed hook', () => {

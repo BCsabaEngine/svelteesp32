@@ -36,6 +36,103 @@ describe('commandLine', () => {
     vi.resetModules();
   });
 
+  describe('help display', () => {
+    it('should show help text with --help flag', async () => {
+      process.argv = ['node', 'script.js', '--help'];
+
+      await import('../../src/commandLine').catch(() => {});
+
+      expect(console.log).toHaveBeenCalled();
+      // Find the help output among all console.log calls (first call might be RC file message)
+      const allLogCalls = vi.mocked(console.log).mock.calls.map((call) => call[0]);
+      const helpOutput = allLogCalls.find((call) => call?.includes('--engine'));
+      expect(helpOutput).toBeDefined();
+      expect(helpOutput).toContain('svelteesp32');
+      expect(helpOutput).toContain('--engine');
+      expect(helpOutput).toContain('--sourcepath');
+      expect(helpOutput).toContain('--outputfile');
+      expect(helpOutput).toContain('--etag');
+      expect(helpOutput).toContain('--gzip');
+      expect(helpOutput).toContain('--exclude');
+      expect(helpOutput).toContain('--base-path');
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it('should show help text with -h flag', async () => {
+      process.argv = ['node', 'script.js', '-h'];
+
+      await import('../../src/commandLine').catch(() => {});
+
+      expect(console.log).toHaveBeenCalled();
+      const allLogCalls = vi.mocked(console.log).mock.calls.map((call) => call[0]);
+      const helpOutput = allLogCalls.find((call) => call?.includes('svelteesp32 -'));
+      expect(helpOutput).toBeDefined();
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it('should show help when --help is combined with other flags', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test', '--help'];
+
+      await import('../../src/commandLine').catch(() => {});
+
+      expect(console.log).toHaveBeenCalled();
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it('should include RC file documentation in help', async () => {
+      process.argv = ['node', 'script.js', '--help'];
+
+      await import('../../src/commandLine').catch(() => {});
+
+      expect(console.log).toHaveBeenCalled();
+      const allLogCalls = vi.mocked(console.log).mock.calls.map((call) => call[0]);
+      const helpOutput = allLogCalls.find((call) => call?.includes('RC File'));
+      expect(helpOutput).toBeDefined();
+      expect(helpOutput).toContain('.svelteesp32rc.json');
+    });
+
+    it('should include all engine options in help', async () => {
+      process.argv = ['node', 'script.js', '--help'];
+
+      await import('../../src/commandLine').catch(() => {});
+
+      expect(console.log).toHaveBeenCalled();
+      const allLogCalls = vi.mocked(console.log).mock.calls.map((call) => call[0]);
+      const helpOutput = allLogCalls.find((call) => call?.includes('--engine'));
+      expect(helpOutput).toBeDefined();
+      expect(helpOutput).toContain('psychic');
+      expect(helpOutput).toContain('psychic2');
+      expect(helpOutput).toContain('async');
+      expect(helpOutput).toContain('espidf');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should throw error for positional arguments without flag', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', 'unexpected_argument'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Unknown argument: unexpected_argument');
+    });
+
+    it('should throw error for multiple positional arguments', async () => {
+      process.argv = ['node', 'script.js', 'arg1'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Unknown argument: arg1');
+    });
+
+    it('should handle unknown short flag', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '-x', 'value'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Unknown flag: -x');
+    });
+
+    it('should handle unknown long flag with value', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--unknown-flag', 'value'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Unknown flag: --unknown-flag');
+    });
+  });
+
   describe('argument parsing', () => {
     it('should parse arguments with --flag=value format', async () => {
       process.argv = [
@@ -84,6 +181,71 @@ describe('commandLine', () => {
       expect(cmdLine.engine).toBe('espidf');
       expect(cmdLine.sourcepath).toBe('/test/dist');
       expect(cmdLine.outputfile).toBe('/test/output.h');
+    });
+
+    it('should parse --etag with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--etag', 'true'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.etag).toBe('true');
+    });
+
+    it('should parse --gzip with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--gzip', 'compiler'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.gzip).toBe('compiler');
+    });
+
+    it('should parse --version with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--version', 'v2.0.0'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.version).toBe('v2.0.0');
+    });
+
+    it('should parse --espmethod with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--espmethod', 'myMethod'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.espmethod).toBe('myMethod');
+    });
+
+    it('should parse --define with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--define', 'MYPREFIX'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.define).toBe('MYPREFIX');
+    });
+
+    it('should parse --cachetime with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime', '3600'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetime).toBe(3600);
+    });
+
+    it('should parse --config with space format', async () => {
+      const mockRcContent = JSON.stringify({ engine: 'async', sourcepath: '/test/dist' });
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockImplementation((path) => {
+        return path === '/custom/config.json' || path === '/test/dist';
+      });
+      vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+      vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+      process.argv = ['node', 'script.js', '--config', '/custom/config.json'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.engine).toBe('async');
     });
 
     it('should use default values when not specified', async () => {
@@ -1045,6 +1207,46 @@ describe('commandLine', () => {
           expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('version, define');
         });
 
+        it('should list exclude array fields in error message when package.json not found', async () => {
+          process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+            if (path === '/test/dist') return true;
+            if (path.includes('package.json')) return false;
+            return false;
+          });
+          vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            exclude: ['*.map', '$npm_package_name/**/*.test.js']
+          };
+
+          expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('exclude[1]');
+        });
+
+        it('should list espmethod and basePath in error message when package.json not found', async () => {
+          process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+            if (path === '/test/dist') return true;
+            if (path.includes('package.json')) return false;
+            return false;
+          });
+          vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            espmethod: '$npm_package_name_init',
+            basePath: '/$npm_package_name'
+          };
+
+          expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('espmethod');
+          expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('basePath');
+        });
+
         it('should handle nested package.json fields', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
@@ -1064,6 +1266,24 @@ describe('commandLine', () => {
           };
           const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
           expect(result.version).toBe('git');
+        });
+
+        it('should throw error when package.json has invalid JSON', async () => {
+          const fsModule = await import('node:fs');
+          vi.mocked(fsModule.existsSync).mockReturnValue(true);
+          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
+            if (path.includes('package.json')) return '{ invalid json }';
+            return '{}';
+          });
+
+          const { interpolateNpmVariables } = await import('../../src/commandLine');
+          const config = {
+            version: 'v$npm_package_version'
+          };
+
+          expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow(
+            'Failed to parse package.json'
+          );
         });
       });
 
