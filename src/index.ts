@@ -71,7 +71,7 @@ const createSourceEntry = (
   content: Buffer,
   contentGzip: Buffer,
   mimeType: string,
-  md5: string,
+  sha256: string,
   isGzip: boolean
 ): CppCodeSource => ({
   filename,
@@ -81,7 +81,7 @@ const createSourceEntry = (
   contentGzip: isGzip ? contentGzip : content,
   isGzip,
   mime: mimeType,
-  md5
+  sha256
 });
 
 /**
@@ -117,8 +117,8 @@ for (const [originalFilename, content] of files) {
   if (extension.startsWith('.')) extension = extension.slice(1);
   updateExtensionGroup(extension);
 
-  // Generate MD5 hash and compress content
-  const md5 = createHash('md5').update(content).digest('hex');
+  // Generate SHA256 hash and compress content
+  const sha256 = createHash('sha256').update(content).digest('hex');
   summary.size += content.length;
   const zipContent = gzipSync(content, { level: 9 });
   summary.gzipsize += zipContent.length;
@@ -127,7 +127,7 @@ for (const [originalFilename, content] of files) {
   const useGzip = shouldUseGzip(content.length, zipContent.length);
 
   // Create and add source entry
-  sources.push(createSourceEntry(filename, dataname, content, zipContent, mimeType, md5, useGzip));
+  sources.push(createSourceEntry(filename, dataname, content, zipContent, mimeType, sha256, useGzip));
 
   // Log compression result
   const padding = ' '.repeat(longestFilename - originalFilename.length);

@@ -39,7 +39,7 @@ npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 ### Processing Pipeline
 
 1. **File Collection** (`file.ts`): Glob scan → skip pre-compressed (.gz/.br) if original exists → filter exclude patterns → validate index.html (unless `--no-index-check`)
-2. **Content Analysis** (`index.ts`): MIME types → MD5 ETags → extension grouping
+2. **Content Analysis** (`index.ts`): MIME types → SHA256 ETags → extension grouping
 3. **Compression** (`index.ts`): Gzip level 9 if >1024 bytes AND >15% reduction
 4. **Code Generation** (`cppCode.ts`): Handlebars templates → engine-specific C++ → byte arrays + route handlers + ETags
 5. **Output**: Write header with binary data, route handlers, ETag validation, C++ defines
@@ -55,7 +55,7 @@ npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 
 - **Single Binary OTA**: All files embedded in firmware (vs SPIFFS/LittleFS requiring separate partition)
 - **Automatic Gzip**: Build-time compression (>1024 bytes, >15% reduction)
-- **ETag Support**: HTTP 304 Not Modified responses on all engines (MD5 hashes, If-None-Match validation)
+- **ETag Support**: HTTP 304 Not Modified responses on all engines (SHA256 hashes, If-None-Match validation)
 - **CI/CD Integration**: npm package, RC files, variable interpolation from package.json
 - **File Exclusion**: Glob patterns (`--exclude="*.map,*.md"`)
 - **Index.html Validation**: Ensures default entry point exists (skip with `--no-index-check` for APIs)
