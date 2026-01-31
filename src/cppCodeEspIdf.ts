@@ -116,6 +116,9 @@ static const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
 };
 static const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
 
+// File served hook - override with your own implementation
+__attribute__((weak)) void {{definePrefix}}_onFileServed(const char* path, int statusCode) {}
+
 {{#each sources}}
 
 static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
@@ -129,6 +132,7 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
             if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
                 free(hdr_value);
                 httpd_resp_set_status(req, "304 Not Modified");
+                {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
                 httpd_resp_send(req, NULL, 0);
                 return ESP_OK;
             }
@@ -145,6 +149,7 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
             if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
                 free(hdr_value);
                 httpd_resp_set_status(req, "304 Not Modified");
+                {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
                 httpd_resp_send(req, NULL, 0);
                 return ESP_OK;
             }
@@ -195,17 +200,20 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 
 {{#switch ../gzip}}
 {{#case "true"}}
+    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
     httpd_resp_send(req, datagzip_{{this.dataname}}, {{this.lengthGzip}});
 {{/case}}
 {{#case "false"}}
+    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
     httpd_resp_send(req, data_{{this.dataname}}, {{this.length}});
 {{/case}}
 {{#case "compiler"}}
+    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
   #ifdef {{../definePrefix}}_ENABLE_GZIP
     httpd_resp_send(req, datagzip_{{this.dataname}}, {{this.lengthGzip}});
   #else
     httpd_resp_send(req, data_{{this.dataname}}, {{this.length}});
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
     return ESP_OK;

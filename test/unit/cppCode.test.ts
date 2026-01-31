@@ -822,4 +822,229 @@ describe('cppCode', () => {
       expect(result).toContain('etag_index_html,');
     });
   });
+
+  describe('onFileServed hook', () => {
+    it('should generate weak hook function declaration for psychic engine', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain(
+        'extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}'
+      );
+    });
+
+    it('should generate hook call with status 200 before content response', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 200)');
+    });
+
+    it('should generate hook call with status 304 before cache hit response', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 304)');
+    });
+
+    it('should use custom definePrefix in hook', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'MYAPP',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain(
+        'extern "C" void __attribute__((weak)) MYAPP_onFileServed(const char* path, int statusCode) {}'
+      );
+      expect(result).toContain('MYAPP_onFileServed("/index.html", 200)');
+      expect(result).toContain('MYAPP_onFileServed("/index.html", 304)');
+    });
+
+    it('should generate hook for psychic2 engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic2',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain(
+        'extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}'
+      );
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 200)');
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 304)');
+    });
+
+    it('should generate hook for async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain(
+        'extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}'
+      );
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 200)');
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 304)');
+    });
+
+    it('should generate C-style hook for espidf engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'espidf',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // ESP-IDF uses C-style weak function (no extern "C")
+      expect(result).toContain(
+        '__attribute__((weak)) void SVELTEESP32_onFileServed(const char* path, int statusCode) {}'
+      );
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 200)');
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 304)');
+    });
+
+    it('should generate hook calls with compiler etag mode', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'compiler',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Should have hook declaration
+      expect(result).toContain('SVELTEESP32_onFileServed');
+      // Should have 200 hook call
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 200)');
+      // Should have 304 hook call inside #ifdef
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 304)');
+    });
+
+    it('should not generate 304 hook calls when etag is false', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'false',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Should have hook declaration
+      expect(result).toContain('SVELTEESP32_onFileServed');
+      // Should have 200 hook call
+      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 200)');
+      // Should NOT have 304 hook call (no etag validation)
+      expect(result).not.toContain('SVELTEESP32_onFileServed("/index.html", 304)');
+    });
+
+    it('should generate hook calls for "/" route in async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Async engine has a separate handler for "/" that should also have hooks
+      expect(result).toContain('SVELTEESP32_onFileServed("/", 200)');
+      expect(result).toContain('SVELTEESP32_onFileServed("/", 304)');
+    });
+  });
 });

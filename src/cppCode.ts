@@ -146,6 +146,14 @@ const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
 const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
 `;
 
+/**
+ * Hook section for runtime metrics - weak function that can be overridden by users
+ */
+const hookSection = `
+// File served hook - override with your own implementation
+extern "C" void __attribute__((weak)) {{definePrefix}}_onFileServed(const char* path, int statusCode) {}
+`;
+
 const psychicTemplate = `
 //engine:   PsychicHttpServer
 //config:   {{{config}}}
@@ -171,6 +179,9 @@ ${etagArraysSection}
 ${manifestSection}
 
 //
+${hookSection}
+
+//
 // Http Handlers
 void {{methodName}}(PsychicHttpServer * server) {
 {{#each sources}}
@@ -183,6 +194,7 @@ void {{methodName}}(PsychicHttpServer * server) {
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
+      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
       return response304.send();
     }
 {{/case}}
@@ -191,6 +203,7 @@ void {{methodName}}(PsychicHttpServer * server) {
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
+      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
       return response304.send();
     }
   #endif
@@ -250,10 +263,11 @@ void {{methodName}}(PsychicHttpServer * server) {
     response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
   #else
     response.setContent(data_{{this.dataname}}, {{this.length}});
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
+    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
     return response.send();
   });
 
@@ -284,6 +298,9 @@ ${etagArraysSection}
 ${manifestSection}
 
 //
+${hookSection}
+
+//
 // Http Handlers
 void {{methodName}}(PsychicHttpServer * server) {
 {{#each sources}}
@@ -295,6 +312,7 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{#case "true"}}
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       response->setCode(304);
+      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
       return response->send();
     }
 {{/case}}
@@ -302,6 +320,7 @@ void {{methodName}}(PsychicHttpServer * server) {
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       response->setCode(304);
+      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
       return response->send();
     }
   #endif
@@ -360,10 +379,11 @@ void {{methodName}}(PsychicHttpServer * server) {
     response->setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
   #else
     response->setContent(data_{{this.dataname}}, {{this.length}});
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
+    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
     return response->send();
   });
 
@@ -393,6 +413,9 @@ ${etagArraysSection}
 ${manifestSection}
 
 //
+${hookSection}
+
+//
 // Http Handlers
 void {{methodName}}(AsyncWebServer * server) {
 {{#each sources}}
@@ -404,6 +427,7 @@ void {{methodName}}(AsyncWebServer * server) {
 {{#case "true"}}
     const AsyncWebHeader* h = request->getHeader("If-None-Match");
     if (h && h->value().equals(etag_{{this.dataname}})) {
+      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
       request->send(304);
       return;
     }
@@ -412,6 +436,7 @@ void {{methodName}}(AsyncWebServer * server) {
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     const AsyncWebHeader* h = request->getHeader("If-None-Match");
     if (h && h->value().equals(etag_{{this.dataname}})) {
+      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
       request->send(304);
       return;
     }
@@ -464,6 +489,7 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/case}}
 {{/switch}}
 
+    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
     request->send(response);
   });
   {{#if this.isDefault}}
@@ -473,6 +499,7 @@ void {{methodName}}(AsyncWebServer * server) {
 {{#case "true"}}
     const AsyncWebHeader* h = request->getHeader("If-None-Match");
     if (h && h->value().equals(etag_{{this.dataname}})) {
+      {{../definePrefix}}_onFileServed("/", 304);
       request->send(304);
       return;
     }
@@ -481,6 +508,7 @@ void {{methodName}}(AsyncWebServer * server) {
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     const AsyncWebHeader* h = request->getHeader("If-None-Match");
     if (h && h->value().equals(etag_{{this.dataname}})) {
+      {{../definePrefix}}_onFileServed("/", 304);
       request->send(304);
       return;
     }
@@ -533,6 +561,7 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/case}}
 {{/switch}}
 
+    {{../definePrefix}}_onFileServed("/", 200);
     request->send(response);
   });
   {{/if}}
