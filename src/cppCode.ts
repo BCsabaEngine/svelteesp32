@@ -11,7 +11,7 @@ export type CppCodeSource = {
   content: Buffer;
   contentGzip: Buffer;
   isGzip: boolean;
-  md5: string;
+  sha256: string;
 };
 export type CppCodeSources = CppCodeSource[];
 
@@ -109,7 +109,7 @@ const etagArraysSection = `
 {{#switch etag}}
 {{#case "true"}}
   {{#each sources}}
-const char * etag_{{this.dataname}} = "{{this.md5}}";
+const char * etag_{{this.dataname}} = "{{this.sha256}}";
   {{/each}}
 {{/case}}
 {{#case "false"}}
@@ -117,7 +117,7 @@ const char * etag_{{this.dataname}} = "{{this.md5}}";
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_ETAG
   {{#each sources}}
-const char * etag_{{this.dataname}} = "{{this.md5}}";
+const char * etag_{{this.dataname}} = "{{this.sha256}}";
   {{/each}}
 #endif
 {{/case}}

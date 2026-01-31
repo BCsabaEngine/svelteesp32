@@ -29,7 +29,7 @@ const createMockSource = (filename: string, content: string): CppCodeSource => (
   content: Buffer.from(content),
   contentGzip: Buffer.from('gzipped'),
   isGzip: true,
-  md5: 'abc123'
+  sha256: 'abc123'
 });
 
 describe('cppCode', () => {
@@ -379,7 +379,7 @@ describe('cppCode', () => {
       const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
       const result = getCppCode(sources, mockFilesByExtension);
 
-      // When etag=true, should have MD5 hash definition
+      // When etag=true, should have SHA256 hash definition
       expect(result).toContain('abc123');
     });
 

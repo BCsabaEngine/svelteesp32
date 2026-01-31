@@ -16,7 +16,7 @@ vi.mock('node:fs', () => ({
 vi.mock('node:crypto', () => ({
   createHash: vi.fn(() => ({
     update: vi.fn().mockReturnThis(),
-    digest: vi.fn(() => 'mock-md5-hash')
+    digest: vi.fn(() => 'mock-sha256-hash')
   }))
 }));
 
@@ -161,7 +161,7 @@ describe('index.ts helper functions', () => {
         contentGzip,
         isGzip: true,
         mime: 'text/html',
-        md5: 'abc123'
+        sha256: 'abc123'
       });
     });
 
@@ -288,12 +288,12 @@ describe('index.ts main pipeline integration', () => {
       expect(sources).toHaveLength(3);
     });
 
-    it('should calculate MD5 hash for each file', async () => {
+    it('should calculate SHA256 hash for each file', async () => {
       const content = Buffer.from('<html></html>');
       mockGetFiles.mockReturnValue(new Map([['index.html', content]]));
 
       const updateSpy = vi.fn().mockReturnThis();
-      const digestSpy = vi.fn(() => 'md5-hash');
+      const digestSpy = vi.fn(() => 'sha256-hash');
       mockCreateHash.mockReturnValue({
         update: updateSpy,
         digest: digestSpy
@@ -302,7 +302,7 @@ describe('index.ts main pipeline integration', () => {
       vi.resetModules();
       await import('../../src/index');
 
-      expect(mockCreateHash).toHaveBeenCalledWith('md5');
+      expect(mockCreateHash).toHaveBeenCalledWith('sha256');
       expect(updateSpy).toHaveBeenCalledWith(content);
       expect(digestSpy).toHaveBeenCalledWith('hex');
     });

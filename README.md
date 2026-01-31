@@ -14,15 +14,15 @@ This npm package provides a solution for **inserting any JS client application i
 
 **Quick Comparison:**
 
-| Feature               | SvelteESP32                             | Traditional Filesystem (SPIFFS/LittleFS) |
-| --------------------- | --------------------------------------- | ---------------------------------------- |
-| **Single Binary OTA** | ✓ Everything embedded in firmware       | ✗ Requires separate partition upload     |
-| **Gzip Compression**  | ✓ Automatic build-time (>15% reduction) | Manual or runtime compression            |
-| **ETag Support**      | ✓ Built-in MD5 ETags with 304 responses | Manual implementation required           |
-| **CI/CD Integration** | ✓ npm package, simple build step        | Complex with upload_fs tools             |
-| **Memory Efficiency** | Flash only (PROGMEM/const arrays)       | Flash partition + filesystem overhead    |
-| **Performance**       | Direct byte array serving               | Filesystem read overhead                 |
-| **Setup Complexity**  | Include header, call init function      | Partition setup, upload tools, handlers  |
+| Feature               | SvelteESP32                                | Traditional Filesystem (SPIFFS/LittleFS) |
+| --------------------- | ------------------------------------------ | ---------------------------------------- |
+| **Single Binary OTA** | ✓ Everything embedded in firmware          | ✗ Requires separate partition upload     |
+| **Gzip Compression**  | ✓ Automatic build-time (>15% reduction)    | Manual or runtime compression            |
+| **ETag Support**      | ✓ Built-in SHA256 ETags with 304 responses | Manual implementation required           |
+| **CI/CD Integration** | ✓ npm package, simple build step           | Complex with upload_fs tools             |
+| **Memory Efficiency** | Flash only (PROGMEM/const arrays)          | Flash partition + filesystem overhead    |
+| **Performance**       | Direct byte array serving                  | Filesystem read overhead                 |
+| **Setup Complexity**  | Include header, call init function         | Partition setup, upload tools, handlers  |
 
 **When to use:**
 
