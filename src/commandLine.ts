@@ -17,6 +17,7 @@ interface ICopyFilesArguments {
   created: boolean;
   version: string;
   exclude: string[];
+  basePath: string;
   noIndexCheck?: boolean;
   help?: boolean;
 }
@@ -33,6 +34,7 @@ interface IRcFileConfig {
   created?: boolean;
   version?: string;
   exclude?: string[];
+  basePath?: string;
 }
 
 function showHelp(): never {
@@ -56,6 +58,7 @@ Options:
   --cachetime <seconds>      max-age cache time in seconds (default: 0)
   --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
                              Examples: --exclude="*.map" --exclude="test/**/*.ts"
+  --base-path <path>         URL prefix for all routes (e.g., "/ui") (default: "")
   -h, --help                 Shows this help
 
 RC File:
@@ -89,6 +92,14 @@ function validateTriState(value: string, name: string): 'true' | 'false' | 'comp
   if (value === 'true' || value === 'false' || value === 'compiler') return value;
 
   throw new Error(`Invalid ${name}: ${value}`);
+}
+
+function validateBasePath(value: string): string {
+  if (value === '') return value;
+  if (!value.startsWith('/')) throw new Error(`basePath must start with /: ${value}`);
+  if (value.endsWith('/')) throw new Error(`basePath must not end with /: ${value}`);
+  if (value.includes('//')) throw new Error(`basePath must not contain //: ${value}`);
+  return value;
 }
 
 const DEFAULT_EXCLUDE_PATTERNS = [
@@ -169,6 +180,7 @@ function hasNpmVariables(config: IRcFileConfig): boolean {
     checkStringForNpmVariable(config.espmethod) ||
     checkStringForNpmVariable(config.define) ||
     checkStringForNpmVariable(config.version) ||
+    checkStringForNpmVariable(config.basePath) ||
     (Array.isArray(config.exclude) && config.exclude.some((pattern) => checkStringForNpmVariable(pattern))) ||
     false
   );
@@ -187,6 +199,7 @@ function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRc
     if (config.version?.includes('$npm_package_')) affectedFields.push('version');
     if (config.espmethod?.includes('$npm_package_')) affectedFields.push('espmethod');
     if (config.define?.includes('$npm_package_')) affectedFields.push('define');
+    if (config.basePath?.includes('$npm_package_')) affectedFields.push('basePath');
     if (config.exclude)
       for (const [index, pattern] of config.exclude.entries())
         if (pattern.includes('$npm_package_')) affectedFields.push(`exclude[${index}]`);
@@ -218,6 +231,7 @@ function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRc
   if (result.espmethod) result.espmethod = interpolateString(result.espmethod);
   if (result.define) result.define = interpolateString(result.define);
   if (result.version) result.version = interpolateString(result.version);
+  if (result.basePath) result.basePath = interpolateString(result.basePath);
   if (result.exclude) result.exclude = result.exclude.map((pattern) => interpolateString(pattern));
 
   return result;
@@ -256,7 +270,8 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'cachetime',
     'created',
     'version',
-    'exclude'
+    'exclude',
+    'basePath'
   ]);
 
   // Warn about unknown keys
@@ -325,7 +340,8 @@ function parseArguments(): ICopyFilesArguments {
     espmethod: 'initSvelteStaticFiles',
     define: 'SVELTEESP32',
     cachetime: 0,
-    exclude: [...DEFAULT_EXCLUDE_PATTERNS]
+    exclude: [...DEFAULT_EXCLUDE_PATTERNS],
+    basePath: ''
   };
 
   // STEP 4: Merge RC file values
@@ -339,6 +355,7 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.version) result.version = rcConfig.version;
   if (rcConfig.espmethod) result.espmethod = rcConfig.espmethod;
   if (rcConfig.define) result.define = rcConfig.define;
+  if (rcConfig.basePath !== undefined) result.basePath = validateBasePath(rcConfig.basePath);
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
@@ -405,6 +422,9 @@ function parseArguments(): ICopyFilesArguments {
           cliExclude.push(...patterns);
           break;
         }
+        case 'base-path':
+          result.basePath = validateBasePath(value);
+          break;
         default:
           throw new Error(`Unknown flag: ${flag}`);
       }
@@ -507,6 +527,10 @@ function parseArguments(): ICopyFilesArguments {
           index++;
           break;
         }
+        case 'base-path':
+          result.basePath = validateBasePath(nextArgument);
+          index++;
+          break;
         default:
           throw new Error(`Unknown flag: --${flag}`);
       }
@@ -548,6 +572,8 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   if (cmdLine.espmethod) parts.push(`espmethod=${cmdLine.espmethod}`);
 
   if (cmdLine.define) parts.push(`define=${cmdLine.define}`);
+
+  if (cmdLine.basePath) parts.push(`basePath=${cmdLine.basePath}`);
 
   if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
 

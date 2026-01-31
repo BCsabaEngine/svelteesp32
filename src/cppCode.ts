@@ -140,7 +140,7 @@ struct {{definePrefix}}_FileInfo {
 // File manifest array
 const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
 {{#each sources}}
-  { "/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
+  { "{{../basePath}}/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
 {{/each}}
 };
 const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
@@ -187,14 +187,14 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{#each sources}}
 //
 // {{this.filename}}
-  {{#if this.isDefault}}server->defaultEndpoint = {{/if}}server->on("/{{this.filename}}", HTTP_GET, [](PsychicRequest * request) {
+  {{#if this.isDefault}}{{#unless ../basePath}}server->defaultEndpoint = {{/unless}}{{/if}}server->on("{{../basePath}}/{{this.filename}}", HTTP_GET, [](PsychicRequest * request) {
 
 {{#switch ../etag}}
 {{#case "true"}}
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
-      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
       return response304.send();
     }
 {{/case}}
@@ -203,7 +203,7 @@ void {{methodName}}(PsychicHttpServer * server) {
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       PsychicResponse response304(request);
       response304.setCode(304);
-      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
       return response304.send();
     }
   #endif
@@ -223,7 +223,7 @@ void {{methodName}}(PsychicHttpServer * server) {
   {{#if this.isGzip}}
   #ifdef {{../definePrefix}}_ENABLE_GZIP
     response.addHeader("Content-Encoding", "gzip");
-  #endif 
+  #endif
   {{/if}}
 {{/case}}
 {{/switch}}
@@ -247,7 +247,7 @@ void {{methodName}}(PsychicHttpServer * server) {
     response.addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response.addHeader("ETag", etag_{{this.dataname}});
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
@@ -267,9 +267,96 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{/case}}
 {{/switch}}
 
-    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
     return response.send();
   });
+{{#if this.isDefault}}{{#if ../basePath}}
+//
+// {{this.filename}} (base path route)
+  server->on("{{../basePath}}", HTTP_GET, [](PsychicRequest * request) {
+
+{{#switch ../etag}}
+{{#case "true"}}
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      PsychicResponse response304(request);
+      response304.setCode(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}", 304);
+      return response304.send();
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      PsychicResponse response304(request);
+      response304.setCode(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}", 304);
+      return response304.send();
+    }
+  #endif
+{{/case}}
+{{/switch}}
+
+    PsychicResponse response(request);
+    response.setContentType("{{this.mime}}");
+
+{{#switch ../gzip}}
+{{#case "true"}}
+{{#if this.isGzip}}
+    response.addHeader("Content-Encoding", "gzip");
+{{/if}}
+{{/case}}
+{{#case "compiler"}}
+  {{#if this.isGzip}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response.addHeader("Content-Encoding", "gzip");
+  #endif
+  {{/if}}
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+{{#../cacheTime}}
+    response.addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response.addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response.addHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    response.addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response.addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response.addHeader("ETag", etag_{{this.dataname}});
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+{{/case}}
+{{#case "false"}}
+    response.setContent(data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+  #else
+    response.setContent(data_{{this.dataname}}, {{this.length}});
+  #endif
+{{/case}}
+{{/switch}}
+
+    {{../definePrefix}}_onFileServed("{{../basePath}}", 200);
+    return response.send();
+  });
+{{/if}}{{/if}}
 
 {{/each}}
 }`;
@@ -306,13 +393,13 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{#each sources}}
 //
 // {{this.filename}}
-  {{#if this.isDefault}}server->defaultEndpoint = {{/if}}server->on("/{{this.filename}}", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
+  {{#if this.isDefault}}{{#unless ../basePath}}server->defaultEndpoint = {{/unless}}{{/if}}server->on("{{../basePath}}/{{this.filename}}", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
 
 {{#switch ../etag}}
 {{#case "true"}}
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       response->setCode(304);
-      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
       return response->send();
     }
 {{/case}}
@@ -320,7 +407,7 @@ void {{methodName}}(PsychicHttpServer * server) {
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
       response->setCode(304);
-      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
       return response->send();
     }
   #endif
@@ -339,7 +426,7 @@ void {{methodName}}(PsychicHttpServer * server) {
   {{#if this.isGzip}}
   #ifdef {{../definePrefix}}_ENABLE_GZIP
     response->addHeader("Content-Encoding", "gzip");
-  #endif 
+  #endif
   {{/if}}
 {{/case}}
 {{/switch}}
@@ -363,7 +450,7 @@ void {{methodName}}(PsychicHttpServer * server) {
     response->addHeader("Cache-Control", "no-cache");
 {{/../cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
-  #endif 
+  #endif
 {{/case}}
 {{/switch}}
 
@@ -383,9 +470,93 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{/case}}
 {{/switch}}
 
-    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
     return response->send();
   });
+{{#if this.isDefault}}{{#if ../basePath}}
+//
+// {{this.filename}} (base path route)
+  server->on("{{../basePath}}", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
+
+{{#switch ../etag}}
+{{#case "true"}}
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      response->setCode(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}", 304);
+      return response->send();
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      response->setCode(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}", 304);
+      return response->send();
+    }
+  #endif
+{{/case}}
+{{/switch}}
+
+    response->setContentType("{{this.mime}}");
+
+{{#switch ../gzip}}
+{{#case "true"}}
+{{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
+{{/if}}
+{{/case}}
+{{#case "compiler"}}
+  {{#if this.isGzip}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response->addHeader("Content-Encoding", "gzip");
+  #endif
+  {{/if}}
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+{{#../cacheTime}}
+    response->addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response->addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    response->addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response->addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+    response->setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+{{/case}}
+{{#case "false"}}
+    response->setContent(data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response->setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+  #else
+    response->setContent(data_{{this.dataname}}, {{this.length}});
+  #endif
+{{/case}}
+{{/switch}}
+
+    {{../definePrefix}}_onFileServed("{{../basePath}}", 200);
+    return response->send();
+  });
+{{/if}}{{/if}}
 
 {{/each}}
 }`;
@@ -421,13 +592,13 @@ void {{methodName}}(AsyncWebServer * server) {
 {{#each sources}}
 //
 // {{this.filename}}
-  server->on("/{{this.filename}}", HTTP_GET, [](AsyncWebServerRequest * request) {
+  server->on("{{../basePath}}/{{this.filename}}", HTTP_GET, [](AsyncWebServerRequest * request) {
 
 {{#switch ../etag}}
 {{#case "true"}}
     const AsyncWebHeader* h = request->getHeader("If-None-Match");
     if (h && h->value().equals(etag_{{this.dataname}})) {
-      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
       request->send(304);
       return;
     }
@@ -436,7 +607,7 @@ void {{methodName}}(AsyncWebServer * server) {
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     const AsyncWebHeader* h = request->getHeader("If-None-Match");
     if (h && h->value().equals(etag_{{this.dataname}})) {
-      {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
       request->send(304);
       return;
     }
@@ -489,17 +660,17 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/case}}
 {{/switch}}
 
-    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
     request->send(response);
   });
   {{#if this.isDefault}}
-  server->on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
+  server->on("{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}", HTTP_GET, [](AsyncWebServerRequest * request) {
 
 {{#switch ../etag}}
 {{#case "true"}}
     const AsyncWebHeader* h = request->getHeader("If-None-Match");
     if (h && h->value().equals(etag_{{this.dataname}})) {
-      {{../definePrefix}}_onFileServed("/", 304);
+      {{../definePrefix}}_onFileServed("{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}", 304);
       request->send(304);
       return;
     }
@@ -508,7 +679,7 @@ void {{methodName}}(AsyncWebServer * server) {
   #ifdef {{../definePrefix}}_ENABLE_ETAG
     const AsyncWebHeader* h = request->getHeader("If-None-Match");
     if (h && h->value().equals(etag_{{this.dataname}})) {
-      {{../definePrefix}}_onFileServed("/", 304);
+      {{../definePrefix}}_onFileServed("{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}", 304);
       request->send(304);
       return;
     }
@@ -561,7 +732,7 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/case}}
 {{/switch}}
 
-    {{../definePrefix}}_onFileServed("/", 200);
+    {{../definePrefix}}_onFileServed("{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}", 200);
     request->send(response);
   });
   {{/if}}
@@ -649,7 +820,8 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     version: cmdLine.version,
     methodName: cmdLine.espmethod,
     cacheTime: cmdLine.cachetime ? { value: cmdLine.cachetime } : undefined,
-    definePrefix: cmdLine.define
+    definePrefix: cmdLine.define,
+    basePath: cmdLine.basePath
   };
 
   const rawCode = template(templateData, { helpers: createHandlebarsHelpers() });

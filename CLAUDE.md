@@ -63,6 +63,7 @@ npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 - **C++ Defines**: Build-time validation (`SVELTEESP32_COUNT`, `SVELTEESP32_FILE_INDEX_HTML`, etc.)
 - **File Manifest**: Runtime introspection of embedded files (path, size, gzipSize, etag, contentType)
 - **onFileServed Hook**: Weak function called on every file serve (path, statusCode) for metrics/logging
+- **Base Path Support**: URL prefix for all routes (`--base-path=/ui`), enabling multiple frontends in one firmware
 
 ## Configuration
 
@@ -81,7 +82,7 @@ RC files support `$npm_package_*` variables from package.json:
 
 ### CLI Options
 
-Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--no-index-check`, `--cachetime`, `--version`, `--define`, `--espmethod`
+Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--base-path` (URL prefix), `--no-index-check`, `--cachetime`, `--version`, `--define`, `--espmethod`
 
 ## Generated C++ Code
 
@@ -203,6 +204,18 @@ const GZIP_MIN_REDUCTION_RATIO = 0.85; // Use gzip if <85% of original
 - `package.script` generates 36 test headers (9 etag/gzip combos × 4 engines)
 
 ## Recent Updates
+
+### Base Path Support
+
+Added `--base-path` option to prefix all generated routes with a URL path:
+
+- **Usage**: `--base-path=/ui` or `--base-path=/admin`
+- **Effect**: All routes prefixed (e.g., `/index.html` becomes `/ui/index.html`)
+- **Manifest**: Paths in file manifest include basePath
+- **Default route**: When basePath is set, creates explicit `basePath` route instead of using `defaultEndpoint`
+- **Validation**: Must start with `/`, must not end with `/`, no double slashes
+- **RC file support**: Can be set via `basePath` property
+- **npm interpolation**: Supports `$npm_package_*` variables
 
 ### Comparison Table (README)
 

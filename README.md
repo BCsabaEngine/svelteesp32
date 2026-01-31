@@ -29,6 +29,8 @@ This npm package provides a solution for **inserting any JS client application i
 - **SvelteESP32**: Single-binary OTA updates, CI/CD pipelines, static web content that doesn't change at runtime
 - **SPIFFS/LittleFS**: Dynamic content, user-uploadable files, configuration that changes at runtime
 
+> Starting with version v1.15.0, you can use `--base-path` to prefix all routes (e.g., `--base-path=/ui` for multiple frontends)
+
 > Starting with version v1.13.0, RC files support npm package variable interpolation
 
 > Starting with version v1.12.0, you can use RC file for configuration
@@ -406,6 +408,97 @@ Excluded 5 file(s):
 
 This helps you verify that the correct files are being excluded from your build.
 
+### Base Path (Multiple Frontends)
+
+The `--base-path` option allows you to prefix all generated routes with a URL path. This is useful when you want to serve multiple web applications from a single ESP32 firmware, each under its own URL prefix.
+
+#### Basic Usage
+
+```bash
+# Admin UI accessible at /admin/*
+npx svelteesp32 -e psychic -s ./admin-dist -o ./admin.h --base-path=/admin
+
+# User UI accessible at /app/*
+npx svelteesp32 -e psychic -s ./user-dist -o ./user.h --base-path=/app
+```
+
+**Result:**
+
+- `index.html` becomes `/admin/index.html` and `/app/index.html`
+- Visiting `/admin` or `/app` serves the respective `index.html`
+- All assets are prefixed accordingly (e.g., `/admin/assets/app.js`)
+
+#### Example: Multiple Frontends in One Firmware
+
+```c
+#include <PsychicHttp.h>
+#include "admin.h"    // Generated with --base-path=/admin
+#include "user.h"     // Generated with --base-path=/app
+
+PsychicHttpServer server;
+
+void setup() {
+    server.listen(80);
+
+    // Initialize both UIs
+    initSvelteStaticFiles_admin(&server);  // Serves at /admin/*
+    initSvelteStaticFiles_user(&server);   // Serves at /app/*
+
+    // Add your API routes
+    server.on("/api/data", HTTP_GET, handleApiData);
+}
+```
+
+#### Path Validation
+
+The base path must follow these rules:
+
+- Must start with `/` (e.g., `/ui`, `/admin`)
+- Must not end with `/` (use `/ui` not `/ui/`)
+- Must not contain double slashes (no `//`)
+
+```bash
+# Valid
+--base-path=/ui
+--base-path=/admin/panel
+
+# Invalid (will throw error)
+--base-path=ui          # Missing leading slash
+--base-path=/ui/        # Trailing slash
+--base-path=/ui//panel  # Double slash
+```
+
+#### Configuration File
+
+You can also set the base path in your RC file:
+
+```json
+{
+  "engine": "psychic",
+  "sourcepath": "./dist",
+  "outputfile": "./output.h",
+  "basePath": "/admin"
+}
+```
+
+Or use npm package variable interpolation:
+
+```json
+{
+  "basePath": "/$npm_package_name"
+}
+```
+
+#### Effects on Generated Code
+
+When `--base-path` is set:
+
+- All route handlers use the prefixed path (e.g., `server->on("/ui/index.html", ...)`)
+- File manifest paths include the prefix (e.g., `{ "/ui/index.html", ... }`)
+- `onFileServed` hook receives the full prefixed path
+- For `index.html`, an explicit handler is created for the base path itself (e.g., `/ui`)
+- The `defaultEndpoint` assignment is skipped (since it would conflict with other frontends)
+
 ### C++ defines
 
 To make it easy to integrate into a larger c++ project, we have made a couple of variables available as c++ defines.
@@ -614,6 +707,7 @@ server->on("/api/metrics", HTTP_GET, [](PsychicRequest* request) {
 | `-e`               | The engine for which the include file is created (psychic/psychic2/async/espidf)     | psychic                 |
 | `-o`               | Generated output file with path                                                      | `svelteesp32.h`         |
 | `--exclude`        | Exclude files matching glob pattern (repeatable or comma-separated)                  | Default system files    |
+| `--base-path`      | URL prefix for all routes (e.g., `/ui` or `/admin`)                                  | ''                      |
 | `--etag`           | Use ETag header for cache (true/false/compiler)                                      | false                   |
 | `--cachetime`      | Override no-cache response with a max-age=\<cachetime\> response (seconds)           | 0                       |
 | `--gzip`           | Compress content with gzip (true/false/compiler)                                     | true                    |
@@ -683,6 +777,7 @@ All CLI options can be specified in the RC file using long-form property names:
 | `espmethod`    | `--espmethod`      | string  | `"initSvelteStaticFiles"`                        |
 | `define`       | `--define`         | string  | `"SVELTEESP32"`                                  |
 | `exclude`      | `--exclude`        | array   | `["*.map", "*.md"]`                              |
+| `basePath`     | `--base-path`      | string  | `"/ui"`, `"/admin"`                              |
 | `noIndexCheck` | `--no-index-check` | boolean | `true`, `false`                                  |
 
 #### CLI Override
@@ -740,7 +835,7 @@ RC files support automatic variable interpolation from your `package.json`. This
 
 **Syntax:** `$npm_package_<field_name>`
 
-**Supported in:** All string fields (`version`, `define`, `sourcepath`, `outputfile`, `espmethod`, `exclude` patterns)
+**Supported in:** All string fields (`version`, `define`, `sourcepath`, `outputfile`, `espmethod`, `basePath`, `exclude` patterns)
 
 **Example:**
 

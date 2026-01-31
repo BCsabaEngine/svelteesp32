@@ -14,7 +14,8 @@ vi.mock('../../src/commandLine', () => ({
     version: 'v1.0.0',
     espmethod: 'initSvelteStaticFiles',
     define: 'SVELTEESP32',
-    exclude: []
+    exclude: [],
+    basePath: ''
   },
   formatConfiguration: vi.fn((cmdLine) => {
     return `engine=${cmdLine.engine} sourcepath=${cmdLine.sourcepath} outputfile=${cmdLine.outputfile} etag=${cmdLine.etag} gzip=${cmdLine.gzip} cachetime=${cmdLine.cachetime}`;
@@ -820,6 +821,221 @@ describe('cppCode', () => {
 
       // When etag is 'compiler', we still reference the etag variable (it exists conditionally)
       expect(result).toContain('etag_index_html,');
+    });
+  });
+
+  describe('basePath support', () => {
+    it('should prefix routes with basePath for psychic engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/ui'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('server->on("/ui/index.html", HTTP_GET');
+      expect(result).toContain('SVELTEESP32_onFileServed("/ui/index.html", 200)');
+      expect(result).toContain('SVELTEESP32_onFileServed("/ui/index.html", 304)');
+    });
+
+    it('should create basePath route for index.html when basePath is set', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/admin'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Should have handler for /admin (without index.html)
+      expect(result).toContain('server->on("/admin", HTTP_GET');
+      expect(result).toContain('SVELTEESP32_onFileServed("/admin", 200)');
+    });
+
+    it('should not use defaultEndpoint when basePath is set', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/ui'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Should NOT use defaultEndpoint when basePath is set
+      expect(result).not.toContain('server->defaultEndpoint =');
+    });
+
+    it('should use defaultEndpoint when basePath is empty', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: ''
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Should use defaultEndpoint when basePath is empty
+      expect(result).toContain('server->defaultEndpoint =');
+    });
+
+    it('should include basePath in manifest paths', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/app'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('{ "/app/index.html"');
+    });
+
+    it('should prefix routes with basePath for async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/ui'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('server->on("/ui/index.html", HTTP_GET');
+      expect(result).toContain('server->on("/ui", HTTP_GET'); // Default route
+      expect(result).toContain('SVELTEESP32_onFileServed("/ui/index.html", 200)');
+      expect(result).toContain('SVELTEESP32_onFileServed("/ui", 200)');
+    });
+
+    it('should prefix routes with basePath for espidf engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'espidf',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/admin'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('.uri = "/admin/index.html"');
+      expect(result).toContain('.uri = "/admin"'); // Default route
+      expect(result).toContain('{ "/admin/index.html"'); // Manifest
+    });
+
+    it('should prefix routes with basePath for psychic2 engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic2',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/dashboard'
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('server->on("/dashboard/index.html", HTTP_GET');
+      expect(result).toContain('server->on("/dashboard", HTTP_GET'); // Default route
+      expect(result).toContain('SVELTEESP32_onFileServed("/dashboard/index.html", 200)');
     });
   });
 
