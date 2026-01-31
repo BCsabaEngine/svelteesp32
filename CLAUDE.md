@@ -118,7 +118,8 @@ const size_t {{definePrefix}}_FILE_COUNT = ...;
 
 - **Always generated**: No CLI flag needed
 - **gzipSize**: Actual compressed size when `isGzip=true`, otherwise 0
-- **etag**: References `etag_<dataname>` when etag enabled, `nullptr` when `--etag=false`
+- **etag**: References `etag_<dataname>` when etag enabled, `NULL` when `--etag=false`
+- **ESP-IDF**: Uses C-compatible `typedef struct` syntax (inline in `cppCodeEspIdf.ts`)
 - **Implementation**: `manifestSection` template in `src/cppCode.ts`, computed fields in `transformSourceToTemplateData()`
 
 ## Testing (Vitest)

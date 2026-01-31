@@ -524,8 +524,9 @@ server->on("/api/files", HTTP_GET, [](PsychicRequest* request) {
 
 - The manifest is always generated (no CLI flag needed)
 - `gzipSize` is 0 when the file is not gzipped (either too small, poor compression ratio, or gzip disabled)
-- `etag` is `nullptr` when etag is disabled (`--etag=false`)
+- `etag` is `NULL` when etag is disabled (`--etag=false`)
 - The struct and array names use the `--define` prefix (default: `SVELTEESP32`)
+- For ESP-IDF engine, C-compatible `typedef struct` syntax is used instead of C++ `struct`
 
 ### Command line options
 
