@@ -41,8 +41,8 @@ npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 1. **File Collection** (`file.ts`): Glob scan → skip pre-compressed (.gz/.br) if original exists → filter exclude patterns → validate index.html (unless `--no-index-check`)
 2. **Content Analysis** (`index.ts`): MIME types → SHA256 ETags → extension grouping
 3. **Compression** (`index.ts`): Gzip level 9 if >1024 bytes AND >15% reduction
-4. **Code Generation** (`cppCode.ts`): Handlebars templates → engine-specific C++ → byte arrays + route handlers + ETags
-5. **Output**: Write header with binary data, route handlers, ETag validation, C++ defines
+4. **Code Generation** (`cppCode.ts`): Handlebars templates → engine-specific C++ → byte arrays + route handlers + ETags + file manifest
+5. **Output**: Write header with binary data, route handlers, ETag validation, C++ defines, file manifest
 
 ### Supported Engines
 
@@ -61,6 +61,7 @@ npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 - **Index.html Validation**: Ensures default entry point exists (skip with `--no-index-check` for APIs)
 - **Multi-Engine**: Generates optimized C++ for 4 different web server frameworks
 - **C++ Defines**: Build-time validation (`SVELTEESP32_COUNT`, `SVELTEESP32_FILE_INDEX_HTML`, etc.)
+- **File Manifest**: Runtime introspection of embedded files (path, size, gzipSize, etag, contentType)
 
 ## Configuration
 
@@ -99,6 +100,27 @@ Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/com
 
 Generated headers include `//config:` comment showing all settings used (engine, sourcepath, etag, gzip, exclude, etc.) for traceability.
 
+### File Manifest
+
+Generated headers include a manifest struct and array for runtime file introspection:
+
+```cpp
+struct {{definePrefix}}_FileInfo {
+  const char* path;        // URL path (e.g., "/index.html")
+  uint32_t size;           // Original file size
+  uint32_t gzipSize;       // Compressed size (0 if not gzipped)
+  const char* etag;        // ETag variable reference or nullptr
+  const char* contentType; // MIME type
+};
+const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = { ... };
+const size_t {{definePrefix}}_FILE_COUNT = ...;
+```
+
+- **Always generated**: No CLI flag needed
+- **gzipSize**: Actual compressed size when `isGzip=true`, otherwise 0
+- **etag**: References `etag_<dataname>` when etag enabled, `nullptr` when `--etag=false`
+- **Implementation**: `manifestSection` template in `src/cppCode.ts`, computed fields in `transformSourceToTemplateData()`
+
 ## Testing (Vitest)
 
 **Coverage**: ~68% overall
@@ -113,7 +135,7 @@ Generated headers include `//config:` comment showing all settings used (engine,
 
 - `test/unit/commandLine.test.ts` - Dynamic imports, argument parsing, npm variable interpolation (20+ tests)
 - `test/unit/file.test.ts` - memfs mocking, duplicate detection, index.html validation
-- `test/unit/cppCode.test.ts` - Template selection, code generation, byte arrays
+- `test/unit/cppCode.test.ts` - Template selection, code generation, byte arrays, file manifest
 - `test/unit/errorMessages.test.ts` - Error message validation
 
 **Key Patterns**:
@@ -143,6 +165,8 @@ Generated headers include `//config:` comment showing all settings used (engine,
 - Tri-state options: `etag`/`gzip` can be "true", "false", or "compiler" (C++ directives)
 - Engine-specific templates inline in source file
 - Binary data converted to comma-separated byte arrays
+- Template sections: `commonHeaderSection`, `dataArraysSection`, `etagArraysSection`, `manifestSection`
+- `transformSourceToTemplateData()` computes derived fields: `gzipSizeForManifest`, `etagForManifest`
 
 ### Compression Thresholds (`src/index.ts`)
 

@@ -240,6 +240,21 @@ const uint8_t datagzip_assets_index_KwubEIf__js[12547] = {0x1f, 0x8b, 0x8, 0x0, 
 const uint8_t datagzip_assets_index_Soe6cpLA_css[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
 const char * etag_assets_index_KwubEIf__js = "387b88e345cc56ef9091...";
 const char * etag_assets_index_Soe6cpLA_css = "d4f23bc45ef67890ab12...";
+
+// File manifest for runtime introspection
+struct SVELTEESP32_FileInfo {
+  const char* path;
+  uint32_t size;
+  uint32_t gzipSize;
+  const char* etag;
+  const char* contentType;
+};
+const SVELTEESP32_FileInfo SVELTEESP32_FILES[] = {
+  { "/assets/index-KwubEIf-.js", 38850, 12547, etag_assets_index_KwubEIf__js, "text/javascript" },
+  { "/assets/index-Soe6cpLA.css", 32494, 5368, etag_assets_index_Soe6cpLA_css, "text/css" },
+  ...
+};
+const size_t SVELTEESP32_FILE_COUNT = sizeof(SVELTEESP32_FILES) / sizeof(SVELTEESP32_FILES[0]);
 ...
 
 void initSvelteStaticFiles(PsychicHttpServer * server) {
@@ -444,6 +459,73 @@ You can include a blocker error if a named file accidentally missing from the bu
 ```
 
 You can use the following c++ directives at the project level if you want to configure the usage there: `SVELTEESP32_ENABLE_ETAG` and `SVELTEESP32_ENABLE_GZIP`. (Do not forget `--etag=compiler` or `--gzip=compiler` command line arg!)
+
+### File Manifest
+
+The generated header includes a file manifest struct and array that allows runtime introspection of all embedded static assets. This is useful for logging, runtime diagnostics, or building a JSON endpoint that lists all served files.
+
+**Generated Structure:**
+
+```c
+// File manifest struct
+struct SVELTEESP32_FileInfo {
+  const char* path;       // URL path (e.g., "/index.html")
+  uint32_t size;          // Original file size in bytes
+  uint32_t gzipSize;      // Compressed size (0 if not gzipped)
+  const char* etag;       // ETag pointer (nullptr if etag disabled)
+  const char* contentType; // MIME type (e.g., "text/html")
+};
+
+// File manifest array
+const SVELTEESP32_FileInfo SVELTEESP32_FILES[] = { ... };
+const size_t SVELTEESP32_FILE_COUNT = sizeof(SVELTEESP32_FILES) / sizeof(SVELTEESP32_FILES[0]);
+```
+
+**Usage Example - List All Files:**
+
+```c
+#include "svelteesp32.h"
+
+void listFiles() {
+  Serial.printf("Embedded files (%d):\n", SVELTEESP32_FILE_COUNT);
+  for (size_t i = 0; i < SVELTEESP32_FILE_COUNT; i++) {
+    const auto& f = SVELTEESP32_FILES[i];
+    Serial.printf("  %s (%d bytes", f.path, f.size);
+    if (f.gzipSize > 0) {
+      Serial.printf(", gzip: %d bytes", f.gzipSize);
+    }
+    Serial.printf(", type: %s)\n", f.contentType);
+  }
+}
+```
+
+**Usage Example - JSON Endpoint:**
+
+```c
+server->on("/api/files", HTTP_GET, [](PsychicRequest* request) {
+  String json = "[";
+  for (size_t i = 0; i < SVELTEESP32_FILE_COUNT; i++) {
+    const auto& f = SVELTEESP32_FILES[i];
+    if (i > 0) json += ",";
+    json += "{\"path\":\"" + String(f.path) + "\",";
+    json += "\"size\":" + String(f.size) + ",";
+    json += "\"gzipSize\":" + String(f.gzipSize) + ",";
+    json += "\"contentType\":\"" + String(f.contentType) + "\"}";
+  }
+  json += "]";
+  PsychicResponse response(request);
+  response.setContentType("application/json");
+  response.setContent(json.c_str(), json.length());
+  return response.send();
+});
+```
+
+**Notes:**
+
+- The manifest is always generated (no CLI flag needed)
+- `gzipSize` is 0 when the file is not gzipped (either too small, poor compression ratio, or gzip disabled)
+- `etag` is `nullptr` when etag is disabled (`--etag=false`)
+- The struct and array names use the `--define` prefix (default: `SVELTEESP32`)
 
 ### Command line options
 
