@@ -257,12 +257,16 @@ const SVELTEESP32_FileInfo SVELTEESP32_FILES[] = {
 const size_t SVELTEESP32_FILE_COUNT = sizeof(SVELTEESP32_FILES) / sizeof(SVELTEESP32_FILES[0]);
 ...
 
+// File served hook - override with your own implementation for metrics/logging
+extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}
+
 void initSvelteStaticFiles(PsychicHttpServer * server) {
   server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request) {
     if (request->hasHeader("If-None-Match") &&
         request->header("If-None-Match").equals(etag_assets_index_KwubEIf__js)) {
       PsychicResponse response304(request);
       response304.setCode(304);
+      SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 304);
       return response304.send();
     }
 
@@ -272,23 +276,7 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
     response.addHeader("Cache-Control", "no-cache");
     response.addHeader("ETag", etag_assets_index_KwubEIf__js);
     response.setContent(datagzip_assets_index_KwubEIf__js, 12547);
-    return response.send();
-  });
-
-  server->on("/assets/index-Soe6cpLA.css", HTTP_GET, [](PsychicRequest * request) {
-    if (request->hasHeader("If-None-Match") &&
-        request->header("If-None-Match").equals(etag_assets_index_Soe6cpLA_css)) {
-      PsychicResponse response304(request);
-      response304.setCode(304);
-      return response304.send();
-    }
-
-    PsychicResponse response(request);
-    response.setContentType("text/css");
-    response.addHeader("Content-Encoding", "gzip");
-    response.addHeader("Cache-Control", "no-cache");
-    response.addHeader("ETag", etag_assets_index_Soe6cpLA_css);
-    response.setContent(datagzip_assets_index_Soe6cpLA_css, 5368);
+    SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 200);
     return response.send();
   });
 
@@ -527,6 +515,96 @@ server->on("/api/files", HTTP_GET, [](PsychicRequest* request) {
 - `etag` is `NULL` when etag is disabled (`--etag=false`)
 - The struct and array names use the `--define` prefix (default: `SVELTEESP32`)
 - For ESP-IDF engine, C-compatible `typedef struct` syntax is used instead of C++ `struct`
+
+### onFileServed Hook
+
+The generated header includes a weak callback function that is invoked every time a file is served. This allows you to implement custom metrics, logging, or telemetry without modifying the generated code.
+
+**Generated Function (weak linkage - zero overhead when not overridden):**
+
+```c
+// For psychic, psychic2, async engines (C++)
+extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}
+
+// For espidf engine (C)
+__attribute__((weak)) void SVELTEESP32_onFileServed(const char* path, int statusCode) {}
+```
+
+**Parameters:**
+
+- `path`: The URL path being served (e.g., `"/index.html"`, `"/assets/app.js"`)
+- `statusCode`: HTTP status code - `200` for content served, `304` for cache hit (Not Modified)
+
+**Override Example - Serial Logging:**
+
+```c
+#include "svelteesp32.h"
+
+// Override the weak function with your implementation
+extern "C" void SVELTEESP32_onFileServed(const char* path, int statusCode) {
+    Serial.printf("[HTTP] %s -> %d\n", path, statusCode);
+}
+```
+
+**Override Example - Request Counter:**
+
+```c
+#include "svelteesp32.h"
+
+static uint32_t totalRequests = 0;
+static uint32_t cacheHits = 0;
+
+extern "C" void SVELTEESP32_onFileServed(const char* path, int statusCode) {
+    totalRequests++;
+    if (statusCode == 304) {
+        cacheHits++;
+    }
+}
+
+void printStats() {
+    float hitRate = totalRequests > 0 ? (100.0f * cacheHits / totalRequests) : 0;
+    Serial.printf("Requests: %lu, Cache hits: %lu (%.1f%%)\n",
+                  totalRequests, cacheHits, hitRate);
+}
+```
+
+**Override Example - Per-File Metrics:**
+
+```c
+#include "svelteesp32.h"
+#include <map>
+#include <string>
+
+std::map<std::string, uint32_t> fileHits;
+
+extern "C" void SVELTEESP32_onFileServed(const char* path, int statusCode) {
+    fileHits[path]++;
+}
+
+// Expose via JSON endpoint
+server->on("/api/metrics", HTTP_GET, [](PsychicRequest* request) {
+    String json = "{";
+    bool first = true;
+    for (const auto& [path, count] : fileHits) {
+        if (!first) json += ",";
+        json += "\"" + String(path.c_str()) + "\":" + String(count);
+        first = false;
+    }
+    json += "}";
+    PsychicResponse response(request);
+    response.setContentType("application/json");
+    response.setContent(json.c_str(), json.length());
+    return response.send();
+});
+```
+
+**Notes:**
+
+- The hook is always generated (no CLI flag needed)
+- Uses weak linkage - if you don't override it, the empty default has zero runtime overhead
+- The function name uses your `--define` prefix (default: `SVELTEESP32_onFileServed`)
+- With `--define=MYAPP`, the function becomes `MYAPP_onFileServed`
+- Called before every response is sent (both 200 and 304 when ETag is enabled)
 
 ### Command line options
 
