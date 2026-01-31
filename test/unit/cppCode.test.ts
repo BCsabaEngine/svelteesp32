@@ -678,7 +678,7 @@ describe('cppCode', () => {
       const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
       const result = getCppCode(sources, mockFilesByExtension);
 
-      expect(result).toContain('nullptr,');
+      expect(result).toContain('NULL,');
       expect(result).not.toContain('etag_index_html,');
     });
 
@@ -790,7 +790,9 @@ describe('cppCode', () => {
       const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
       const result = getCppCode(sources, mockFilesByExtension);
 
-      expect(result).toContain('struct SVELTEESP32_FileInfo');
+      // ESP-IDF uses C-compatible typedef struct syntax
+      expect(result).toContain('typedef struct {');
+      expect(result).toContain('} SVELTEESP32_FileInfo;');
       expect(result).toContain('SVELTEESP32_FILES[]');
       expect(result).toContain('SVELTEESP32_FILE_COUNT');
     });

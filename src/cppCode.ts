@@ -565,7 +565,7 @@ const transformSourceToTemplateData = (s: CppCodeSource, etag: string) => ({
   isDefault: s.filename.startsWith('index.htm'),
   // Manifest-specific fields
   gzipSizeForManifest: s.isGzip ? s.contentGzip.length : 0,
-  etagForManifest: etag === 'false' ? 'nullptr' : `etag_${s.dataname}`
+  etagForManifest: etag === 'false' ? 'NULL' : `etag_${s.dataname}`
 });
 
 /**
