@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [1.15.0] - 2026-01-31
 
 - **Base Path Support**: New `--base-path` option to prefix all generated routes with a URL path
   - Usage: `--base-path=/ui` or `--base-path=/admin`
