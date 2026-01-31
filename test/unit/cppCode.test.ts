@@ -570,4 +570,256 @@ describe('cppCode', () => {
       expect(result).toContain('#ifdef');
     });
   });
+
+  describe('file manifest', () => {
+    it('should generate manifest struct and array', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('struct SVELTEESP32_FileInfo');
+      expect(result).toContain('const char* path');
+      expect(result).toContain('uint32_t size');
+      expect(result).toContain('uint32_t gzipSize');
+      expect(result).toContain('const char* etag');
+      expect(result).toContain('const char* contentType');
+      expect(result).toContain('const SVELTEESP32_FileInfo SVELTEESP32_FILES[]');
+      expect(result).toContain('const size_t SVELTEESP32_FILE_COUNT');
+    });
+
+    it('should include correct file path in manifest', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('{ "/index.html"');
+    });
+
+    it('should include correct size values in manifest', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Original size is 13 bytes ("<html></html>")
+      expect(result).toContain(', 13,');
+    });
+
+    it('should include gzip size when file is gzipped', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // Gzipped content is "gzipped" which is 7 bytes
+      expect(result).toContain(', 7,');
+    });
+
+    it('should have gzipSize of 0 when file is not gzipped', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      // Create a source that is NOT gzipped (isGzip: false)
+      const source: CppCodeSource = {
+        filename: 'small.txt',
+        dataname: 'small_txt',
+        datanameUpperCase: 'SMALL_TXT',
+        mime: 'text/plain',
+        content: Buffer.from('hi'),
+        contentGzip: Buffer.from('hi'), // Same as content - not actually gzipped
+        isGzip: false, // File is NOT gzipped
+        sha256: 'def456'
+      };
+
+      const result = getCppCode([source], mockFilesByExtension);
+
+      // When isGzip is false, gzipSize should be 0
+      expect(result).toMatch(/{ "\/small\.txt", 2, 0,/);
+    });
+
+    it('should reference etag variable when etag is enabled', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('etag_index_html,');
+    });
+
+    it('should use nullptr for etag when etag is disabled', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'false',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('NULL,');
+      expect(result).not.toContain('etag_index_html,');
+    });
+
+    it('should include content type in manifest', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('"text/html"');
+    });
+
+    it('should use custom definePrefix in manifest', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'MYAPP',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('struct MYAPP_FileInfo');
+      expect(result).toContain('const MYAPP_FileInfo MYAPP_FILES[]');
+      expect(result).toContain('const size_t MYAPP_FILE_COUNT');
+    });
+
+    it('should generate manifest entries for multiple files', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [
+        createMockSource('index.html', '<html></html>'),
+        createMockSource('style.css', 'body{}')
+      ];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('{ "/index.html"');
+      expect(result).toContain('{ "/style.css"');
+    });
+
+    it('should generate manifest for async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('struct SVELTEESP32_FileInfo');
+      expect(result).toContain('SVELTEESP32_FILES[]');
+    });
+
+    it('should generate manifest for espidf engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'espidf',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // ESP-IDF uses C-compatible typedef struct syntax
+      expect(result).toContain('typedef struct {');
+      expect(result).toContain('} SVELTEESP32_FileInfo;');
+      expect(result).toContain('SVELTEESP32_FILES[]');
+      expect(result).toContain('SVELTEESP32_FILE_COUNT');
+    });
+
+    it('should reference etag for compiler mode in manifest', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'compiler',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: []
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // When etag is 'compiler', we still reference the etag variable (it exists conditionally)
+      expect(result).toContain('etag_index_html,');
+    });
+  });
 });

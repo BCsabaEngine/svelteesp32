@@ -124,6 +124,28 @@ const char * etag_{{this.dataname}} = "{{this.sha256}}";
 {{/switch}}
 `;
 
+/**
+ * File manifest section - provides runtime introspection of embedded files
+ */
+const manifestSection = `
+// File manifest struct
+struct {{definePrefix}}_FileInfo {
+  const char* path;
+  uint32_t size;
+  uint32_t gzipSize;
+  const char* etag;
+  const char* contentType;
+};
+
+// File manifest array
+const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
+{{#each sources}}
+  { "/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
+{{/each}}
+};
+const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
+`;
+
 const psychicTemplate = `
 //engine:   PsychicHttpServer
 //config:   {{{config}}}
@@ -144,6 +166,9 @@ ${dataArraysSection(false)}
 
 //
 ${etagArraysSection}
+
+//
+${manifestSection}
 
 //
 // Http Handlers
@@ -256,6 +281,9 @@ ${dataArraysSection(false)}
 ${etagArraysSection}
 
 //
+${manifestSection}
+
+//
 // Http Handlers
 void {{methodName}}(PsychicHttpServer * server) {
 {{#each sources}}
@@ -360,6 +388,9 @@ ${dataArraysSection(true)}
 
 //
 ${etagArraysSection}
+
+//
+${manifestSection}
 
 //
 // Http Handlers
@@ -525,13 +556,16 @@ const getTemplate = (engine: string): string => {
 /**
  * Transform a source entry into template data with byte arrays
  */
-const transformSourceToTemplateData = (s: CppCodeSource) => ({
+const transformSourceToTemplateData = (s: CppCodeSource, etag: string) => ({
   ...s,
   length: s.content.length,
   bytes: [...s.content].map((v) => `${v.toString(10)}`).join(','),
   lengthGzip: s.contentGzip.length,
   bytesGzip: [...s.contentGzip].map((v) => `${v.toString(10)}`).join(','),
-  isDefault: s.filename.startsWith('index.htm')
+  isDefault: s.filename.startsWith('index.htm'),
+  // Manifest-specific fields
+  gzipSizeForManifest: s.isGzip ? s.contentGzip.length : 0,
+  etagForManifest: etag === 'false' ? 'NULL' : `etag_${s.dataname}`
 });
 
 /**
@@ -578,7 +612,7 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     fileCount: sources.length.toString(),
     fileSize: sources.reduce((previous, current) => previous + current.content.length, 0).toString(),
     fileGzipSize: sources.reduce((previous, current) => previous + current.contentGzip.length, 0).toString(),
-    sources: sources.map((s) => transformSourceToTemplateData(s)),
+    sources: sources.map((s) => transformSourceToTemplateData(s, cmdLine.etag)),
     filesByExtension,
     etag: cmdLine.etag,
     gzip: cmdLine.gzip,

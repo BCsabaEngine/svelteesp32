@@ -85,7 +85,7 @@ const char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
 {{#switch etag}}
 {{#case "true"}}
   {{#each sources}}
-const char * etag_{{this.dataname}} = "{{this.sha256}}";
+static const char etag_{{this.dataname}}[] = "{{this.sha256}}";
   {{/each}}
 {{/case}}
 {{#case "false"}}
@@ -93,11 +93,28 @@ const char * etag_{{this.dataname}} = "{{this.sha256}}";
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_ETAG
   {{#each sources}}
-const char * etag_{{this.dataname}} = "{{this.sha256}}";
+static const char etag_{{this.dataname}}[] = "{{this.sha256}}";
   {{/each}}
-#endif 
+#endif
 {{/case}}
 {{/switch}}
+
+// File manifest struct (C-compatible typedef)
+typedef struct {
+  const char* path;
+  uint32_t size;
+  uint32_t gzipSize;
+  const char* etag;
+  const char* contentType;
+} {{definePrefix}}_FileInfo;
+
+// File manifest array
+static const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
+{{#each sources}}
+  { "/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
+{{/each}}
+};
+static const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
 
 {{#each sources}}
 
