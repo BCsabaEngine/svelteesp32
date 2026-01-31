@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-01-31
+
+### Added
+
+- **File Manifest Feature**: Runtime introspection of all embedded files in generated C++ headers
+  - New `FileInfo` struct with `path`, `size`, `gzipSize`, `etag`, and `contentType` fields
+  - Auto-generated `FILES[]` array and `FILE_COUNT` constant for iterating over embedded files
+  - `gzipSize` contains actual compressed size when gzip enabled, 0 otherwise
+  - `etag` references the ETag variable when enabled, `NULL` when `--etag=false`
+  - Works with all 4 engines (psychic, psychic2, async, espidf)
+  - ESP-IDF uses C-compatible `typedef struct` syntax for compatibility
+  - Always generated (no CLI flag needed)
+  - Enables runtime features like file listings, size reporting, and cache management
+
+### Changed
+
+- **SHA256 for ETags**: Replaced MD5 with SHA256 for ETag hash generation
+  - Improved security with cryptographically stronger hash algorithm
+  - SHA256 is more collision-resistant than MD5
+  - Generated ETag format remains compatible with HTTP standards
+
+### Fixed
+
+- Updated dependencies to latest versions
+
 ## [1.13.1] - 2025-12-11
 
 ### Added
@@ -429,6 +454,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.14.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.13.1...v1.14.0
 [1.13.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.12.1...v1.13.0
 [1.12.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.12.0...v1.12.1
