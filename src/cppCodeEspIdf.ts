@@ -111,7 +111,7 @@ typedef struct {
 // File manifest array
 static const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
 {{#each sources}}
-  { "/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
+  { "{{../basePath}}/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
 {{/each}}
 };
 static const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
@@ -132,7 +132,7 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
             if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
                 free(hdr_value);
                 httpd_resp_set_status(req, "304 Not Modified");
-                {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
+                {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
                 httpd_resp_send(req, NULL, 0);
                 return ESP_OK;
             }
@@ -149,7 +149,7 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
             if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
                 free(hdr_value);
                 httpd_resp_set_status(req, "304 Not Modified");
-                {{../definePrefix}}_onFileServed("/{{this.filename}}", 304);
+                {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
                 httpd_resp_send(req, NULL, 0);
                 return ESP_OK;
             }
@@ -200,15 +200,15 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 
 {{#switch ../gzip}}
 {{#case "true"}}
-    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
     httpd_resp_send(req, datagzip_{{this.dataname}}, {{this.lengthGzip}});
 {{/case}}
 {{#case "false"}}
-    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
     httpd_resp_send(req, data_{{this.dataname}}, {{this.length}});
 {{/case}}
 {{#case "compiler"}}
-    {{../definePrefix}}_onFileServed("/{{this.filename}}", 200);
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
   #ifdef {{../definePrefix}}_ENABLE_GZIP
     httpd_resp_send(req, datagzip_{{this.dataname}}, {{this.lengthGzip}});
   #else
@@ -221,14 +221,14 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 
 {{#if this.isDefault}}
 static const httpd_uri_t route_def_{{this.datanameUpperCase}} = {
-    .uri = "/",
+    .uri = "{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}",
     .method = HTTP_GET,
     .handler = file_handler_{{this.datanameUpperCase}},
 };
 {{/if}}
 
 static const httpd_uri_t route_{{this.datanameUpperCase}} = {
-    .uri = "/{{this.filename}}",
+    .uri = "{{../basePath}}/{{this.filename}}",
     .method = HTTP_GET,
     .handler = file_handler_{{this.datanameUpperCase}},
 };
