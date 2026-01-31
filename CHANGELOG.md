@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Base Path Support**: New `--base-path` option to prefix all generated routes with a URL path
+  - Usage: `--base-path=/ui` or `--base-path=/admin`
+  - All routes are prefixed (e.g., `/index.html` becomes `/ui/index.html`)
+  - File manifest paths include the basePath prefix
+  - When basePath is set, creates explicit route for basePath instead of using `defaultEndpoint`
+  - Validation: Must start with `/`, must not end with `/`, no double slashes allowed
+  - RC file support: Can be set via `basePath` property in `.svelteesp32rc.json`
+  - Supports `$npm_package_*` variable interpolation
+  - Enables hosting multiple frontends in a single ESP32 firmware (e.g., `/admin` and `/user`)
+- **onFileServed Hook**: Weak function called whenever a file is served for metrics, logging, or telemetry
+  - Signature: `void {{definePrefix}}_onFileServed(const char* path, int statusCode)`
+  - Parameters: `path` (URL being served, e.g., "/index.html"), `statusCode` (200 or 304)
+  - Always generated with zero overhead when unused (weak linkage)
+  - Hook name uses `--define` prefix: default `SVELTEESP32_onFileServed`, custom with `--define=MYAPP` becomes `MYAPP_onFileServed`
+  - Called before every `send()`: both 200 (content) and 304 (cache hit) responses
+  - Works with all 4 engines (psychic, psychic2, async, espidf)
+  - ESP-IDF uses C-compatible syntax (no `extern "C"`)
+
 ## [1.14.0] - 2026-01-31
 
 ### Added
