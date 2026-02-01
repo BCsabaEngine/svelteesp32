@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SvelteESP32 is a TypeScript CLI tool that converts frontend JS applications (Svelte, React, Angular, Vue) into C++ header files embedded in ESP32/ESP8266 microcontroller web servers. Generates optimized C++ code with gzip compression and ETag support for 4 web server engines.
+SvelteESP32 is a TypeScript CLI tool that converts frontend JS applications (Svelte, React, Angular, Vue) into C++ header files embedded in ESP32/ESP8266 microcontroller web servers. Generates optimized C++ code with gzip compression and ETag support for 3 web server engines.
 
 ## Quick Commands
 
@@ -32,7 +32,7 @@ npx svelteesp32 --noindexcheck  # Skip index.html validation (API-only apps)
 - **`src/index.ts`** - Main entry point, orchestrates file processing pipeline
 - **`src/commandLine.ts`** - CLI parsing using native `process.argv`, supports RC files with npm variable interpolation
 - **`src/file.ts`** - File operations: glob scanning, duplicate detection (SHA256), index.html validation
-- **`src/cppCode.ts`** - C++ code generation (Handlebars templates) for psychic/psychic2/async engines
+- **`src/cppCode.ts`** - C++ code generation (Handlebars templates) for psychic/async engines
 - **`src/cppCodeEspIdf.ts`** - C++ code generation for ESP-IDF native engine
 - **`src/errorMessages.ts`** - Framework-specific error messages with actionable hints
 
@@ -46,8 +46,7 @@ npx svelteesp32 --noindexcheck  # Skip index.html validation (API-only apps)
 
 ### Supported Engines
 
-- **psychic** - PsychicHttpServer V1 (ESP32 only, fastest)
-- **psychic2** - PsychicHttpServer V2 (ESP32 only, modern API)
+- **psychic** - PsychicHttpServer (ESP32 only, fastest)
 - **async** - ESPAsyncWebServer (ESP32/ESP8266, uses PROGMEM)
 - **espidf** - Native ESP-IDF web server
 
@@ -59,7 +58,7 @@ npx svelteesp32 --noindexcheck  # Skip index.html validation (API-only apps)
 - **CI/CD Integration**: npm package, RC files, variable interpolation from package.json
 - **File Exclusion**: Glob patterns (`--exclude="*.map,*.md"`)
 - **Index.html Validation**: Ensures default entry point exists (skip with `--noindexcheck` for APIs)
-- **Multi-Engine**: Generates optimized C++ for 4 different web server frameworks
+- **Multi-Engine**: Generates optimized C++ for 3 different web server frameworks
 - **C++ Defines**: Build-time validation (`SVELTEESP32_COUNT`, `SVELTEESP32_FILE_INDEX_HTML`, etc.)
 - **File Manifest**: Runtime introspection of embedded files (path, size, gzipSize, etag, contentType)
 - **onFileServed Hook**: Weak function called on every file serve (path, statusCode) for metrics/logging
@@ -89,12 +88,12 @@ Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/com
 ### ETag Implementation (All Engines)
 
 - **async**: `const AsyncWebHeader*`, single `getHeader()` call, inlined lambdas
-- **psychic/psychic2**: `request->header().equals()`, no temporary String objects
+- **psychic**: `request->header().equals()`, no temporary String objects
 - **espidf**: `httpd_req_get_hdr_value_len()` + `httpd_req_get_hdr_value_str()`, malloc/free
 
 ### Memory Management
 
-- **ESP32** (psychic/psychic2/espidf): Const arrays → automatic program memory (flash)
+- **ESP32** (psychic/espidf): Const arrays → automatic program memory (flash)
 - **ESP8266** (async): PROGMEM directive → explicit flash storage
 - All: Binary data in flash, not RAM
 
@@ -129,7 +128,7 @@ const size_t {{definePrefix}}_FILE_COUNT = ...;
 Generated headers include a weak function that's called whenever a file is served. Users can override it for metrics, logging, or telemetry:
 
 ```cpp
-// C++ engines (psychic, psychic2, async)
+// C++ engines (psychic, async)
 extern "C" void __attribute__((weak)) {{definePrefix}}_onFileServed(const char* path, int statusCode) {}
 
 // C engine (espidf)
@@ -148,7 +147,7 @@ __attribute__((weak)) void {{definePrefix}}_onFileServed(const char* path, int s
 
 - `commandLine.ts`: 84.56% - CLI parsing, validation, npm variable interpolation
 - `file.ts`: 100% - File ops, duplicate detection, index.html validation
-- `cppCode.ts`: 96.62% - Template rendering, all 4 engines, etag/gzip combos
+- `cppCode.ts`: 96.62% - Template rendering, all 3 engines, etag/gzip combos
 - `consoleColor.ts`: 100% - ANSI colors
 - `index.ts`: 0% - Main entry (side effects, tested via integration)
 
@@ -201,7 +200,7 @@ const GZIP_MIN_REDUCTION_RATIO = 0.85; // Use gzip if <85% of original
 - `demo/svelte/` - Example Svelte app (Vite + TailwindCSS)
 - `demo/esp32/` - PlatformIO Arduino project
 - `demo/esp32idf/` - ESP-IDF native project
-- `package.script` generates 36 test headers (9 etag/gzip combos × 4 engines)
+- `package.script` generates 27 test headers (9 etag/gzip combos × 3 engines)
 
 ## Recent Updates
 
@@ -229,9 +228,9 @@ README includes comparison table: SvelteESP32 vs Traditional Filesystem (SPIFFS/
 Enhanced error messages with framework-specific hints:
 
 - **Missing index.html**: Engine-specific routing examples, `--noindexcheck` flag
-- **Invalid engine**: Lists all 4 engines with descriptions
+- **Invalid engine**: Lists all 3 engines with descriptions
 - **Sourcepath not found**: Build tool hints (Vite, Webpack, Rollup)
-- **max_uri_handlers**: Console hints after generation (psychic, psychic2, espidf)
+- **max_uri_handlers**: Console hints after generation (psychic, espidf)
 
 ## Build Configuration
 
