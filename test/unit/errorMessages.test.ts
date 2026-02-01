@@ -4,6 +4,7 @@ import {
   getInvalidEngineError,
   getMaxUriHandlersHint,
   getMissingIndexError,
+  getSizeBudgetExceededError,
   getSourcepathNotFoundError
 } from '../../src/errorMessages';
 
@@ -171,6 +172,66 @@ describe('errorMessages', () => {
         expect(result).toContain('npx svelteesp32');
         expect(result).toContain('--sourcepath=./dist');
       });
+    });
+  });
+
+  describe('getSizeBudgetExceededError', () => {
+    it('should show error for uncompressed size type', () => {
+      const result = getSizeBudgetExceededError('size', 100_000, 150_000);
+      expect(result).toContain('[ERROR]');
+      expect(result).toContain('Uncompressed size budget exceeded');
+    });
+
+    it('should show error for gzip size type', () => {
+      const result = getSizeBudgetExceededError('gzipSize', 50_000, 75_000);
+      expect(result).toContain('[ERROR]');
+      expect(result).toContain('Gzip size budget exceeded');
+    });
+
+    it('should display budget and actual values', () => {
+      const result = getSizeBudgetExceededError('size', 100_000, 150_000);
+      expect(result).toContain('Budget:');
+      expect(result).toContain('100,000 bytes');
+      expect(result).toContain('Actual:');
+      expect(result).toContain('150,000 bytes');
+    });
+
+    it('should calculate and display overage', () => {
+      const result = getSizeBudgetExceededError('size', 100_000, 150_000);
+      expect(result).toContain('Overage:');
+      expect(result).toContain('50,000 bytes');
+      expect(result).toContain('+50%');
+    });
+
+    it('should include correct flag name for size type', () => {
+      const result = getSizeBudgetExceededError('size', 100_000, 150_000);
+      expect(result).toContain('--max-size=150000');
+    });
+
+    it('should include correct flag name for gzipSize type', () => {
+      const result = getSizeBudgetExceededError('gzipSize', 50_000, 75_000);
+      expect(result).toContain('--max-gzip-size=75000');
+    });
+
+    it('should include why this matters section', () => {
+      const result = getSizeBudgetExceededError('size', 100_000, 150_000);
+      expect(result).toContain('Why this matters:');
+      expect(result).toContain('frontend bloat');
+      expect(result).toContain('flash memory');
+    });
+
+    it('should include how to fix suggestions', () => {
+      const result = getSizeBudgetExceededError('size', 100_000, 150_000);
+      expect(result).toContain('How to fix:');
+      expect(result).toContain('tree-shaking');
+      expect(result).toContain('--exclude patterns');
+    });
+
+    it('should include CI integration note', () => {
+      const result = getSizeBudgetExceededError('size', 100_000, 150_000);
+      expect(result).toContain('CI integration:');
+      expect(result).toContain('non-zero exit code');
+      expect(result).toContain('build pipelines');
     });
   });
 

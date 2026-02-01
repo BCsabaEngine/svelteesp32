@@ -501,6 +501,78 @@ describe('commandLine', () => {
 
       await expect(import('../../src/commandLine')).rejects.toThrow('basePath must not contain //: /ui//admin');
     });
+
+    it('should parse --max-size with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=400000'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.maxSize).toBe(400_000);
+    });
+
+    it('should parse --max-size with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size', '500000'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.maxSize).toBe(500_000);
+    });
+
+    it('should parse --max-gzip-size with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-gzip-size=150000'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.maxGzipSize).toBe(150_000);
+    });
+
+    it('should parse --max-gzip-size with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-gzip-size', '200000'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.maxGzipSize).toBe(200_000);
+    });
+
+    it('should reject non-numeric --max-size', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=abc'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('--max-size must be a positive integer: abc');
+    });
+
+    it('should reject negative --max-size', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=-100'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('--max-size must be a positive integer: -100');
+    });
+
+    it('should reject zero --max-size', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=0'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('--max-size must be a positive integer: 0');
+    });
+
+    it('should reject non-numeric --max-gzip-size', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-gzip-size=xyz'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('--max-gzip-size must be a positive integer: xyz');
+    });
+
+    it('should have undefined maxSize by default', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.maxSize).toBeUndefined();
+    });
+
+    it('should have undefined maxGzipSize by default', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.maxGzipSize).toBeUndefined();
+    });
   });
 
   describe('required arguments', () => {
@@ -869,6 +941,87 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         await expect(import('../../src/commandLine')).rejects.toThrow('basePath must start with /: invalid');
+      });
+
+      it('should load maxSize from RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          maxSize: 500_000
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+        vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+        process.argv = ['node', 'script.js'];
+
+        const { cmdLine } = await import('../../src/commandLine');
+
+        expect(cmdLine.maxSize).toBe(500_000);
+      });
+
+      it('should load maxGzipSize from RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          maxGzipSize: 200_000
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+        vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+        process.argv = ['node', 'script.js'];
+
+        const { cmdLine } = await import('../../src/commandLine');
+
+        expect(cmdLine.maxGzipSize).toBe(200_000);
+      });
+
+      it('should validate maxSize is a positive number in RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          maxSize: -100
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+        process.argv = ['node', 'script.js'];
+
+        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxSize in RC file');
+      });
+
+      it('should validate maxGzipSize is a positive number in RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          maxGzipSize: 0
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+        process.argv = ['node', 'script.js'];
+
+        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxGzipSize in RC file');
+      });
+
+      it('should validate maxSize is not a string in RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          maxSize: 'notanumber'
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+        process.argv = ['node', 'script.js'];
+
+        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxSize in RC file');
       });
     });
 
@@ -1575,6 +1728,63 @@ describe('commandLine', () => {
       const { formatConfiguration } = await import('../../src/commandLine');
       const result = formatConfiguration(mockConfig);
       expect(result).not.toContain('exclude=');
+    });
+
+    it('should include maxSize when present', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false,
+        maxSize: 500_000
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('maxSize=500000');
+    });
+
+    it('should include maxGzipSize when present', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false,
+        maxGzipSize: 200_000
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('maxGzipSize=200000');
+    });
+
+    it('should omit maxSize when undefined', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: [],
+        noindexcheck: false
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).not.toContain('maxSize=');
+      expect(result).not.toContain('maxGzipSize=');
     });
 
     it('should handle all optional fields present', async () => {
