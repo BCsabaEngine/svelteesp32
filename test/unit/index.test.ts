@@ -392,28 +392,6 @@ describe('index.ts main pipeline integration', () => {
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('max_uri_handlers'));
     });
 
-    it('should show max_uri_handlers hint for psychic2 engine', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
-
-      // Update mock to return psychic2
-      vi.doMock('../../src/commandLine', () => ({
-        cmdLine: {
-          engine: 'psychic2',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          exclude: [],
-          noindexcheck: false
-        }
-      }));
-
-      vi.resetModules();
-      await import('../../src/index');
-
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('max_uri_handlers'));
-    });
-
     it('should show max_uri_handlers hint for espidf engine', async () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
 

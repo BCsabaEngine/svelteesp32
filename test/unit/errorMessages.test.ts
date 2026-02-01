@@ -29,12 +29,6 @@ describe('errorMessages', () => {
       expect(result).toContain('server->defaultEndpoint');
     });
 
-    it('should include engine-specific hint for psychic2', () => {
-      const result = getMissingIndexError('psychic2');
-      expect(result).toContain('PsychicHttpServer V2');
-      expect(result).toContain('server->defaultEndpoint');
-    });
-
     it('should include engine-specific hint for async', () => {
       const result = getMissingIndexError('async');
       expect(result).toContain('ESPAsyncWebServer');
@@ -69,7 +63,6 @@ describe('errorMessages', () => {
     it('should list all valid engines', () => {
       const result = getInvalidEngineError('foo');
       expect(result).toContain('psychic');
-      expect(result).toContain('psychic2');
       expect(result).toContain('async');
       expect(result).toContain('espidf');
     });
@@ -254,13 +247,6 @@ describe('errorMessages', () => {
       expect(result).toContain('server.config.max_uri_handlers');
       expect(result).toContain('initSvelteStaticFiles');
       expect(result).toContain('server.listen(80)');
-    });
-
-    it('should show engine-specific code for psychic2', () => {
-      const result = getMaxUriHandlersHint('psychic2', 12);
-      expect(result).toContain('PsychicHttpServer');
-      expect(result).toContain('server.config.max_uri_handlers = 17');
-      expect(result).toContain('at least 12');
     });
 
     it('should show engine-specific code for espidf', () => {
