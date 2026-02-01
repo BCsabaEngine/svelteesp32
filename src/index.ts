@@ -9,7 +9,7 @@ import { lookup as mimeLookup } from 'mime-types';
 import { cmdLine } from './commandLine';
 import { greenLog, yellowLog } from './consoleColor';
 import { CppCodeSource, CppCodeSources, ExtensionGroups, getCppCode } from './cppCode';
-import { getMaxUriHandlersHint } from './errorMessages';
+import { getMaxUriHandlersHint, getSizeBudgetExceededError } from './errorMessages';
 import { getFiles } from './file';
 
 // Compression thresholds
@@ -136,6 +136,17 @@ for (const [originalFilename, content] of files) {
 
 console.log('');
 filesByExtension.sort((left, right) => left.extension.localeCompare(right.extension));
+
+// Size budget validation
+if (cmdLine.maxSize !== undefined && summary.size > cmdLine.maxSize) {
+  console.error(getSizeBudgetExceededError('size', cmdLine.maxSize, summary.size));
+  process.exit(1);
+}
+
+if (cmdLine.maxGzipSize !== undefined && summary.gzipsize > cmdLine.maxGzipSize) {
+  console.error(getSizeBudgetExceededError('gzipSize', cmdLine.maxGzipSize, summary.gzipsize));
+  process.exit(1);
+}
 
 const cppFile = getCppCode(sources, filesByExtension);
 mkdirSync(path.normalize(path.dirname(cmdLine.outputfile)), { recursive: true });

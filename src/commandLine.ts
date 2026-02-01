@@ -18,6 +18,8 @@ interface ICopyFilesArguments {
   version: string;
   exclude: string[];
   basePath: string;
+  maxSize?: number;
+  maxGzipSize?: number;
   noIndexCheck?: boolean;
   help?: boolean;
 }
@@ -35,6 +37,8 @@ interface IRcFileConfig {
   version?: string;
   exclude?: string[];
   basePath?: string;
+  maxSize?: number;
+  maxGzipSize?: number;
 }
 
 function showHelp(): never {
@@ -59,6 +63,8 @@ Options:
   --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
                              Examples: --exclude="*.map" --exclude="test/**/*.ts"
   --base-path <path>         URL prefix for all routes (e.g., "/ui") (default: "")
+  --max-size <bytes>         Maximum total uncompressed size in bytes (CI budget)
+  --max-gzip-size <bytes>    Maximum total gzip size in bytes (CI budget)
   -h, --help                 Shows this help
 
 RC File:
@@ -100,6 +106,13 @@ function validateBasePath(value: string): string {
   if (value.endsWith('/')) throw new Error(`basePath must not end with /: ${value}`);
   if (value.includes('//')) throw new Error(`basePath must not contain //: ${value}`);
   return value;
+}
+
+function validatePositiveNumber(value: string, name: string): number {
+  const number_ = Number.parseInt(value, 10);
+  if (Number.isNaN(number_) || number_ <= 0) throw new Error(`${name} must be a positive integer: ${value}`);
+
+  return number_;
 }
 
 const DEFAULT_EXCLUDE_PATTERNS = [
@@ -271,7 +284,9 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'created',
     'version',
     'exclude',
-    'basePath'
+    'basePath',
+    'maxSize',
+    'maxGzipSize'
   ]);
 
   // Warn about unknown keys
@@ -300,6 +315,22 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     for (const pattern of configObject['exclude'])
       if (typeof pattern !== 'string') throw new TypeError('All exclude patterns must be strings');
   }
+
+  if (
+    configObject['maxSize'] !== undefined &&
+    (typeof configObject['maxSize'] !== 'number' ||
+      Number.isNaN(configObject['maxSize']) ||
+      configObject['maxSize'] <= 0)
+  )
+    throw new TypeError(`Invalid maxSize in RC file: ${configObject['maxSize']} (must be a positive number)`);
+
+  if (
+    configObject['maxGzipSize'] !== undefined &&
+    (typeof configObject['maxGzipSize'] !== 'number' ||
+      Number.isNaN(configObject['maxGzipSize']) ||
+      configObject['maxGzipSize'] <= 0)
+  )
+    throw new TypeError(`Invalid maxGzipSize in RC file: ${configObject['maxGzipSize']} (must be a positive number)`);
 
   return configObject as IRcFileConfig;
 }
@@ -356,6 +387,8 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.espmethod) result.espmethod = rcConfig.espmethod;
   if (rcConfig.define) result.define = rcConfig.define;
   if (rcConfig.basePath !== undefined) result.basePath = validateBasePath(rcConfig.basePath);
+  if (rcConfig.maxSize !== undefined) result.maxSize = rcConfig.maxSize;
+  if (rcConfig.maxGzipSize !== undefined) result.maxGzipSize = rcConfig.maxGzipSize;
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
@@ -424,6 +457,12 @@ function parseArguments(): ICopyFilesArguments {
         }
         case 'base-path':
           result.basePath = validateBasePath(value);
+          break;
+        case 'max-size':
+          result.maxSize = validatePositiveNumber(value, '--max-size');
+          break;
+        case 'max-gzip-size':
+          result.maxGzipSize = validatePositiveNumber(value, '--max-gzip-size');
           break;
         default:
           throw new Error(`Unknown flag: ${flag}`);
@@ -531,6 +570,14 @@ function parseArguments(): ICopyFilesArguments {
           result.basePath = validateBasePath(nextArgument);
           index++;
           break;
+        case 'max-size':
+          result.maxSize = validatePositiveNumber(nextArgument, '--max-size');
+          index++;
+          break;
+        case 'max-gzip-size':
+          result.maxGzipSize = validatePositiveNumber(nextArgument, '--max-gzip-size');
+          index++;
+          break;
         default:
           throw new Error(`Unknown flag: --${flag}`);
       }
@@ -574,6 +621,10 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   if (cmdLine.define) parts.push(`define=${cmdLine.define}`);
 
   if (cmdLine.basePath) parts.push(`basePath=${cmdLine.basePath}`);
+
+  if (cmdLine.maxSize !== undefined) parts.push(`maxSize=${cmdLine.maxSize}`);
+
+  if (cmdLine.maxGzipSize !== undefined) parts.push(`maxGzipSize=${cmdLine.maxGzipSize}`);
 
   if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
 

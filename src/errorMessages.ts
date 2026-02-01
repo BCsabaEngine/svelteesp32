@@ -134,6 +134,39 @@ Attempted path: ${resolvedPath} (resolved)`
 }
 
 /**
+ * Error: Size budget exceeded
+ */
+export function getSizeBudgetExceededError(type: 'size' | 'gzipSize', limit: number, actual: number): string {
+  const typeLabel = type === 'size' ? 'Uncompressed' : 'Gzip';
+  const flagName = type === 'size' ? '--max-size' : '--max-gzip-size';
+  const overage = actual - limit;
+  const overagePercent = Math.round((overage / limit) * 100);
+
+  return (
+    redLog(`[ERROR] ${typeLabel} size budget exceeded`) +
+    `
+
+Budget:   ${limit.toLocaleString()} bytes
+Actual:   ${actual.toLocaleString()} bytes
+Overage:  ${overage.toLocaleString()} bytes (+${overagePercent}%)
+
+Why this matters:
+  Size budgets help prevent frontend bloat and ensure your application
+  fits within ESP32 flash memory constraints.
+
+How to fix:
+  1. Reduce bundle size (tree-shaking, code splitting, smaller dependencies)
+  2. Optimize assets (compress images, minify CSS/JS)
+  3. Remove unused files with --exclude patterns
+  4. Increase the budget: ${flagName}=${actual}
+
+CI integration:
+  This non-zero exit code allows build pipelines to fail early when
+  the frontend exceeds allocated flash space.`
+  );
+}
+
+/**
  * Hint: max_uri_handlers configuration (console output, not an error)
  */
 export function getMaxUriHandlersHint(engine: string, routeCount: number): string {
