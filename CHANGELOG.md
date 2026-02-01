@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-02-01
+
+### Added
+
+- **Size Budget Constraints**: New `--maxsize` and `--maxgzipsize` options to enforce file size limits
+  - Supports human-readable suffixes: `k`/`K` (×1024) and `m`/`M` (×1024²)
+  - Examples: `--maxsize=400k`, `--maxgzipsize=1.5m`, `--maxsize=409600`
+  - Validates total uncompressed size (`--maxsize`) and total gzip size (`--maxgzipsize`)
+  - Exits with non-zero code when budget exceeded, enabling CI/CD pipeline failures
+  - Detailed error message shows budget, actual size, overage amount, and percentage
+  - RC file support: `maxSize` and `maxGzipSize` properties (accept strings with k/m suffix or numbers)
+  - Works with all 4 engines (psychic, psychic2, async, espidf)
+- New `getSizeBudgetExceededError()` function in `src/errorMessages.ts` with actionable hints
+- New `parseSize()` function in `src/commandLine.ts` for parsing size values with k/m suffixes
+- 40+ new unit tests for size budget feature:
+  - Size parsing (k/m suffixes, decimal values, edge cases)
+  - CLI argument parsing (`--maxsize`, `--maxgzipsize`)
+  - RC file validation for size properties
+  - Error message content validation
+
+### Changed
+
+- **CLI Option Naming**: Simplified command-line option names (breaking change for scripts using old names)
+  - `--base-path` → `--basepath`
+  - `--no-index-check` → `--noindexcheck`
+- Updated help text with new size budget options and corrected flag names
+- Updated README.md with corrected flag names
+
 ## [1.15.0] - 2026-02-01
 
 - **Base Path Support**: New `--base-path` option to prefix all generated routes with a URL path
@@ -474,6 +502,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.16.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.15.0...v1.16.0
+[1.15.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.14.0...v1.15.0
 [1.14.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.13.1...v1.14.0
 [1.13.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.12.1...v1.13.0
