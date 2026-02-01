@@ -214,7 +214,7 @@ Added `--basepath` option to prefix all generated routes with a URL path:
 - **Manifest**: Paths in file manifest include basePath
 - **Default route**: When basePath is set, creates explicit `basePath` route instead of using `defaultEndpoint`
 - **Validation**: Must start with `/`, must not end with `/`, no double slashes
-- **RC file support**: Can be set via `basePath` property
+- **RC file support**: Can be set via `basepath` property
 - **npm interpolation**: Supports `$npm_package_*` variables
 
 ### Comparison Table (README)

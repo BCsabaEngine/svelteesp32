@@ -995,10 +995,10 @@ describe('commandLine', () => {
         expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Unknown property 'anotherUnknown'"));
       });
 
-      it('should load basePath from RC file', async () => {
+      it('should load basepath from RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          basePath: '/admin'
+          basepath: '/admin'
         });
 
         const fsModule = await import('node:fs');
@@ -1013,10 +1013,10 @@ describe('commandLine', () => {
         expect(cmdLine.basePath).toBe('/admin');
       });
 
-      it('should validate basePath from RC file', async () => {
+      it('should validate basepath from RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          basePath: 'invalid'
+          basepath: 'invalid'
         });
 
         const fsModule = await import('node:fs');
@@ -1029,10 +1029,10 @@ describe('commandLine', () => {
         await expect(import('../../src/commandLine')).rejects.toThrow('basePath must start with /: invalid');
       });
 
-      it('should load maxSize from RC file', async () => {
+      it('should load maxsize from RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxSize: 500_000
+          maxsize: 500_000
         });
 
         const fsModule = await import('node:fs');
@@ -1047,10 +1047,10 @@ describe('commandLine', () => {
         expect(cmdLine.maxSize).toBe(500_000);
       });
 
-      it('should load maxGzipSize from RC file', async () => {
+      it('should load maxgzipsize from RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxGzipSize: 200_000
+          maxgzipsize: 200_000
         });
 
         const fsModule = await import('node:fs');
@@ -1065,10 +1065,10 @@ describe('commandLine', () => {
         expect(cmdLine.maxGzipSize).toBe(200_000);
       });
 
-      it('should validate maxSize is a positive number in RC file', async () => {
+      it('should validate maxsize is a positive number in RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxSize: -100
+          maxsize: -100
         });
 
         const fsModule = await import('node:fs');
@@ -1077,13 +1077,13 @@ describe('commandLine', () => {
 
         process.argv = ['node', 'script.js'];
 
-        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxSize in RC file');
+        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxsize in RC file');
       });
 
-      it('should validate maxGzipSize is a positive number in RC file', async () => {
+      it('should validate maxgzipsize is a positive number in RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxGzipSize: 0
+          maxgzipsize: 0
         });
 
         const fsModule = await import('node:fs');
@@ -1092,13 +1092,13 @@ describe('commandLine', () => {
 
         process.argv = ['node', 'script.js'];
 
-        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxGzipSize in RC file');
+        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxgzipsize in RC file');
       });
 
-      it('should validate maxSize is not an invalid string in RC file', async () => {
+      it('should validate maxsize is not an invalid string in RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxSize: 'notanumber'
+          maxsize: 'notanumber'
         });
 
         const fsModule = await import('node:fs');
@@ -1107,13 +1107,13 @@ describe('commandLine', () => {
 
         process.argv = ['node', 'script.js'];
 
-        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxSize in RC file');
+        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid maxsize in RC file');
       });
 
-      it('should load maxSize with k suffix from RC file', async () => {
+      it('should load maxsize with k suffix from RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxSize: '400k'
+          maxsize: '400k'
         });
 
         const fsModule = await import('node:fs');
@@ -1128,10 +1128,10 @@ describe('commandLine', () => {
         expect(cmdLine.maxSize).toBe(409_600); // 400 * 1024
       });
 
-      it('should load maxSize with m suffix from RC file', async () => {
+      it('should load maxsize with m suffix from RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxSize: '1.5m'
+          maxsize: '1.5m'
         });
 
         const fsModule = await import('node:fs');
@@ -1146,10 +1146,10 @@ describe('commandLine', () => {
         expect(cmdLine.maxSize).toBe(1_572_864); // 1.5 * 1024 * 1024
       });
 
-      it('should load maxGzipSize with k suffix from RC file', async () => {
+      it('should load maxgzipsize with k suffix from RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxGzipSize: '150k'
+          maxgzipsize: '150k'
         });
 
         const fsModule = await import('node:fs');
@@ -1164,10 +1164,10 @@ describe('commandLine', () => {
         expect(cmdLine.maxGzipSize).toBe(153_600); // 150 * 1024
       });
 
-      it('should reject invalid suffix in maxSize from RC file', async () => {
+      it('should reject invalid suffix in maxsize from RC file', async () => {
         const mockRcContent = JSON.stringify({
           sourcepath: '/test/dist',
-          maxSize: '400g'
+          maxsize: '400g'
         });
 
         const fsModule = await import('node:fs');
@@ -1177,8 +1177,61 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         await expect(import('../../src/commandLine')).rejects.toThrow(
-          'Invalid maxSize in RC file: 400g (must be a positive number with optional k/m suffix)'
+          'Invalid maxsize in RC file: 400g (must be a positive number with optional k/m suffix)'
         );
+      });
+
+      it('should load noindexcheck from RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          noindexcheck: true
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+        vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+        process.argv = ['node', 'script.js'];
+
+        const { cmdLine } = await import('../../src/commandLine');
+
+        expect(cmdLine.noIndexCheck).toBe(true);
+      });
+
+      it('should validate noindexcheck is a boolean in RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          noindexcheck: 'yes'
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+        process.argv = ['node', 'script.js'];
+
+        await expect(import('../../src/commandLine')).rejects.toThrow(
+          'Invalid noindexcheck in RC file: yes (must be boolean)'
+        );
+      });
+
+      it('should allow CLI --noindexcheck to override RC file noindexcheck=false', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          noindexcheck: false
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+        vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+        process.argv = ['node', 'script.js', '--noindexcheck'];
+
+        const { cmdLine } = await import('../../src/commandLine');
+
+        expect(cmdLine.noIndexCheck).toBe(true);
       });
     });
 
@@ -1326,11 +1379,11 @@ describe('commandLine', () => {
           expect(hasNpmVariables(config)).toBe(true);
         });
 
-        it('should return true when variable in basePath', async () => {
+        it('should return true when variable in basepath', async () => {
           process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
           const { hasNpmVariables } = await import('../../src/commandLine');
           const config = {
-            basePath: '/$npm_package_name'
+            basepath: '/$npm_package_name'
           };
           expect(hasNpmVariables(config)).toBe(true);
         });
@@ -1425,7 +1478,7 @@ describe('commandLine', () => {
           expect(result.exclude).toEqual(['*.map', 'testapp/**/*.test.js']);
         });
 
-        it('should interpolate basePath field', async () => {
+        it('should interpolate basepath field', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
@@ -1436,10 +1489,10 @@ describe('commandLine', () => {
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
           const config = {
-            basePath: '/$npm_package_name'
+            basepath: '/$npm_package_name'
           };
           const result = interpolateNpmVariables(config, '/test/.svelteesp32rc.json');
-          expect(result.basePath).toBe('/testapp');
+          expect(result.basepath).toBe('/testapp');
         });
 
         it('should handle mixed static and variable content', async () => {
@@ -1536,7 +1589,7 @@ describe('commandLine', () => {
           expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('exclude[1]');
         });
 
-        it('should list espmethod and basePath in error message when package.json not found', async () => {
+        it('should list espmethod and basepath in error message when package.json not found', async () => {
           process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
           const fsModule = await import('node:fs');
@@ -1550,11 +1603,11 @@ describe('commandLine', () => {
           const { interpolateNpmVariables } = await import('../../src/commandLine');
           const config = {
             espmethod: '$npm_package_name_init',
-            basePath: '/$npm_package_name'
+            basepath: '/$npm_package_name'
           };
 
           expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('espmethod');
-          expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('basePath');
+          expect(() => interpolateNpmVariables(config, '/test/.svelteesp32rc.json')).toThrow('basepath');
         });
 
         it('should handle nested package.json fields', async () => {
