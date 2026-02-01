@@ -36,9 +36,10 @@ interface IRcFileConfig {
   created?: boolean;
   version?: string;
   exclude?: string[];
-  basePath?: string;
-  maxSize?: number | string;
-  maxGzipSize?: number | string;
+  basepath?: string;
+  maxsize?: number | string;
+  maxgzipsize?: number | string;
+  noindexcheck?: boolean;
 }
 
 function showHelp(): never {
@@ -79,7 +80,11 @@ RC File:
       "outputfile": "./output.h",
       "etag": "true",
       "gzip": "true",
-      "exclude": ["*.map", "*.md"]
+      "exclude": ["*.map", "*.md"],
+      "basepath": "/ui",
+      "maxsize": "400k",
+      "maxgzipsize": "150k",
+      "noindexcheck": false
     }
 
   CLI arguments override RC file values.
@@ -208,7 +213,7 @@ function hasNpmVariables(config: IRcFileConfig): boolean {
     checkStringForNpmVariable(config.espmethod) ||
     checkStringForNpmVariable(config.define) ||
     checkStringForNpmVariable(config.version) ||
-    checkStringForNpmVariable(config.basePath) ||
+    checkStringForNpmVariable(config.basepath) ||
     (Array.isArray(config.exclude) && config.exclude.some((pattern) => checkStringForNpmVariable(pattern))) ||
     false
   );
@@ -227,7 +232,7 @@ function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRc
     if (config.version?.includes('$npm_package_')) affectedFields.push('version');
     if (config.espmethod?.includes('$npm_package_')) affectedFields.push('espmethod');
     if (config.define?.includes('$npm_package_')) affectedFields.push('define');
-    if (config.basePath?.includes('$npm_package_')) affectedFields.push('basePath');
+    if (config.basepath?.includes('$npm_package_')) affectedFields.push('basepath');
     if (config.exclude)
       for (const [index, pattern] of config.exclude.entries())
         if (pattern.includes('$npm_package_')) affectedFields.push(`exclude[${index}]`);
@@ -259,7 +264,7 @@ function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRc
   if (result.espmethod) result.espmethod = interpolateString(result.espmethod);
   if (result.define) result.define = interpolateString(result.define);
   if (result.version) result.version = interpolateString(result.version);
-  if (result.basePath) result.basePath = interpolateString(result.basePath);
+  if (result.basepath) result.basepath = interpolateString(result.basepath);
   if (result.exclude) result.exclude = result.exclude.map((pattern) => interpolateString(pattern));
 
   return result;
@@ -299,9 +304,10 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'created',
     'version',
     'exclude',
-    'basePath',
-    'maxSize',
-    'maxGzipSize'
+    'basepath',
+    'maxsize',
+    'maxgzipsize',
+    'noindexcheck'
   ]);
 
   // Warn about unknown keys
@@ -331,33 +337,36 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
       if (typeof pattern !== 'string') throw new TypeError('All exclude patterns must be strings');
   }
 
-  if (configObject['maxSize'] !== undefined) {
-    const value = configObject['maxSize'];
+  if (configObject['maxsize'] !== undefined) {
+    const value = configObject['maxsize'];
     if (typeof value === 'string')
       try {
-        configObject['maxSize'] = parseSize(value, 'maxSize');
+        configObject['maxsize'] = parseSize(value, 'maxsize');
       } catch {
         throw new TypeError(
-          `Invalid maxSize in RC file: ${value} (must be a positive number with optional k/m suffix)`
+          `Invalid maxsize in RC file: ${value} (must be a positive number with optional k/m suffix)`
         );
       }
     else if (typeof value !== 'number' || Number.isNaN(value) || value <= 0)
-      throw new TypeError(`Invalid maxSize in RC file: ${value} (must be a positive number)`);
+      throw new TypeError(`Invalid maxsize in RC file: ${value} (must be a positive number)`);
   }
 
-  if (configObject['maxGzipSize'] !== undefined) {
-    const value = configObject['maxGzipSize'];
+  if (configObject['maxgzipsize'] !== undefined) {
+    const value = configObject['maxgzipsize'];
     if (typeof value === 'string')
       try {
-        configObject['maxGzipSize'] = parseSize(value, 'maxGzipSize');
+        configObject['maxgzipsize'] = parseSize(value, 'maxgzipsize');
       } catch {
         throw new TypeError(
-          `Invalid maxGzipSize in RC file: ${value} (must be a positive number with optional k/m suffix)`
+          `Invalid maxgzipsize in RC file: ${value} (must be a positive number with optional k/m suffix)`
         );
       }
     else if (typeof value !== 'number' || Number.isNaN(value) || value <= 0)
-      throw new TypeError(`Invalid maxGzipSize in RC file: ${value} (must be a positive number)`);
+      throw new TypeError(`Invalid maxgzipsize in RC file: ${value} (must be a positive number)`);
   }
+
+  if (configObject['noindexcheck'] !== undefined && typeof configObject['noindexcheck'] !== 'boolean')
+    throw new TypeError(`Invalid noindexcheck in RC file: ${configObject['noindexcheck']} (must be boolean)`);
 
   return configObject as IRcFileConfig;
 }
@@ -413,9 +422,10 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.version) result.version = rcConfig.version;
   if (rcConfig.espmethod) result.espmethod = rcConfig.espmethod;
   if (rcConfig.define) result.define = rcConfig.define;
-  if (rcConfig.basePath !== undefined) result.basePath = validateBasePath(rcConfig.basePath);
-  if (rcConfig.maxSize !== undefined) result.maxSize = rcConfig.maxSize as number;
-  if (rcConfig.maxGzipSize !== undefined) result.maxGzipSize = rcConfig.maxGzipSize as number;
+  if (rcConfig.basepath !== undefined) result.basePath = validateBasePath(rcConfig.basepath);
+  if (rcConfig.maxsize !== undefined) result.maxSize = rcConfig.maxsize as number;
+  if (rcConfig.maxgzipsize !== undefined) result.maxGzipSize = rcConfig.maxgzipsize as number;
+  if (rcConfig.noindexcheck !== undefined) result.noIndexCheck = rcConfig.noindexcheck;
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
