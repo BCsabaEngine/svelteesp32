@@ -52,40 +52,6 @@ void loop() {}
 #error Too many CSS files
 #endif
 
-PsychicHttpServer server;
-void setup()
-{
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, pass);
-  if (WiFi.waitForConnectResult() != WL_CONNECTED)
-    while (true)
-      ;
-
-  server.listen(80);
-  initSvelteStaticFiles(&server);
-}
-void loop() {}
-
-#elif PSYCHIC2
-/* PsychicHttp example */
-
-#include "credentials.h"
-#include <WiFi.h>
-#include <PsychicHttp.h>
-#include "svelteesp32psychic2.h"
-
-#if SVELTEESP32_COUNT != 11
-#error Invalid file count
-#endif
-
-#ifndef SVELTEESP32_FILE_INDEX_HTML
-#error Missing index file
-#endif
-
-#if SVELTEESP32_CSS_FILES > 1
-#error Too many CSS files
-#endif
-
 PsychicHttpServer server(80);
 void setup()
 {
