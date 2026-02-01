@@ -22,7 +22,7 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 
 # CLI Usage
 npx svelteesp32 -e psychic -s ./dist -o ./output.h --etag=true --gzip=true --exclude="*.map"
-npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
+npx svelteesp32 --noindexcheck  # Skip index.html validation (API-only apps)
 ```
 
 ## Architecture
@@ -38,7 +38,7 @@ npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 
 ### Processing Pipeline
 
-1. **File Collection** (`file.ts`): Glob scan → skip pre-compressed (.gz/.br) if original exists → filter exclude patterns → validate index.html (unless `--no-index-check`)
+1. **File Collection** (`file.ts`): Glob scan → skip pre-compressed (.gz/.br) if original exists → filter exclude patterns → validate index.html (unless `--noindexcheck`)
 2. **Content Analysis** (`index.ts`): MIME types → SHA256 ETags → extension grouping
 3. **Compression** (`index.ts`): Gzip level 9 if >1024 bytes AND >15% reduction
 4. **Code Generation** (`cppCode.ts`): Handlebars templates → engine-specific C++ → byte arrays + route handlers + ETags + file manifest
@@ -58,12 +58,12 @@ npx svelteesp32 --no-index-check  # Skip index.html validation (API-only apps)
 - **ETag Support**: HTTP 304 Not Modified responses on all engines (SHA256 hashes, If-None-Match validation)
 - **CI/CD Integration**: npm package, RC files, variable interpolation from package.json
 - **File Exclusion**: Glob patterns (`--exclude="*.map,*.md"`)
-- **Index.html Validation**: Ensures default entry point exists (skip with `--no-index-check` for APIs)
+- **Index.html Validation**: Ensures default entry point exists (skip with `--noindexcheck` for APIs)
 - **Multi-Engine**: Generates optimized C++ for 4 different web server frameworks
 - **C++ Defines**: Build-time validation (`SVELTEESP32_COUNT`, `SVELTEESP32_FILE_INDEX_HTML`, etc.)
 - **File Manifest**: Runtime introspection of embedded files (path, size, gzipSize, etag, contentType)
 - **onFileServed Hook**: Weak function called on every file serve (path, statusCode) for metrics/logging
-- **Base Path Support**: URL prefix for all routes (`--base-path=/ui`), enabling multiple frontends in one firmware
+- **Base Path Support**: URL prefix for all routes (`--basepath=/ui`), enabling multiple frontends in one firmware
 
 ## Configuration
 
@@ -82,7 +82,7 @@ RC files support `$npm_package_*` variables from package.json:
 
 ### CLI Options
 
-Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--base-path` (URL prefix), `--no-index-check`, `--cachetime`, `--version`, `--define`, `--espmethod`
+Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--basepath` (URL prefix), `--noindexcheck`, `--cachetime`, `--version`, `--define`, `--espmethod`
 
 ## Generated C++ Code
 
@@ -178,7 +178,7 @@ __attribute__((weak)) void {{definePrefix}}_onFileServed(const char* path, int s
 
 - Checks for `index.html` or `index.htm` in root or subdirectories
 - Shows engine-specific hints on error: `server->defaultEndpoint` (psychic), `server.on("/")` (async), etc.
-- Skip with `--no-index-check` flag for API-only applications
+- Skip with `--noindexcheck` flag for API-only applications
 
 ### Template System (`src/cppCode.ts`)
 
@@ -207,9 +207,9 @@ const GZIP_MIN_REDUCTION_RATIO = 0.85; // Use gzip if <85% of original
 
 ### Base Path Support
 
-Added `--base-path` option to prefix all generated routes with a URL path:
+Added `--basepath` option to prefix all generated routes with a URL path:
 
-- **Usage**: `--base-path=/ui` or `--base-path=/admin`
+- **Usage**: `--basepath=/ui` or `--basepath=/admin`
 - **Effect**: All routes prefixed (e.g., `/index.html` becomes `/ui/index.html`)
 - **Manifest**: Paths in file manifest include basePath
 - **Default route**: When basePath is set, creates explicit `basePath` route instead of using `defaultEndpoint`
@@ -228,7 +228,7 @@ README includes comparison table: SvelteESP32 vs Traditional Filesystem (SPIFFS/
 
 Enhanced error messages with framework-specific hints:
 
-- **Missing index.html**: Engine-specific routing examples, `--no-index-check` flag
+- **Missing index.html**: Engine-specific routing examples, `--noindexcheck` flag
 - **Invalid engine**: Lists all 4 engines with descriptions
 - **Sourcepath not found**: Build tool hints (Vite, Webpack, Rollup)
 - **max_uri_handlers**: Console hints after generation (psychic, psychic2, espidf)

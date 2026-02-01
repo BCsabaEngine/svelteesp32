@@ -62,9 +62,9 @@ Options:
   --cachetime <seconds>      max-age cache time in seconds (default: 0)
   --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
                              Examples: --exclude="*.map" --exclude="test/**/*.ts"
-  --base-path <path>         URL prefix for all routes (e.g., "/ui") (default: "")
-  --max-size <size>          Maximum total uncompressed size (e.g., 400k, 1.5m, 409600)
-  --max-gzip-size <size>     Maximum total gzip size (e.g., 150k, 1m, 153600)
+  --basepath <path>          URL prefix for all routes (e.g., "/ui") (default: "")
+  --maxsize <size>           Maximum total uncompressed size (e.g., 400k, 1.5m, 409600)
+  --maxgzipsize <size>       Maximum total gzip size (e.g., 150k, 1m, 153600)
   -h, --help                 Shows this help
 
 RC File:
@@ -482,14 +482,14 @@ function parseArguments(): ICopyFilesArguments {
           cliExclude.push(...patterns);
           break;
         }
-        case 'base-path':
+        case 'basepath':
           result.basePath = validateBasePath(value);
           break;
-        case 'max-size':
-          result.maxSize = parseSize(value, '--max-size');
+        case 'maxsize':
+          result.maxSize = parseSize(value, '--maxsize');
           break;
-        case 'max-gzip-size':
-          result.maxGzipSize = parseSize(value, '--max-gzip-size');
+        case 'maxgzipsize':
+          result.maxGzipSize = parseSize(value, '--maxgzipsize');
           break;
         default:
           throw new Error(`Unknown flag: ${flag}`);
@@ -503,7 +503,7 @@ function parseArguments(): ICopyFilesArguments {
       continue;
     }
 
-    if (argument === '--no-index-check') {
+    if (argument === '--noindexcheck') {
       result.noIndexCheck = true;
       continue;
     }
@@ -593,16 +593,16 @@ function parseArguments(): ICopyFilesArguments {
           index++;
           break;
         }
-        case 'base-path':
+        case 'basepath':
           result.basePath = validateBasePath(nextArgument);
           index++;
           break;
-        case 'max-size':
-          result.maxSize = parseSize(nextArgument, '--max-size');
+        case 'maxsize':
+          result.maxSize = parseSize(nextArgument, '--maxsize');
           index++;
           break;
-        case 'max-gzip-size':
-          result.maxGzipSize = parseSize(nextArgument, '--max-gzip-size');
+        case 'maxgzipsize':
+          result.maxGzipSize = parseSize(nextArgument, '--maxgzipsize');
           index++;
           break;
         default:

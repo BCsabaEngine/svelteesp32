@@ -347,7 +347,7 @@ describe('file', () => {
       expect(process.exit).not.toHaveBeenCalled();
     });
 
-    it('should skip validation if --no-index-check is true', async () => {
+    it('should skip validation if --noindexcheck is true', async () => {
       const mockFiles = ['style.css', 'script.js'];
       const mockContent = Buffer.from('test content');
 

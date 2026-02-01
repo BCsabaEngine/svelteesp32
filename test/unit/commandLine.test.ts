@@ -54,7 +54,7 @@ describe('commandLine', () => {
       expect(helpOutput).toContain('--etag');
       expect(helpOutput).toContain('--gzip');
       expect(helpOutput).toContain('--exclude');
-      expect(helpOutput).toContain('--base-path');
+      expect(helpOutput).toContain('--basepath');
       expect(process.exit).toHaveBeenCalledWith(0);
     });
 
@@ -272,8 +272,8 @@ describe('commandLine', () => {
       expect(cmdLine.created).toBe(true);
     });
 
-    it('should parse --no-index-check flag', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--no-index-check'];
+    it('should parse --noindexcheck flag', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--noindexcheck'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
@@ -288,16 +288,16 @@ describe('commandLine', () => {
       expect(cmdLine.basePath).toBe('');
     });
 
-    it('should parse --base-path=/ui with equals format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--base-path=/ui'];
+    it('should parse --basepath=/ui with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--basepath=/ui'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.basePath).toBe('/ui');
     });
 
-    it('should parse --base-path /admin with space format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--base-path', '/admin'];
+    it('should parse --basepath /admin with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--basepath', '/admin'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
@@ -485,82 +485,82 @@ describe('commandLine', () => {
     });
 
     it('should reject basePath without leading slash', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--base-path=ui'];
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--basepath=ui'];
 
       await expect(import('../../src/commandLine')).rejects.toThrow('basePath must start with /: ui');
     });
 
     it('should reject basePath with trailing slash', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--base-path=/ui/'];
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--basepath=/ui/'];
 
       await expect(import('../../src/commandLine')).rejects.toThrow('basePath must not end with /: /ui/');
     });
 
     it('should reject basePath with double slash', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--base-path=/ui//admin'];
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--basepath=/ui//admin'];
 
       await expect(import('../../src/commandLine')).rejects.toThrow('basePath must not contain //: /ui//admin');
     });
 
-    it('should parse --max-size with equals format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=400000'];
+    it('should parse --maxsize with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=400000'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxSize).toBe(400_000);
     });
 
-    it('should parse --max-size with space format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size', '500000'];
+    it('should parse --maxsize with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize', '500000'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxSize).toBe(500_000);
     });
 
-    it('should parse --max-gzip-size with equals format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-gzip-size=150000'];
+    it('should parse --maxgzipsize with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize=150000'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxGzipSize).toBe(150_000);
     });
 
-    it('should parse --max-gzip-size with space format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-gzip-size', '200000'];
+    it('should parse --maxgzipsize with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize', '200000'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxGzipSize).toBe(200_000);
     });
 
-    it('should reject non-numeric --max-size', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=abc'];
+    it('should reject non-numeric --maxsize', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=abc'];
 
       await expect(import('../../src/commandLine')).rejects.toThrow(
-        '--max-size must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: abc'
+        '--maxsize must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: abc'
       );
     });
 
-    it('should reject negative --max-size', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=-100'];
+    it('should reject negative --maxsize', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=-100'];
 
       await expect(import('../../src/commandLine')).rejects.toThrow(
-        '--max-size must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: -100'
+        '--maxsize must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: -100'
       );
     });
 
-    it('should reject zero --max-size', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=0'];
+    it('should reject zero --maxsize', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=0'];
 
-      await expect(import('../../src/commandLine')).rejects.toThrow('--max-size must be a positive integer: 0');
+      await expect(import('../../src/commandLine')).rejects.toThrow('--maxsize must be a positive integer: 0');
     });
 
-    it('should reject non-numeric --max-gzip-size', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-gzip-size=xyz'];
+    it('should reject non-numeric --maxgzipsize', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize=xyz'];
 
       await expect(import('../../src/commandLine')).rejects.toThrow(
-        '--max-gzip-size must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: xyz'
+        '--maxgzipsize must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: xyz'
       );
     });
 
@@ -580,64 +580,64 @@ describe('commandLine', () => {
       expect(cmdLine.maxGzipSize).toBeUndefined();
     });
 
-    it('should parse --max-size with k suffix', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=400k'];
+    it('should parse --maxsize with k suffix', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=400k'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxSize).toBe(409_600); // 400 * 1024
     });
 
-    it('should parse --max-size with K suffix (uppercase)', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=400K'];
+    it('should parse --maxsize with K suffix (uppercase)', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=400K'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxSize).toBe(409_600); // 400 * 1024
     });
 
-    it('should parse --max-size with m suffix', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=1m'];
+    it('should parse --maxsize with m suffix', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=1m'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxSize).toBe(1_048_576); // 1 * 1024 * 1024
     });
 
-    it('should parse --max-size with M suffix (uppercase)', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=2M'];
+    it('should parse --maxsize with M suffix (uppercase)', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=2M'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxSize).toBe(2_097_152); // 2 * 1024 * 1024
     });
 
-    it('should parse --max-size with decimal and k suffix', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=1.5k'];
+    it('should parse --maxsize with decimal and k suffix', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=1.5k'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxSize).toBe(1536); // 1.5 * 1024
     });
 
-    it('should parse --max-size with decimal and m suffix', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=1.5m'];
+    it('should parse --maxsize with decimal and m suffix', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=1.5m'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxSize).toBe(1_572_864); // 1.5 * 1024 * 1024
     });
 
-    it('should parse --max-gzip-size with k suffix', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-gzip-size=150k'];
+    it('should parse --maxgzipsize with k suffix', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize=150k'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.maxGzipSize).toBe(153_600); // 150 * 1024
     });
 
-    it('should parse --max-gzip-size with m suffix', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-gzip-size=1m'];
+    it('should parse --maxgzipsize with m suffix', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize=1m'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
@@ -645,15 +645,15 @@ describe('commandLine', () => {
     });
 
     it('should reject invalid suffix (g)', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size=400g'];
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=400g'];
 
       await expect(import('../../src/commandLine')).rejects.toThrow(
-        '--max-size must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: 400g'
+        '--maxsize must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: 400g'
       );
     });
 
-    it('should parse --max-size with space format and k suffix', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--max-size', '500k'];
+    it('should parse --maxsize with space format and k suffix', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize', '500k'];
 
       const { cmdLine } = await import('../../src/commandLine');
 

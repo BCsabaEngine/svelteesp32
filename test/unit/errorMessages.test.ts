@@ -50,7 +50,7 @@ describe('errorMessages', () => {
     it('should include alternative solution', () => {
       const result = getMissingIndexError('psychic');
       expect(result).toContain('Alternative:');
-      expect(result).toContain('--no-index-check');
+      expect(result).toContain('--noindexcheck');
     });
 
     it('should fallback to psychic hint for unknown engine', () => {
@@ -205,12 +205,12 @@ describe('errorMessages', () => {
 
     it('should include correct flag name for size type', () => {
       const result = getSizeBudgetExceededError('size', 100_000, 150_000);
-      expect(result).toContain('--max-size=150000');
+      expect(result).toContain('--maxsize=150000');
     });
 
     it('should include correct flag name for gzipSize type', () => {
       const result = getSizeBudgetExceededError('gzipSize', 50_000, 75_000);
-      expect(result).toContain('--max-gzip-size=75000');
+      expect(result).toContain('--maxgzipsize=75000');
     });
 
     it('should include why this matters section', () => {
