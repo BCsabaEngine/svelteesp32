@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-02-01
+
+### Fixed
+
+- **RC File Property Naming Consistency**: Standardized all RC file properties to lowercase for consistency with CLI flag naming
+  - `basePath` → `basepath`
+  - `maxSize` → `maxsize`
+  - `maxGzipSize` → `maxgzipsize`
+  - Note: This is a breaking change if using these properties in RC files with camelCase names
+- **Added `noindexcheck` to RC File Support**: The `noindexcheck` option can now be set in RC files as a boolean
+- Updated help text RC file example to show all available options including `basepath`, `maxsize`, `maxgzipsize`, and `noindexcheck`
+
 ## [1.16.0] - 2026-02-01
 
 ### Added
@@ -17,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validates total uncompressed size (`--maxsize`) and total gzip size (`--maxgzipsize`)
   - Exits with non-zero code when budget exceeded, enabling CI/CD pipeline failures
   - Detailed error message shows budget, actual size, overage amount, and percentage
-  - RC file support: `maxSize` and `maxGzipSize` properties (accept strings with k/m suffix or numbers)
+  - RC file support: `maxsize` and `maxgzipsize` properties (accept strings with k/m suffix or numbers)
   - Works with all 4 engines (psychic, psychic2, async, espidf)
 - New `getSizeBudgetExceededError()` function in `src/errorMessages.ts` with actionable hints
 - New `parseSize()` function in `src/commandLine.ts` for parsing size values with k/m suffixes
@@ -502,6 +514,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[1.16.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.16.0...v1.16.1
 [1.16.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.14.0...v1.15.0
 [1.14.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.13.1...v1.14.0

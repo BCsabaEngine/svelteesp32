@@ -75,6 +75,7 @@ void setup() {
 
 ## What's New
 
+- **v1.16.0** — Size budget constraints (`--maxsize`, `--maxgzipsize`)
 - **v1.15.0** — `--basepath` for multiple frontends (e.g., `/admin`, `/app`)
 - **v1.13.0** — npm package variable interpolation in RC files
 - **v1.12.0** — RC file configuration support
@@ -411,6 +412,8 @@ Called for every response (200 = content served, 304 = cache hit).
 | `--gzip`         | Gzip compression (true/false/compiler)            | `true`                  |
 | `--exclude`      | Exclude files by glob pattern                     | System files            |
 | `--basepath`     | URL prefix for all routes                         | (none)                  |
+| `--maxsize`      | Max total uncompressed size (e.g., `400k`, `1m`)  | (none)                  |
+| `--maxgzipsize`  | Max total gzip size (e.g., `150k`, `500k`)        | (none)                  |
 | `--cachetime`    | Cache-Control max-age in seconds                  | `0`                     |
 | `--version`      | Version string in header                          | (none)                  |
 | `--define`       | C++ define prefix                                 | `SVELTEESP32`           |
@@ -432,7 +435,11 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
   "outputfile": "./esp32/svelteesp32.h",
   "etag": "true",
   "gzip": "true",
-  "exclude": ["*.map", "*.md"]
+  "exclude": ["*.map", "*.md"],
+  "basepath": "/ui",
+  "maxsize": "400k",
+  "maxgzipsize": "150k",
+  "noindexcheck": false
 }
 ```
 
