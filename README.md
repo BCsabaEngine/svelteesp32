@@ -6,6 +6,10 @@
 
 [Changelog](CHANGELOG.md)
 
+<p align="center">
+  <img src="svelteesp32.png" alt="svelteesp32" />
+</p>
+
 ---
 
 ## Why SvelteESP32?
