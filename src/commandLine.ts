@@ -6,7 +6,7 @@ import { cyanLog, yellowLog } from './consoleColor';
 import { getInvalidEngineError, getSourcepathNotFoundError } from './errorMessages';
 
 interface ICopyFilesArguments {
-  engine: 'psychic' | 'psychic2' | 'async' | 'espidf';
+  engine: 'psychic' | 'async' | 'espidf';
   sourcepath: string;
   outputfile: string;
   espmethod: string;
@@ -25,7 +25,7 @@ interface ICopyFilesArguments {
 }
 
 interface IRcFileConfig {
-  engine?: 'psychic' | 'psychic2' | 'async' | 'espidf';
+  engine?: 'psychic' | 'async' | 'espidf';
   sourcepath?: string;
   outputfile?: string;
   espmethod?: string;
@@ -51,7 +51,7 @@ Configuration:
 
 Options:
   -e, --engine <value>       The engine for which the include file is created
-                             (psychic|psychic2|async|espidf) (default: "psychic")
+                             (psychic|async|espidf) (default: "psychic")
   -s, --sourcepath <path>    Source dist folder contains compiled web files (required)
   -o, --outputfile <path>    Generated output file with path (default: "svelteesp32.h")
   --etag <value>             Use ETAG header for cache (true|false|compiler) (default: "false")
@@ -92,8 +92,8 @@ RC File:
   process.exit(0);
 }
 
-function validateEngine(value: string): 'psychic' | 'psychic2' | 'async' | 'espidf' {
-  if (value === 'psychic' || value === 'psychic2' || value === 'async' || value === 'espidf') return value;
+function validateEngine(value: string): 'psychic' | 'async' | 'espidf' {
+  if (value === 'psychic' || value === 'async' || value === 'espidf') return value;
 
   console.error(getInvalidEngineError(value));
   process.exit(1);
