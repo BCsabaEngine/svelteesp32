@@ -75,7 +75,7 @@ void setup() {
 
 ## What's New
 
-- **v1.15.0** — `--base-path` for multiple frontends (e.g., `/admin`, `/app`)
+- **v1.15.0** — `--basepath` for multiple frontends (e.g., `/admin`, `/app`)
 - **v1.13.0** — npm package variable interpolation in RC files
 - **v1.12.0** — RC file configuration support
 - **v1.11.0** — File exclusion patterns
@@ -301,10 +301,10 @@ Fine-tune how browsers cache your content:
 
 Your `index.html` is automatically served at the root URL — just like any web server. Visit `http://esp32.local/` and your app loads.
 
-**API-only projects?** Skip index validation with `--no-index-check`:
+**API-only projects?** Skip index validation with `--noindexcheck`:
 
 ```bash
-npx svelteesp32 -e psychic -s ./dist -o ./output.h --no-index-check
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --noindexcheck
 ```
 
 ### File Exclusion
@@ -335,8 +335,8 @@ Excluded 3 file(s):
 Serve multiple web apps from one ESP32 using URL prefixes:
 
 ```bash
-npx svelteesp32 -s ./admin-dist -o ./admin.h --base-path=/admin
-npx svelteesp32 -s ./user-dist -o ./user.h --base-path=/app
+npx svelteesp32 -s ./admin-dist -o ./admin.h --basepath=/admin
+npx svelteesp32 -s ./user-dist -o ./user.h --basepath=/app
 ```
 
 ```c
@@ -402,22 +402,22 @@ Called for every response (200 = content served, 304 = cache hit).
 
 ## CLI Reference
 
-| Option             | Description                                       | Default                 |
-| ------------------ | ------------------------------------------------- | ----------------------- |
-| `-s`               | Source folder with compiled web files             | (required)              |
-| `-e`               | Web server engine (psychic/psychic2/async/espidf) | `psychic`               |
-| `-o`               | Output header file path                           | `svelteesp32.h`         |
-| `--etag`           | ETag caching (true/false/compiler)                | `false`                 |
-| `--gzip`           | Gzip compression (true/false/compiler)            | `true`                  |
-| `--exclude`        | Exclude files by glob pattern                     | System files            |
-| `--base-path`      | URL prefix for all routes                         | (none)                  |
-| `--cachetime`      | Cache-Control max-age in seconds                  | `0`                     |
-| `--version`        | Version string in header                          | (none)                  |
-| `--define`         | C++ define prefix                                 | `SVELTEESP32`           |
-| `--espmethod`      | Init function name                                | `initSvelteStaticFiles` |
-| `--config`         | Custom RC file path                               | `.svelteesp32rc.json`   |
-| `--no-index-check` | Skip index.html validation                        | `false`                 |
-| `-h`               | Show help                                         |                         |
+| Option           | Description                                       | Default                 |
+| ---------------- | ------------------------------------------------- | ----------------------- |
+| `-s`             | Source folder with compiled web files             | (required)              |
+| `-e`             | Web server engine (psychic/psychic2/async/espidf) | `psychic`               |
+| `-o`             | Output header file path                           | `svelteesp32.h`         |
+| `--etag`         | ETag caching (true/false/compiler)                | `false`                 |
+| `--gzip`         | Gzip compression (true/false/compiler)            | `true`                  |
+| `--exclude`      | Exclude files by glob pattern                     | System files            |
+| `--basepath`     | URL prefix for all routes                         | (none)                  |
+| `--cachetime`    | Cache-Control max-age in seconds                  | `0`                     |
+| `--version`      | Version string in header                          | (none)                  |
+| `--define`       | C++ define prefix                                 | `SVELTEESP32`           |
+| `--espmethod`    | Init function name                                | `initSvelteStaticFiles` |
+| `--config`       | Custom RC file path                               | `.svelteesp32rc.json`   |
+| `--noindexcheck` | Skip index.html validation                        | `false`                 |
+| `-h`             | Show help                                         |                         |
 
 ---
 

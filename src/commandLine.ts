@@ -18,6 +18,8 @@ interface ICopyFilesArguments {
   version: string;
   exclude: string[];
   basePath: string;
+  maxSize?: number;
+  maxGzipSize?: number;
   noIndexCheck?: boolean;
   help?: boolean;
 }
@@ -35,6 +37,8 @@ interface IRcFileConfig {
   version?: string;
   exclude?: string[];
   basePath?: string;
+  maxSize?: number | string;
+  maxGzipSize?: number | string;
 }
 
 function showHelp(): never {
@@ -58,7 +62,9 @@ Options:
   --cachetime <seconds>      max-age cache time in seconds (default: 0)
   --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
                              Examples: --exclude="*.map" --exclude="test/**/*.ts"
-  --base-path <path>         URL prefix for all routes (e.g., "/ui") (default: "")
+  --basepath <path>          URL prefix for all routes (e.g., "/ui") (default: "")
+  --maxsize <size>           Maximum total uncompressed size (e.g., 400k, 1.5m, 409600)
+  --maxgzipsize <size>       Maximum total gzip size (e.g., 150k, 1m, 153600)
   -h, --help                 Shows this help
 
 RC File:
@@ -100,6 +106,28 @@ function validateBasePath(value: string): string {
   if (value.endsWith('/')) throw new Error(`basePath must not end with /: ${value}`);
   if (value.includes('//')) throw new Error(`basePath must not contain //: ${value}`);
   return value;
+}
+
+function parseSize(value: string, name: string): number {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*([KMkm])?$/);
+
+  if (!match || !match[1])
+    throw new Error(`${name} must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: ${value}`);
+
+  const numericPart = Number.parseFloat(match[1]);
+  const suffix = match[2]?.toLowerCase();
+
+  let bytes: number;
+  if (suffix === 'k') bytes = numericPart * 1024;
+  else if (suffix === 'm') bytes = numericPart * 1024 * 1024;
+  else bytes = numericPart;
+
+  bytes = Math.round(bytes);
+
+  if (bytes <= 0 || !Number.isFinite(bytes)) throw new Error(`${name} must be a positive integer: ${value}`);
+
+  return bytes;
 }
 
 const DEFAULT_EXCLUDE_PATTERNS = [
@@ -271,7 +299,9 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'created',
     'version',
     'exclude',
-    'basePath'
+    'basePath',
+    'maxSize',
+    'maxGzipSize'
   ]);
 
   // Warn about unknown keys
@@ -299,6 +329,34 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     // Validate each exclude pattern is a string
     for (const pattern of configObject['exclude'])
       if (typeof pattern !== 'string') throw new TypeError('All exclude patterns must be strings');
+  }
+
+  if (configObject['maxSize'] !== undefined) {
+    const value = configObject['maxSize'];
+    if (typeof value === 'string')
+      try {
+        configObject['maxSize'] = parseSize(value, 'maxSize');
+      } catch {
+        throw new TypeError(
+          `Invalid maxSize in RC file: ${value} (must be a positive number with optional k/m suffix)`
+        );
+      }
+    else if (typeof value !== 'number' || Number.isNaN(value) || value <= 0)
+      throw new TypeError(`Invalid maxSize in RC file: ${value} (must be a positive number)`);
+  }
+
+  if (configObject['maxGzipSize'] !== undefined) {
+    const value = configObject['maxGzipSize'];
+    if (typeof value === 'string')
+      try {
+        configObject['maxGzipSize'] = parseSize(value, 'maxGzipSize');
+      } catch {
+        throw new TypeError(
+          `Invalid maxGzipSize in RC file: ${value} (must be a positive number with optional k/m suffix)`
+        );
+      }
+    else if (typeof value !== 'number' || Number.isNaN(value) || value <= 0)
+      throw new TypeError(`Invalid maxGzipSize in RC file: ${value} (must be a positive number)`);
   }
 
   return configObject as IRcFileConfig;
@@ -356,6 +414,8 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.espmethod) result.espmethod = rcConfig.espmethod;
   if (rcConfig.define) result.define = rcConfig.define;
   if (rcConfig.basePath !== undefined) result.basePath = validateBasePath(rcConfig.basePath);
+  if (rcConfig.maxSize !== undefined) result.maxSize = rcConfig.maxSize as number;
+  if (rcConfig.maxGzipSize !== undefined) result.maxGzipSize = rcConfig.maxGzipSize as number;
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
@@ -422,8 +482,14 @@ function parseArguments(): ICopyFilesArguments {
           cliExclude.push(...patterns);
           break;
         }
-        case 'base-path':
+        case 'basepath':
           result.basePath = validateBasePath(value);
+          break;
+        case 'maxsize':
+          result.maxSize = parseSize(value, '--maxsize');
+          break;
+        case 'maxgzipsize':
+          result.maxGzipSize = parseSize(value, '--maxgzipsize');
           break;
         default:
           throw new Error(`Unknown flag: ${flag}`);
@@ -437,7 +503,7 @@ function parseArguments(): ICopyFilesArguments {
       continue;
     }
 
-    if (argument === '--no-index-check') {
+    if (argument === '--noindexcheck') {
       result.noIndexCheck = true;
       continue;
     }
@@ -527,8 +593,16 @@ function parseArguments(): ICopyFilesArguments {
           index++;
           break;
         }
-        case 'base-path':
+        case 'basepath':
           result.basePath = validateBasePath(nextArgument);
+          index++;
+          break;
+        case 'maxsize':
+          result.maxSize = parseSize(nextArgument, '--maxsize');
+          index++;
+          break;
+        case 'maxgzipsize':
+          result.maxGzipSize = parseSize(nextArgument, '--maxgzipsize');
           index++;
           break;
         default:
@@ -553,7 +627,7 @@ function parseArguments(): ICopyFilesArguments {
 }
 
 // Export functions for testing
-export { getNpmPackageVariable, hasNpmVariables, interpolateNpmVariables };
+export { getNpmPackageVariable, hasNpmVariables, interpolateNpmVariables, parseSize };
 
 export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   const parts: string[] = [
@@ -574,6 +648,10 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   if (cmdLine.define) parts.push(`define=${cmdLine.define}`);
 
   if (cmdLine.basePath) parts.push(`basePath=${cmdLine.basePath}`);
+
+  if (cmdLine.maxSize !== undefined) parts.push(`maxSize=${cmdLine.maxSize}`);
+
+  if (cmdLine.maxGzipSize !== undefined) parts.push(`maxGzipSize=${cmdLine.maxGzipSize}`);
 
   if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
 
