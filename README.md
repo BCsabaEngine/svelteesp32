@@ -151,7 +151,7 @@ Watch your files get optimized in real-time:
 PsychicHttpServer server;
 
 void setup() {
-    server.listen(80);
+    server.begin();
     initSvelteStaticFiles(&server);  // One line. Done.
 }
 ```
