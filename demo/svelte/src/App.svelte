@@ -65,7 +65,7 @@
 		</div>
 	{/if}
 
-	<Card class="mb-6">
+	<Card class="mb-6 p-4">
 		<h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
 			ESP32 Control
 		</h5>
@@ -80,7 +80,7 @@
 		</Button>
 	</Card>
 
-	<h5 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Gallery</h5>
+	<h5 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">Gallery (for demo only)</h5>
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 		{#each images as image (image.src)}
 			<img src={image.src} alt={image.alt} class="h-auto max-w-full rounded-lg" />
