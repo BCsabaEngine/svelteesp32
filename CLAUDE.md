@@ -88,7 +88,7 @@ Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/com
 ### ETag Implementation (All Engines)
 
 - **async**: `const AsyncWebHeader*`, single `getHeader()` call, inlined lambdas
-- **psychic**: `request->header().equals()`, no temporary String objects
+- **psychic**: `request->header().equals()`, V2 API with response parameter in lambda
 - **espidf**: `httpd_req_get_hdr_value_len()` + `httpd_req_get_hdr_value_str()`, malloc/free
 
 ### Memory Management
@@ -203,6 +203,15 @@ const GZIP_MIN_REDUCTION_RATIO = 0.85; // Use gzip if <85% of original
 - `package.script` generates 27 test headers (9 etag/gzip combos × 3 engines)
 
 ## Recent Updates
+
+### Psychic2 Engine Removal
+
+Removed the `psychic2` engine. The PsychicHttpServer V2 API (response passed as lambda parameter) is now the default `psychic` engine. Only 3 engines remain: `psychic`, `async`, `espidf`.
+
+- **Old V1 psychic template removed** from `src/cppCode.ts` (~210 lines)
+- **`psychic` engine now uses V2 API**: `[](PsychicRequest * request, PsychicResponse * response)` lambda signature
+- **CLI, RC file, and error messages** updated to remove `psychic2` references
+- **`package.script`** reduced from 36 to 27 test headers (9 combos × 3 engines)
 
 ### Base Path Support
 

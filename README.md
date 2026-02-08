@@ -85,7 +85,6 @@ void setup() {
 - **v1.12.0** — RC file configuration support
 - **v1.11.0** — File exclusion patterns
 - **v1.9.0** — Native ESP-IDF engine
-- **v1.5.0** — PsychicHttp V2 support
 
 ---
 
@@ -233,23 +232,21 @@ const size_t SVELTEESP32_FILE_COUNT = sizeof(SVELTEESP32_FILES) / sizeof(SVELTEE
 extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}
 
 void initSvelteStaticFiles(PsychicHttpServer * server) {
-  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request) {
+  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
     if (request->hasHeader("If-None-Match") &&
         request->header("If-None-Match").equals(etag_assets_index_KwubEIf__js)) {
-      PsychicResponse response304(request);
-      response304.setCode(304);
+      response->setCode(304);
       SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 304);
-      return response304.send();
+      return response->send();
     }
 
-    PsychicResponse response(request);
-    response.setContentType("text/javascript");
-    response.addHeader("Content-Encoding", "gzip");
-    response.addHeader("Cache-Control", "no-cache");
-    response.addHeader("ETag", etag_assets_index_KwubEIf__js);
-    response.setContent(datagzip_assets_index_KwubEIf__js, 12547);
+    response->setContentType("text/javascript");
+    response->addHeader("Content-Encoding", "gzip");
+    response->addHeader("Cache-Control", "no-cache");
+    response->addHeader("ETag", etag_assets_index_KwubEIf__js);
+    response->setContent(datagzip_assets_index_KwubEIf__js, 12547);
     SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 200);
-    return response.send();
+    return response->send();
   });
 
   // ... more routes
@@ -289,7 +286,7 @@ Reduce bandwidth dramatically with HTTP 304 "Not Modified" responses. When a bro
 - **Minimal overhead** — adds ~1-3% code size for significant bandwidth savings
 - **Compiler mode** — use `--etag=compiler` and control via `-D SVELTEESP32_ENABLE_ETAG`
 
-All four engines support full ETag validation.
+All three engines support full ETag validation.
 
 ### Browser Cache Control
 
