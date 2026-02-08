@@ -14,5 +14,6 @@
   "basepath": "",
   "maxsize": "500k",
   "maxgzipsize": "200k",
+  "dryrun": false,
   "noindexcheck": false
 }
