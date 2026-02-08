@@ -60,22 +60,22 @@ export const espidfTemplate = `
 {{#switch gzip}}
 {{#case "true"}}
   {{#each sources}}
-const char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
   {{/each}}
 {{/case}}
 {{#case "false"}}
   {{#each sources}}
-const char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
   {{/each}}
 {{/case}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
   {{#each sources}}
-const char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
   {{/each}}
 #else
   {{#each sources}}
-const char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
   {{/each}}
 #endif 
 {{/case}}
@@ -128,6 +128,7 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
     size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");
     if (hdr_len > 0) {
         char* hdr_value = malloc(hdr_len + 1);
+        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }
         if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {
             if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
                 free(hdr_value);
@@ -145,6 +146,7 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
     size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");
     if (hdr_len > 0) {
         char* hdr_value = malloc(hdr_len + 1);
+        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }
         if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {
             if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
                 free(hdr_value);
@@ -201,18 +203,18 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 {{#switch ../gzip}}
 {{#case "true"}}
     {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
-    httpd_resp_send(req, datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    httpd_resp_send(req, (const char *)datagzip_{{this.dataname}}, {{this.lengthGzip}});
 {{/case}}
 {{#case "false"}}
     {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
-    httpd_resp_send(req, data_{{this.dataname}}, {{this.length}});
+    httpd_resp_send(req, (const char *)data_{{this.dataname}}, {{this.length}});
 {{/case}}
 {{#case "compiler"}}
     {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
   #ifdef {{../definePrefix}}_ENABLE_GZIP
-    httpd_resp_send(req, datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    httpd_resp_send(req, (const char *)datagzip_{{this.dataname}}, {{this.lengthGzip}});
   #else
-    httpd_resp_send(req, data_{{this.dataname}}, {{this.length}});
+    httpd_resp_send(req, (const char *)data_{{this.dataname}}, {{this.length}});
   #endif
 {{/case}}
 {{/switch}}

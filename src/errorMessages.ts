@@ -163,20 +163,20 @@ CI integration:
 /**
  * Hint: max_uri_handlers configuration (console output, not an error)
  */
-export function getMaxUriHandlersHint(engine: string, routeCount: number): string {
+export function getMaxUriHandlersHint(engine: string, routeCount: number, espmethod = 'initSvelteStaticFiles'): string {
   const recommended = routeCount + 5;
 
   const hints: Record<string, string> = {
     psychic: `PsychicHttpServer server;
   server.config.max_uri_handlers = ${recommended};  // Default is 8, you need at least ${routeCount}
-  initSvelteStaticFiles(&server);
+  ${espmethod}(&server);
   server.listen(80);`,
 
     espidf: `httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.max_uri_handlers = ${recommended};  // Default is 8, you need at least ${routeCount}
   httpd_handle_t server = NULL;
   httpd_start(&server, &config);
-  initSvelteStaticFiles(server);`
+  ${espmethod}(server);`
   };
 
   const hint = hints[engine];

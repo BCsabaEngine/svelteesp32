@@ -537,23 +537,35 @@ const getTemplate = (engine: string): string => {
   switch (engine) {
     case 'psychic':
       return psychicTemplate;
+    case 'async':
+      return asyncTemplate;
     case 'espidf':
       return espidfTemplate;
     default:
-      return asyncTemplate;
+      throw new Error(`Unknown engine: ${engine}`);
   }
 };
 
 /**
  * Transform a source entry into template data with byte arrays
  */
+/**
+ * Convert a Buffer to a comma-separated byte string without creating an intermediate array
+ */
+const bufferToByteString = (buffer: Buffer): string => {
+  if (buffer.length === 0) return '';
+  let result = buffer[0]!.toString(10);
+  for (let index = 1; index < buffer.length; index++) result += ',' + buffer[index]!.toString(10);
+  return result;
+};
+
 const transformSourceToTemplateData = (s: CppCodeSource, etag: string) => ({
   ...s,
   length: s.content.length,
-  bytes: [...s.content].map((v) => `${v.toString(10)}`).join(','),
+  bytes: bufferToByteString(s.content),
   lengthGzip: s.contentGzip.length,
-  bytesGzip: [...s.contentGzip].map((v) => `${v.toString(10)}`).join(','),
-  isDefault: s.filename.startsWith('index.htm'),
+  bytesGzip: bufferToByteString(s.contentGzip),
+  isDefault: s.filename === 'index.html' || s.filename === 'index.htm',
   // Manifest-specific fields
   gzipSizeForManifest: s.isGzip ? s.contentGzip.length : 0,
   etagForManifest: etag === 'false' ? 'NULL' : `etag_${s.dataname}`
@@ -569,7 +581,8 @@ const postProcessCppCode = (code: string): string =>
     .filter(Boolean)
     .map((line) => (line === '//' ? '' : line))
     .join('\n')
-    .replace(/\\n{2}/, '\n');
+    // eslint-disable-next-line unicorn/prefer-string-replace-all -- replaceAll not available in ES2020
+    .replace(/\n{2,}/g, '\n');
 
 /**
  * Create Handlebars helpers with switch/case support
@@ -599,7 +612,10 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
   const template = handlebarsCompile(getTemplate(cmdLine.engine));
   const templateData = {
     config: formatConfiguration(cmdLine),
-    now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+    now: (() => {
+      const d = new Date();
+      return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+    })(),
     fileCount: sources.length.toString(),
     fileSize: sources.reduce((previous, current) => previous + current.content.length, 0).toString(),
     fileGzipSize: sources.reduce((previous, current) => previous + current.contentGzip.length, 0).toString(),
