@@ -139,7 +139,7 @@ describe('cppCode', () => {
       const result = getCppCode(sources, mockFilesByExtension);
 
       expect(result).toContain('If-None-Match');
-      expect(result).toContain('response304.setCode(304)');
+      expect(result).toContain('response->setCode(304)');
     });
 
     it('should include content encoding header for gzipped files', () => {
@@ -224,31 +224,6 @@ describe('cppCode', () => {
       const result = getCppCode(sources, mockFilesByExtension);
 
       expect(result).toContain('PsychicHttpServer');
-      expect(result).toContain('PsychicResponse response(request)');
-    });
-
-    it('should use psychic2 template for psychic2 engine', async () => {
-      vi.resetModules();
-      vi.doMock('../../src/commandLine', () => ({
-        cmdLine: {
-          engine: 'psychic2',
-          etag: 'true',
-          gzip: 'true',
-          cachetime: 0,
-          created: false,
-          version: '',
-          espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32',
-          exclude: []
-        },
-        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
-      }));
-
-      const { getCppCode } = await import('../../src/cppCode');
-      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
-      const result = getCppCode(sources, mockFilesByExtension);
-
-      expect(result).toContain('PsychicHttpServerV2');
       expect(result).toContain('PsychicRequest * request, PsychicResponse * response');
     });
 
@@ -515,7 +490,7 @@ describe('cppCode', () => {
     });
 
     it('should handle all engines in switch statement', async () => {
-      const engines = ['psychic', 'psychic2', 'async', 'espidf'];
+      const engines = ['psychic', 'async', 'espidf'];
 
       for (const engine of engines) {
         vi.resetModules();
@@ -550,7 +525,7 @@ describe('cppCode', () => {
         cmdLine: {
           sourcepath: '/test/path',
           outputfile: '/test/output.h',
-          engine: 'psychic2',
+          engine: 'psychic',
           etag: 'compiler',
           gzip: 'compiler',
           cachetime: 0,
@@ -566,7 +541,7 @@ describe('cppCode', () => {
       const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
       const result = getCppCode(sources, mockFilesByExtension);
 
-      // Should handle psychic2 engine with compiler directives
+      // Should handle psychic engine with compiler directives
       expect(result).toContain('PsychicHttpServer');
       expect(result).toContain('#ifdef');
     });
@@ -1011,38 +986,11 @@ describe('cppCode', () => {
       expect(result).toContain('{ "/admin/index.html"'); // Manifest
     });
 
-    it('should prefix routes with basePath for psychic2 engine', async () => {
+    it('should generate hook call for basePath default route in psychic engine', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
-          engine: 'psychic2',
-          etag: 'true',
-          gzip: 'true',
-          cachetime: 0,
-          created: false,
-          version: '',
-          espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32',
-          exclude: [],
-          basePath: '/dashboard'
-        },
-        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
-      }));
-
-      const { getCppCode } = await import('../../src/cppCode');
-      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
-      const result = getCppCode(sources, mockFilesByExtension);
-
-      expect(result).toContain('server->on("/dashboard/index.html", HTTP_GET');
-      expect(result).toContain('server->on("/dashboard", HTTP_GET'); // Default route
-      expect(result).toContain('SVELTEESP32_onFileServed("/dashboard/index.html", 200)');
-    });
-
-    it('should generate hook call for basePath default route in psychic2 engine', async () => {
-      vi.resetModules();
-      vi.doMock('../../src/commandLine', () => ({
-        cmdLine: {
-          engine: 'psychic2',
+          engine: 'psychic',
           etag: 'true',
           gzip: 'true',
           cachetime: 0,
@@ -1066,11 +1014,11 @@ describe('cppCode', () => {
       expect(result).toContain('return response->send();');
     });
 
-    it('should generate 304 hook call for basePath default route in psychic2 engine with etag', async () => {
+    it('should generate 304 hook call for basePath default route in psychic engine with etag', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
-          engine: 'psychic2',
+          engine: 'psychic',
           etag: 'true',
           gzip: 'true',
           cachetime: 0,
@@ -1147,34 +1095,6 @@ describe('cppCode', () => {
       );
       expect(result).toContain('MYAPP_onFileServed("/index.html", 200)');
       expect(result).toContain('MYAPP_onFileServed("/index.html", 304)');
-    });
-
-    it('should generate hook for psychic2 engine', async () => {
-      vi.resetModules();
-      vi.doMock('../../src/commandLine', () => ({
-        cmdLine: {
-          engine: 'psychic2',
-          etag: 'true',
-          gzip: 'true',
-          cachetime: 0,
-          created: false,
-          version: '',
-          espmethod: 'initSvelteStaticFiles',
-          define: 'SVELTEESP32',
-          exclude: []
-        },
-        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
-      }));
-
-      const { getCppCode } = await import('../../src/cppCode');
-      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
-      const result = getCppCode(sources, mockFilesByExtension);
-
-      expect(result).toContain(
-        'extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}'
-      );
-      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 200)');
-      expect(result).toContain('SVELTEESP32_onFileServed("/index.html", 304)');
     });
 
     it('should generate hook for async engine', async () => {

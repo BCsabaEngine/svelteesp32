@@ -8,7 +8,6 @@ import { cyanLog, redLog, yellowLog } from './consoleColor';
 function getEngineName(engine: string): string {
   const names: Record<string, string> = {
     psychic: 'PsychicHttpServer',
-    psychic2: 'PsychicHttpServer V2',
     async: 'ESPAsyncWebServer',
     espidf: 'ESP-IDF'
   };
@@ -23,10 +22,6 @@ export function getMissingIndexError(engine: string): string {
     psychic: `  1. Add an index.html file to your source directory
   2. The file will automatically be set as the default route ("/")
   3. PsychicHttpServer uses: server->defaultEndpoint = ...`,
-
-    psychic2: `  1. Add an index.html file to your source directory
-  2. The file will automatically be set as the default route ("/")
-  3. PsychicHttpServer V2 uses: server->defaultEndpoint = ...`,
 
     async: `  1. Add an index.html file to your source directory
   2. The file will automatically create a "/" route handler
@@ -66,7 +61,6 @@ export function getInvalidEngineError(attempted: string): string {
 
 Valid engines are:
   ${cyanLog('• psychic')}    - PsychicHttpServer (ESP32 only, fastest performance)
-  ${cyanLog('• psychic2')}   - PsychicHttpServer V2 (ESP32 only, modern API)
   ${cyanLog('• async')}      - ESPAsyncWebServer (ESP32/ESP8266 compatible)
   ${cyanLog('• espidf')}     - Native ESP-IDF web server (ESP32 only, no Arduino)
 
@@ -174,11 +168,6 @@ export function getMaxUriHandlersHint(engine: string, routeCount: number): strin
 
   const hints: Record<string, string> = {
     psychic: `PsychicHttpServer server;
-  server.config.max_uri_handlers = ${recommended};  // Default is 8, you need at least ${routeCount}
-  initSvelteStaticFiles(&server);
-  server.listen(80);`,
-
-    psychic2: `PsychicHttpServer server;
   server.config.max_uri_handlers = ${recommended};  // Default is 8, you need at least ${routeCount}
   initSvelteStaticFiles(&server);
   server.listen(80);`,
