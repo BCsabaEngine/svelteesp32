@@ -79,6 +79,7 @@ void setup() {
 
 ## What's New
 
+- **v1.17.0** — Dry run mode (`--dryrun`), C++ identifier validation, improved MIME type warnings
 - **v1.16.0** — Size budget constraints (`--maxsize`, `--maxgzipsize`)
 - **v1.15.0** — `--basepath` for multiple frontends (e.g., `/admin`, `/app`)
 - **v1.13.0** — npm package variable interpolation in RC files
@@ -416,6 +417,7 @@ Called for every response (200 = content served, 304 = cache hit).
 | `--define`       | C++ define prefix                                | `SVELTEESP32`           |
 | `--espmethod`    | Init function name                               | `initSvelteStaticFiles` |
 | `--config`       | Custom RC file path                              | `.svelteesp32rc.json`   |
+| `--dryrun`       | Show summary without writing output              | `false`                 |
 | `--noindexcheck` | Skip index.html validation                       | `false`                 |
 | `-h`             | Show help                                        |                         |
 
@@ -436,7 +438,8 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
   "basepath": "/ui",
   "maxsize": "400k",
   "maxgzipsize": "150k",
-  "noindexcheck": false
+  "noindexcheck": false,
+  "dryrun": false
 }
 ```
 

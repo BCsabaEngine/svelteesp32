@@ -29,17 +29,17 @@ npx svelteesp32 --noindexcheck  # Skip index.html validation (API-only apps)
 
 ### Core Files
 
-- **`src/index.ts`** - Main entry point, orchestrates file processing pipeline
-- **`src/commandLine.ts`** - CLI parsing using native `process.argv`, supports RC files with npm variable interpolation
-- **`src/file.ts`** - File operations: glob scanning, duplicate detection (SHA256), index.html validation
+- **`src/index.ts`** - Main entry point (`main()` function), orchestrates file processing pipeline. Supports `--dryrun` mode
+- **`src/commandLine.ts`** - CLI parsing using native `process.argv`, supports RC files with npm variable interpolation. Validates C++ identifiers (`--define`, `--espmethod`) and non-negative cachetime
+- **`src/file.ts`** - File operations: glob scanning, pre-computed SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`
 - **`src/cppCode.ts`** - C++ code generation (Handlebars templates) for psychic/async engines
 - **`src/cppCodeEspIdf.ts`** - C++ code generation for ESP-IDF native engine
 - **`src/errorMessages.ts`** - Framework-specific error messages with actionable hints
 
 ### Processing Pipeline
 
-1. **File Collection** (`file.ts`): Glob scan → skip pre-compressed (.gz/.br) if original exists → filter exclude patterns → validate index.html (unless `--noindexcheck`)
-2. **Content Analysis** (`index.ts`): MIME types → SHA256 ETags → extension grouping
+1. **File Collection** (`file.ts`): Glob scan → skip pre-compressed (.gz/.brotli/.br) if original exists → filter exclude patterns → pre-compute SHA256 hash per file → validate index.html (unless `--noindexcheck`)
+2. **Content Analysis** (`index.ts`): MIME types → use pre-computed SHA256 for ETags → extension grouping → warn on unknown MIME types
 3. **Compression** (`index.ts`): Gzip level 9 if >1024 bytes AND >15% reduction
 4. **Code Generation** (`cppCode.ts`): Handlebars templates → engine-specific C++ → byte arrays + route handlers + ETags + file manifest
 5. **Output**: Write header with binary data, route handlers, ETag validation, C++ defines, file manifest
@@ -81,7 +81,7 @@ RC files support `$npm_package_*` variables from package.json:
 
 ### CLI Options
 
-Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--basepath` (URL prefix), `--noindexcheck`, `--cachetime`, `--version`, `--define`, `--espmethod`
+Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--basepath` (URL prefix), `--noindexcheck`, `--dryrun`, `--cachetime`, `--version`, `--define`, `--espmethod`
 
 ## Generated C++ Code
 
@@ -89,11 +89,11 @@ Key flags: `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/com
 
 - **async**: `const AsyncWebHeader*`, single `getHeader()` call, inlined lambdas
 - **psychic**: `request->header().equals()`, V2 API with response parameter in lambda
-- **espidf**: `httpd_req_get_hdr_value_len()` + `httpd_req_get_hdr_value_str()`, malloc/free
+- **espidf**: `httpd_req_get_hdr_value_len()` + `httpd_req_get_hdr_value_str()`, malloc/free with NULL check (returns 500 on allocation failure)
 
 ### Memory Management
 
-- **ESP32** (psychic/espidf): Const arrays → automatic program memory (flash)
+- **ESP32** (psychic/espidf): Const arrays → automatic program memory (flash). ESP-IDF uses `unsigned char` data arrays with `(const char *)` casts at send sites
 - **ESP8266** (async): PROGMEM directive → explicit flash storage
 - All: Binary data in flash, not RAM
 
@@ -145,18 +145,19 @@ __attribute__((weak)) void {{definePrefix}}_onFileServed(const char* path, int s
 
 **Coverage**: ~68% overall
 
-- `commandLine.ts`: 84.56% - CLI parsing, validation, npm variable interpolation
-- `file.ts`: 100% - File ops, duplicate detection, index.html validation
-- `cppCode.ts`: 96.62% - Template rendering, all 3 engines, etag/gzip combos
+- `commandLine.ts`: ~85% - CLI parsing, validation, C++ identifier validation, npm variable interpolation
+- `file.ts`: 100% - File ops, SHA256 hashing, duplicate detection, index.html validation
+- `cppCode.ts`: ~97% - Template rendering, all 3 engines, etag/gzip combos
 - `consoleColor.ts`: 100% - ANSI colors
-- `index.ts`: 0% - Main entry (side effects, tested via integration)
+- `index.ts`: ~40% - Main pipeline, compression helpers, formatting (wrapped in `main()` for testability)
 
 **Test Files**:
 
-- `test/unit/commandLine.test.ts` - Dynamic imports, argument parsing, npm variable interpolation (20+ tests)
-- `test/unit/file.test.ts` - memfs mocking, duplicate detection, index.html validation
-- `test/unit/cppCode.test.ts` - Template selection, code generation, byte arrays, file manifest, onFileServed hook
-- `test/unit/errorMessages.test.ts` - Error message validation
+- `test/unit/commandLine.test.ts` - Dynamic imports, argument parsing, npm variable interpolation, C++ identifier validation, negative cachetime (20+ tests)
+- `test/unit/file.test.ts` - memfs mocking, FileData return type, duplicate detection, index.html validation, exclude warnings
+- `test/unit/cppCode.test.ts` - Template selection, code generation, byte arrays, file manifest, onFileServed hook, strict isDefault matching
+- `test/unit/index.test.ts` - Compression helpers, formatSize, updateExtensionGroup, main pipeline with FileData
+- `test/unit/errorMessages.test.ts` - Error message validation, custom espmethod in hints
 
 **Key Patterns**:
 
@@ -184,9 +185,11 @@ __attribute__((weak)) void {{definePrefix}}_onFileServed(const char* path, int s
 - Handlebars with custom `switch`/`case` helpers
 - Tri-state options: `etag`/`gzip` can be "true", "false", or "compiler" (C++ directives)
 - Engine-specific templates inline in source file
-- Binary data converted to comma-separated byte arrays
+- Binary data converted via `bufferToByteString()` (loop-based, avoids intermediate array allocation)
 - Template sections: `commonHeaderSection`, `dataArraysSection`, `etagArraysSection`, `manifestSection`, `hookSection`
 - `transformSourceToTemplateData()` computes derived fields: `gzipSizeForManifest`, `etagForManifest`
+- `getTemplate()` throws on unknown engine (explicit `case 'async'` added)
+- `isDefault` matching uses strict equality (`=== 'index.html' || === 'index.htm'`), no false positives
 
 ### Compression Thresholds (`src/index.ts`)
 
@@ -203,6 +206,41 @@ const GZIP_MIN_REDUCTION_RATIO = 0.85; // Use gzip if <85% of original
 - `package.script` generates 27 test headers (9 etag/gzip combos × 3 engines)
 
 ## Recent Updates
+
+### Code Quality & Correctness Pass (20 items)
+
+Bug fixes, correctness improvements, code quality refactors, and usability enhancements:
+
+**Bug Fixes:**
+
+- Fixed `.brottli` typo → `.brotli` in compressed file detection (`src/file.ts`)
+- Fixed `postProcessCppCode` regex: was matching literal `\nn`, now correctly collapses multiple newlines (`src/cppCode.ts`)
+- Added malloc NULL check in ESP-IDF ETag handler — returns HTTP 500 on allocation failure (`src/cppCodeEspIdf.ts`)
+- Single `Date` instance in code generation timestamp (was creating two separate instances)
+
+**Correctness:**
+
+- Dataname sanitization: `\W` → `[^a-zA-Z0-9_]` with leading-digit guard (`src/index.ts`)
+- Gzip summary now reflects actual sizes used (gzip vs original) — was always counting gzip size
+- `isDefault` uses strict equality (no false positives like `index.html.bak`)
+- ESP-IDF uses `unsigned char` for binary data arrays with `(const char *)` casts
+- `getMaxUriHandlersHint` uses actual `--espmethod` value instead of hardcoded name
+- Validates cachetime is non-negative; validates `--define`/`--espmethod` as C++ identifiers
+
+**Code Quality:**
+
+- SHA256 computed once per file in `getFiles()` — `FileData = { content, hash }` type
+- `bufferToByteString()` loop replaces `[...buffer].map().join()` (avoids large intermediate array)
+- Pipeline wrapped in `main()` function for testability
+- CLI parsing deduplicated via `applyFlag()` helper
+- `getTemplate()` throws on unknown engine (was silently falling through to async)
+
+**Usability:**
+
+- `--dryrun` / `--dry-run` flag — shows summary without writing output file
+- Warns on unknown MIME types (falls back to `text/plain`)
+- `formatSize()` shows `B` for <1024 bytes, `kB` otherwise
+- Warns when `--exclude` patterns match no files
 
 ### Psychic2 Engine Removal
 
