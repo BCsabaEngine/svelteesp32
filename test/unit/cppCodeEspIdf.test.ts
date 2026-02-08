@@ -165,7 +165,7 @@ describe('cppCodeEspIdf', () => {
       expect(result).toContain('httpd_req_get_hdr_value_len(req, "If-None-Match")');
       expect(result).toContain('etag_index_html');
       // Gzip enabled - should use gzip data array
-      expect(result).toContain('const char datagzip_index_html');
+      expect(result).toContain('const unsigned char datagzip_index_html');
       expect(result).toContain('httpd_resp_set_hdr(req, "Content-Encoding", "gzip")');
     });
 
@@ -194,8 +194,8 @@ describe('cppCodeEspIdf', () => {
       // Etag disabled - no If-None-Match check
       expect(result).not.toContain('If-None-Match');
       // Gzip disabled - should use regular data array
-      expect(result).toContain('const char data_index_html');
-      expect(result).not.toContain('const char datagzip_');
+      expect(result).toContain('const unsigned char data_index_html');
+      expect(result).not.toContain('const unsigned char datagzip_');
     });
 
     it('should handle etag=true gzip=false', async () => {
@@ -222,8 +222,8 @@ describe('cppCodeEspIdf', () => {
 
       expect(result).toContain('If-None-Match');
       expect(result).toContain('etag_index_html');
-      expect(result).toContain('const char data_index_html');
-      expect(result).not.toContain('const char datagzip_');
+      expect(result).toContain('const unsigned char data_index_html');
+      expect(result).not.toContain('const unsigned char datagzip_');
     });
 
     it('should handle etag=false gzip=true', async () => {
@@ -249,7 +249,7 @@ describe('cppCodeEspIdf', () => {
       const result = getCppCode(sources, mockFilesByExtension);
 
       expect(result).not.toContain('If-None-Match');
-      expect(result).toContain('const char datagzip_index_html');
+      expect(result).toContain('const unsigned char datagzip_index_html');
       expect(result).toContain('httpd_resp_set_hdr(req, "Content-Encoding", "gzip")');
     });
 
@@ -302,7 +302,7 @@ describe('cppCodeEspIdf', () => {
       const result = getCppCode(sources, mockFilesByExtension);
 
       expect(result).toContain('#ifdef SVELTEESP32_ENABLE_ETAG');
-      expect(result).toContain('const char datagzip_index_html');
+      expect(result).toContain('const unsigned char datagzip_index_html');
     });
 
     it('should handle etag=true gzip=compiler', async () => {
@@ -355,8 +355,8 @@ describe('cppCodeEspIdf', () => {
       const result = getCppCode(sources, mockFilesByExtension);
 
       expect(result).toContain('#ifdef SVELTEESP32_ENABLE_ETAG');
-      expect(result).toContain('const char data_index_html');
-      expect(result).not.toContain('const char datagzip_');
+      expect(result).toContain('const unsigned char data_index_html');
+      expect(result).not.toContain('const unsigned char datagzip_');
     });
 
     it('should handle etag=false gzip=compiler', async () => {

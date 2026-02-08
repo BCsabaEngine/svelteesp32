@@ -52,9 +52,12 @@ describe('file', () => {
       const result = getFiles();
 
       expect(result.size).toBe(3);
-      expect(result.get('index.html')).toBe(mockContent);
-      expect(result.get('style.css')).toBe(mockContent);
-      expect(result.get('script.js')).toBe(mockContent);
+      expect(result.get('index.html')?.content).toBe(mockContent);
+      expect(result.get('style.css')?.content).toBe(mockContent);
+      expect(result.get('script.js')?.content).toBe(mockContent);
+      // Hash should be computed
+      expect(result.get('index.html')?.hash).toBeDefined();
+      expect(typeof result.get('index.html')?.hash).toBe('string');
     });
 
     it('should skip pre-compressed files when original exists', () => {
@@ -74,7 +77,7 @@ describe('file', () => {
     });
 
     it('should include pre-compressed files when original does not exist', () => {
-      const mockFiles = ['archive.tar.gz', 'compressed.brottli'];
+      const mockFiles = ['archive.tar.gz', 'compressed.brotli'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
@@ -84,7 +87,7 @@ describe('file', () => {
 
       expect(result.size).toBe(2);
       expect(result.has('archive.tar.gz')).toBe(true);
-      expect(result.has('compressed.brottli')).toBe(true);
+      expect(result.has('compressed.brotli')).toBe(true);
     });
 
     it('should detect and report duplicate files', () => {
@@ -130,7 +133,7 @@ describe('file', () => {
     });
 
     it('should handle multiple compressed extensions', () => {
-      const mockFiles = ['file.txt', 'file.txt.gz', 'file.txt.br', 'file.txt.brottli', 'other.js'];
+      const mockFiles = ['file.txt', 'file.txt.gz', 'file.txt.br', 'file.txt.brotli', 'other.js'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
@@ -143,7 +146,7 @@ describe('file', () => {
       expect(result.has('other.js')).toBe(true);
       expect(result.has('file.txt.gz')).toBe(false);
       expect(result.has('file.txt.br')).toBe(false);
-      expect(result.has('file.txt.brottli')).toBe(false);
+      expect(result.has('file.txt.brotli')).toBe(false);
     });
 
     it('should pass correct options to globSync', () => {

@@ -1,4 +1,3 @@
-import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as zlib from 'node:zlib';
 
@@ -13,13 +12,6 @@ vi.mock('node:fs', () => ({
   writeFileSync: vi.fn()
 }));
 
-vi.mock('node:crypto', () => ({
-  createHash: vi.fn(() => ({
-    update: vi.fn().mockReturnThis(),
-    digest: vi.fn(() => 'mock-sha256-hash')
-  }))
-}));
-
 vi.mock('node:zlib', () => ({
   gzipSync: vi.fn(() => Buffer.from('gzipped'))
 }));
@@ -29,7 +21,7 @@ vi.mock('mime-types', () => ({
 }));
 
 vi.mock('../../src/file', () => ({
-  getFiles: vi.fn(() => new Map([['index.html', Buffer.from('<html></html>')]]))
+  getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'mock-sha256-hash' }]]))
 }));
 
 vi.mock('../../src/cppCode', () => ({
@@ -44,7 +36,8 @@ vi.mock('../../src/commandLine', () => ({
     etag: 'true',
     gzip: 'true',
     exclude: [],
-    noindexcheck: false
+    noindexcheck: false,
+    espmethod: 'initSvelteStaticFiles'
   }
 }));
 
@@ -144,6 +137,24 @@ describe('index.ts helper functions', () => {
     });
   });
 
+  describe('formatSize', () => {
+    it('should show bytes for sizes < 1024', async () => {
+      vi.resetModules();
+      const { formatSize } = await import('../../src/index');
+      expect(formatSize(100)).toBe('100B');
+      expect(formatSize(0)).toBe('0B');
+      expect(formatSize(1023)).toBe('1023B');
+    });
+
+    it('should show kB for sizes >= 1024', async () => {
+      vi.resetModules();
+      const { formatSize } = await import('../../src/index');
+      expect(formatSize(1024)).toBe('1kB');
+      expect(formatSize(2048)).toBe('2kB');
+      expect(formatSize(10_240)).toBe('10kB');
+    });
+  });
+
   describe('createSourceEntry', () => {
     it('should create correct CppCodeSource structure with all fields', async () => {
       vi.resetModules();
@@ -183,22 +194,25 @@ describe('index.ts helper functions', () => {
       vi.resetModules();
       const { updateExtensionGroup } = await import('../../src/index');
 
-      // This function modifies filesByExtension array in the module
-      // We need to test it by checking the behavior, not the internal state
-      // Since it operates on module-level state, we'll test the logic conceptually
+      const groups: { extension: string; count: number }[] = [];
+      updateExtensionGroup(groups, 'HTML');
+      expect(groups).toEqual([{ extension: 'HTML', count: 1 }]);
 
-      // First call adds new extension
-      updateExtensionGroup('HTML');
-      // Second call increments existing
-      updateExtensionGroup('HTML');
-      // Third call adds different extension
-      updateExtensionGroup('CSS');
+      updateExtensionGroup(groups, 'HTML');
+      expect(groups).toEqual([{ extension: 'HTML', count: 2 }]);
 
-      // We can't directly assert the module state without exporting filesByExtension,
-      // but the test ensures no errors occur during execution
-      expect(true).toBe(true);
+      updateExtensionGroup(groups, 'CSS');
+      expect(groups).toEqual([
+        { extension: 'HTML', count: 2 },
+        { extension: 'CSS', count: 1 }
+      ]);
     });
   });
+});
+
+const makeFileData = (content: string, hash = 'mock-sha256-hash') => ({
+  content: Buffer.from(content),
+  hash
 });
 
 describe('index.ts main pipeline integration', () => {
@@ -212,7 +226,6 @@ describe('index.ts main pipeline integration', () => {
   let mockMkdirSync: ReturnType<typeof vi.mocked<typeof fs.mkdirSync>>;
   let mockWriteFileSync: ReturnType<typeof vi.mocked<typeof fs.writeFileSync>>;
   let mockGzipSync: ReturnType<typeof vi.mocked<typeof zlib.gzipSync>>;
-  let mockCreateHash: ReturnType<typeof vi.mocked<typeof crypto.createHash>>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -224,14 +237,12 @@ describe('index.ts main pipeline integration', () => {
     const fileModule = await import('../../src/file');
     const cppCodeModule = await import('../../src/cppCode');
     const zlibModule = await import('node:zlib');
-    const cryptoModule = await import('node:crypto');
 
     mockGetFiles = vi.mocked(fileModule.getFiles);
     mockGetCppCode = vi.mocked(cppCodeModule.getCppCode);
     mockMkdirSync = vi.mocked(fs.mkdirSync);
     mockWriteFileSync = vi.mocked(fs.writeFileSync);
     mockGzipSync = vi.mocked(zlibModule.gzipSync);
-    mockCreateHash = vi.mocked(cryptoModule.createHash);
   });
 
   afterEach(() => {
@@ -252,13 +263,8 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should process single file correctly', async () => {
-      const content = Buffer.from('<html></html>');
-      mockGetFiles.mockReturnValue(new Map([['index.html', content]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
       mockGzipSync.mockReturnValue(Buffer.from('gzipped'));
-      mockCreateHash.mockReturnValue({
-        update: vi.fn().mockReturnThis(),
-        digest: vi.fn(() => 'abc123')
-      } as ReturnType<typeof crypto.createHash>);
 
       vi.resetModules();
       await import('../../src/index');
@@ -273,9 +279,9 @@ describe('index.ts main pipeline integration', () => {
     it('should process multiple files correctly', async () => {
       mockGetFiles.mockReturnValue(
         new Map([
-          ['index.html', Buffer.from('<html></html>')],
-          ['style.css', Buffer.from('body {}')],
-          ['script.js', Buffer.from('console.log()')]
+          ['index.html', makeFileData('<html></html>')],
+          ['style.css', makeFileData('body {}')],
+          ['script.js', makeFileData('console.log()')]
         ])
       );
       mockGzipSync.mockReturnValue(Buffer.from('gzipped'));
@@ -288,28 +294,20 @@ describe('index.ts main pipeline integration', () => {
       expect(sources).toHaveLength(3);
     });
 
-    it('should calculate SHA256 hash for each file', async () => {
-      const content = Buffer.from('<html></html>');
-      mockGetFiles.mockReturnValue(new Map([['index.html', content]]));
-
-      const updateSpy = vi.fn().mockReturnThis();
-      const digestSpy = vi.fn(() => 'sha256-hash');
-      mockCreateHash.mockReturnValue({
-        update: updateSpy,
-        digest: digestSpy
-      } as ReturnType<typeof crypto.createHash>);
+    it('should use pre-computed SHA256 hash from getFiles', async () => {
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>', 'pre-computed-hash')]]));
 
       vi.resetModules();
       await import('../../src/index');
 
-      expect(mockCreateHash).toHaveBeenCalledWith('sha256');
-      expect(updateSpy).toHaveBeenCalledWith(content);
-      expect(digestSpy).toHaveBeenCalledWith('hex');
+      expect(mockGetCppCode).toHaveBeenCalled();
+      const sources = mockGetCppCode.mock.calls[0][0];
+      expect(sources[0].sha256).toBe('pre-computed-hash');
     });
 
     it('should apply gzip compression with level 9', async () => {
       const content = Buffer.from('<html></html>');
-      mockGetFiles.mockReturnValue(new Map([['index.html', content]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', { content, hash: 'hash' }]]));
 
       vi.resetModules();
       await import('../../src/index');
@@ -320,7 +318,7 @@ describe('index.ts main pipeline integration', () => {
 
   describe('file writing', () => {
     it('should create output directory if missing', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
       await import('../../src/index');
@@ -330,7 +328,7 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should write C++ header file with correct encoding', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
       await import('../../src/index');
@@ -344,7 +342,7 @@ describe('index.ts main pipeline integration', () => {
 
   describe('console output', () => {
     it('should log "Collecting source files"', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
       await import('../../src/index');
@@ -353,7 +351,7 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should log "Translation to header file"', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
       await import('../../src/index');
@@ -362,17 +360,17 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should log summary statistics', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
       await import('../../src/index');
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('files'));
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('kB original size'));
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('original size'));
     });
 
     it('should log output file path and size', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
       await import('../../src/index');
@@ -383,18 +381,15 @@ describe('index.ts main pipeline integration', () => {
 
   describe('engine-specific hints', () => {
     it('should show max_uri_handlers hint for psychic engine', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
-      // The mock already sets engine to 'psychic'
       await import('../../src/index');
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('max_uri_handlers'));
     });
 
     it('should show max_uri_handlers hint for espidf engine', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
-
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
@@ -403,8 +398,12 @@ describe('index.ts main pipeline integration', () => {
           etag: 'true',
           gzip: 'true',
           exclude: [],
-          noindexcheck: false
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
         }
+      }));
+      vi.doMock('../../src/file', () => ({
+        getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'h' }]]))
       }));
 
       vi.resetModules();
@@ -414,8 +413,6 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should not show max_uri_handlers hint for async engine', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', Buffer.from('<html></html>')]]));
-
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
@@ -424,8 +421,12 @@ describe('index.ts main pipeline integration', () => {
           etag: 'true',
           gzip: 'true',
           exclude: [],
-          noindexcheck: false
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
         }
+      }));
+      vi.doMock('../../src/file', () => ({
+        getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'h' }]]))
       }));
 
       vi.resetModules();
@@ -443,9 +444,9 @@ describe('index.ts main pipeline integration', () => {
     it('should extract and uppercase file extensions', async () => {
       mockGetFiles.mockReturnValue(
         new Map([
-          ['index.html', Buffer.from('<html></html>')],
-          ['style.css', Buffer.from('body {}')],
-          ['script.js', Buffer.from('console.log()')]
+          ['index.html', makeFileData('<html></html>')],
+          ['style.css', makeFileData('body {}')],
+          ['script.js', makeFileData('console.log()')]
         ])
       );
 
@@ -461,9 +462,9 @@ describe('index.ts main pipeline integration', () => {
     it('should sort extensions alphabetically', async () => {
       mockGetFiles.mockReturnValue(
         new Map([
-          ['script.js', Buffer.from('console.log()')],
-          ['index.html', Buffer.from('<html></html>')],
-          ['style.css', Buffer.from('body {}')]
+          ['script.js', makeFileData('console.log()')],
+          ['index.html', makeFileData('<html></html>')],
+          ['style.css', makeFileData('body {}')]
         ])
       );
 
