@@ -101,7 +101,6 @@ describe('commandLine', () => {
       const helpOutput = allLogCalls.find((call) => call?.includes('--engine'));
       expect(helpOutput).toBeDefined();
       expect(helpOutput).toContain('psychic');
-      expect(helpOutput).toContain('psychic2');
       expect(helpOutput).toContain('async');
       expect(helpOutput).toContain('espidf');
     });
@@ -155,11 +154,11 @@ describe('commandLine', () => {
     });
 
     it('should parse arguments with -flag value format', async () => {
-      process.argv = ['node', 'script.js', '-e', 'psychic2', '-s', '/test/dist', '-o', '/test/output.h'];
+      process.argv = ['node', 'script.js', '-e', 'async', '-s', '/test/dist', '-o', '/test/output.h'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
-      expect(cmdLine.engine).toBe('psychic2');
+      expect(cmdLine.engine).toBe('async');
       expect(cmdLine.sourcepath).toBe('/test/dist');
       expect(cmdLine.outputfile).toBe('/test/output.h');
     });
@@ -429,7 +428,7 @@ describe('commandLine', () => {
     });
 
     it('should accept all valid engine values', async () => {
-      for (const engine of ['psychic', 'psychic2', 'async', 'espidf']) {
+      for (const engine of ['psychic', 'async', 'espidf']) {
         vi.resetModules();
         process.argv = ['node', 'script.js', `--engine=${engine}`, '--sourcepath=/test/dist'];
 
@@ -738,7 +737,7 @@ describe('commandLine', () => {
       });
 
       it('should prefer .svelteesp32rc.json over .svelteesp32rc', async () => {
-        const mockRcContent = JSON.stringify({ engine: 'psychic2', sourcepath: '/test/dist' });
+        const mockRcContent = JSON.stringify({ engine: 'async', sourcepath: '/test/dist' });
 
         const fsModule = await import('node:fs');
         vi.mocked(fsModule.existsSync).mockImplementation((path) => {
@@ -754,7 +753,7 @@ describe('commandLine', () => {
 
         const { cmdLine } = await import('../../src/commandLine');
 
-        expect(cmdLine.engine).toBe('psychic2');
+        expect(cmdLine.engine).toBe('async');
       });
 
       it('should load RC file from home directory when not in current directory', async () => {

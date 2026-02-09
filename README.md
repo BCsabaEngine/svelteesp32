@@ -6,6 +6,10 @@
 
 [Changelog](CHANGELOG.md)
 
+<p align="center">
+  <img src="svelteesp32.png" alt="svelteesp32" />
+</p>
+
 ---
 
 ## Why SvelteESP32?
@@ -21,7 +25,7 @@
 - **Smart Caching** — Built-in SHA256 ETags deliver HTTP 304 responses, slashing bandwidth on constrained devices.
 - **CI/CD Ready** — Simple npm package that slots into any build pipeline.
 - **Zero Runtime Overhead** — Data served directly from flash. No filesystem reads, no RAM allocation.
-- **4 Web Server Engines** — PsychicHttp V1/V2, ESPAsyncWebServer, and native ESP-IDF supported.
+- **3 Web Server Engines** — PsychicHttpServer, ESPAsyncWebServer, and native ESP-IDF supported.
 
 ---
 
@@ -75,13 +79,13 @@ void setup() {
 
 ## What's New
 
+- **v2.0.0** — **BREAKING**: PsychicHttpServer V2 is now the default `psychic` engine. The `psychic2` engine has been removed. Dry run mode, C++ identifier validation, improved MIME type warnings
 - **v1.16.0** — Size budget constraints (`--maxsize`, `--maxgzipsize`)
 - **v1.15.0** — `--basepath` for multiple frontends (e.g., `/admin`, `/app`)
 - **v1.13.0** — npm package variable interpolation in RC files
 - **v1.12.0** — RC file configuration support
 - **v1.11.0** — File exclusion patterns
 - **v1.9.0** — Native ESP-IDF engine
-- **v1.5.0** — PsychicHttp V2 support
 
 ---
 
@@ -107,9 +111,6 @@ Choose your web server engine:
 ```bash
 # PsychicHttpServer (recommended for ESP32)
 npx svelteesp32 -e psychic -s ./dist -o ./esp32/svelteesp32.h --etag=true
-
-# PsychicHttpServer V2
-npx svelteesp32 -e psychic2 -s ./dist -o ./esp32/svelteesp32.h --etag=true
 
 # ESPAsyncWebServer (ESP32 + ESP8266)
 npx svelteesp32 -e async -s ./dist -o ./esp32/svelteesp32.h --etag=true
@@ -141,7 +142,7 @@ Watch your files get optimized in real-time:
 
 ### ESP32 Integration
 
-**PsychicHttpServer (Recommended)**
+**PsychicHttpServer V2 (Recommended)**
 
 ```c
 #include <PsychicHttp.h>
@@ -184,14 +185,14 @@ void app_main() {
 }
 ```
 
-Working examples: [Arduino/PlatformIO](demo/esp32) | [ESP-IDF](demo/esp32idf)
+Working examples with LED control via web interface: [Arduino/PlatformIO](demo/esp32) | [ESP-IDF](demo/esp32idf)
 
 ### What Gets Generated
 
 The generated header file includes everything your ESP needs:
 
 ```c
-//engine:   PsychicHttpServer
+//engine:   PsychicHttpServer V2
 //config:   engine=psychic sourcepath=./dist outputfile=./output.h etag=true gzip=true cachetime=0 espmethod=initSvelteStaticFiles define=SVELTEESP32
 //
 #define SVELTEESP32_COUNT 5
@@ -232,23 +233,21 @@ const size_t SVELTEESP32_FILE_COUNT = sizeof(SVELTEESP32_FILES) / sizeof(SVELTEE
 extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}
 
 void initSvelteStaticFiles(PsychicHttpServer * server) {
-  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request) {
+  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
     if (request->hasHeader("If-None-Match") &&
         request->header("If-None-Match").equals(etag_assets_index_KwubEIf__js)) {
-      PsychicResponse response304(request);
-      response304.setCode(304);
+      response->setCode(304);
       SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 304);
-      return response304.send();
+      return response->send();
     }
 
-    PsychicResponse response(request);
-    response.setContentType("text/javascript");
-    response.addHeader("Content-Encoding", "gzip");
-    response.addHeader("Cache-Control", "no-cache");
-    response.addHeader("ETag", etag_assets_index_KwubEIf__js);
-    response.setContent(datagzip_assets_index_KwubEIf__js, 12547);
+    response->setContentType("text/javascript");
+    response->addHeader("Content-Encoding", "gzip");
+    response->addHeader("Cache-Control", "no-cache");
+    response->addHeader("ETag", etag_assets_index_KwubEIf__js);
+    response->setContent(datagzip_assets_index_KwubEIf__js, 12547);
     SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 200);
-    return response.send();
+    return response->send();
   });
 
   // ... more routes
@@ -259,14 +258,13 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 ## Supported Web Server Engines
 
-| Engine                | Flag          | Best For                     | Platform        |
-| --------------------- | ------------- | ---------------------------- | --------------- |
-| **PsychicHttp V1**    | `-e psychic`  | Maximum performance          | ESP32 only      |
-| **PsychicHttp V2**    | `-e psychic2` | Modern API + performance     | ESP32 only      |
-| **ESPAsyncWebServer** | `-e async`    | Cross-platform compatibility | ESP32 + ESP8266 |
-| **Native ESP-IDF**    | `-e espidf`   | Pure ESP-IDF projects        | ESP32 only      |
+| Engine                   | Flag         | Best For                     | Platform        |
+| ------------------------ | ------------ | ---------------------------- | --------------- |
+| **PsychicHttpServer V2** | `-e psychic` | Maximum performance          | ESP32 only      |
+| **ESPAsyncWebServer**    | `-e async`   | Cross-platform compatibility | ESP32 + ESP8266 |
+| **Native ESP-IDF**       | `-e espidf`  | Pure ESP-IDF projects        | ESP32 only      |
 
-**Recommendation:** For ESP32-only projects, use PsychicHttpServer for the fastest, most stable experience.
+**Recommendation:** For ESP32-only projects, use PsychicHttpServer V2 (`-e psychic`) for the fastest, most stable experience.
 
 **Note:** For PsychicHttp, configure `server.config.max_uri_handlers` to match your file count.
 
@@ -289,7 +287,7 @@ Reduce bandwidth dramatically with HTTP 304 "Not Modified" responses. When a bro
 - **Minimal overhead** — adds ~1-3% code size for significant bandwidth savings
 - **Compiler mode** — use `--etag=compiler` and control via `-D SVELTEESP32_ENABLE_ETAG`
 
-All four engines support full ETag validation.
+All three engines support full ETag validation.
 
 ### Browser Cache Control
 
@@ -403,24 +401,25 @@ Called for every response (200 = content served, 304 = cache hit).
 
 ## CLI Reference
 
-| Option           | Description                                       | Default                 |
-| ---------------- | ------------------------------------------------- | ----------------------- |
-| `-s`             | Source folder with compiled web files             | (required)              |
-| `-e`             | Web server engine (psychic/psychic2/async/espidf) | `psychic`               |
-| `-o`             | Output header file path                           | `svelteesp32.h`         |
-| `--etag`         | ETag caching (true/false/compiler)                | `false`                 |
-| `--gzip`         | Gzip compression (true/false/compiler)            | `true`                  |
-| `--exclude`      | Exclude files by glob pattern                     | System files            |
-| `--basepath`     | URL prefix for all routes                         | (none)                  |
-| `--maxsize`      | Max total uncompressed size (e.g., `400k`, `1m`)  | (none)                  |
-| `--maxgzipsize`  | Max total gzip size (e.g., `150k`, `500k`)        | (none)                  |
-| `--cachetime`    | Cache-Control max-age in seconds                  | `0`                     |
-| `--version`      | Version string in header                          | (none)                  |
-| `--define`       | C++ define prefix                                 | `SVELTEESP32`           |
-| `--espmethod`    | Init function name                                | `initSvelteStaticFiles` |
-| `--config`       | Custom RC file path                               | `.svelteesp32rc.json`   |
-| `--noindexcheck` | Skip index.html validation                        | `false`                 |
-| `-h`             | Show help                                         |                         |
+| Option           | Description                                      | Default                 |
+| ---------------- | ------------------------------------------------ | ----------------------- |
+| `-s`             | Source folder with compiled web files            | (required)              |
+| `-e`             | Web server engine (psychic/async/espidf)         | `psychic`               |
+| `-o`             | Output header file path                          | `svelteesp32.h`         |
+| `--etag`         | ETag caching (true/false/compiler)               | `false`                 |
+| `--gzip`         | Gzip compression (true/false/compiler)           | `true`                  |
+| `--exclude`      | Exclude files by glob pattern                    | System files            |
+| `--basepath`     | URL prefix for all routes                        | (none)                  |
+| `--maxsize`      | Max total uncompressed size (e.g., `400k`, `1m`) | (none)                  |
+| `--maxgzipsize`  | Max total gzip size (e.g., `150k`, `500k`)       | (none)                  |
+| `--cachetime`    | Cache-Control max-age in seconds                 | `0`                     |
+| `--version`      | Version string in header                         | (none)                  |
+| `--define`       | C++ define prefix                                | `SVELTEESP32`           |
+| `--espmethod`    | Init function name                               | `initSvelteStaticFiles` |
+| `--config`       | Custom RC file path                              | `.svelteesp32rc.json`   |
+| `--dryrun`       | Show summary without writing output              | `false`                 |
+| `--noindexcheck` | Skip index.html validation                       | `false`                 |
+| `-h`             | Show help                                        |                         |
 
 ---
 
@@ -439,7 +438,8 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
   "basepath": "/ui",
   "maxsize": "400k",
   "maxgzipsize": "150k",
-  "noindexcheck": false
+  "noindexcheck": false,
+  "dryrun": false
 }
 ```
 

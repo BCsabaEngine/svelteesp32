@@ -157,213 +157,6 @@ extern "C" void __attribute__((weak)) {{definePrefix}}_onFileServed(const char* 
 const psychicTemplate = `
 //engine:   PsychicHttpServer
 //config:   {{{config}}}
-//You should use server.config.max_uri_handlers = {{fileCount}}; or higher value to proper handles all files
-{{#if created }}
-//created:  {{now}}
-{{/if}}
-//
-${commonHeaderSection}
-
-//
-#include <Arduino.h>
-#include <PsychicHttp.h>
-#include <PsychicHttpsServer.h>
-
-//
-${dataArraysSection(false)}
-
-//
-${etagArraysSection}
-
-//
-${manifestSection}
-
-//
-${hookSection}
-
-//
-// Http Handlers
-void {{methodName}}(PsychicHttpServer * server) {
-{{#each sources}}
-//
-// {{this.filename}}
-  {{#if this.isDefault}}{{#unless ../basePath}}server->defaultEndpoint = {{/unless}}{{/if}}server->on("{{../basePath}}/{{this.filename}}", HTTP_GET, [](PsychicRequest * request) {
-
-{{#switch ../etag}}
-{{#case "true"}}
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
-      PsychicResponse response304(request);
-      response304.setCode(304);
-      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
-      return response304.send();
-    }
-{{/case}}
-{{#case "compiler"}}
-  #ifdef {{../definePrefix}}_ENABLE_ETAG
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
-      PsychicResponse response304(request);
-      response304.setCode(304);
-      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
-      return response304.send();
-    }
-  #endif
-{{/case}}
-{{/switch}}
-
-    PsychicResponse response(request);
-    response.setContentType("{{this.mime}}");
-
-{{#switch ../gzip}}
-{{#case "true"}}
-{{#if this.isGzip}}
-    response.addHeader("Content-Encoding", "gzip");
-{{/if}}
-{{/case}}
-{{#case "compiler"}}
-  {{#if this.isGzip}}
-  #ifdef {{../definePrefix}}_ENABLE_GZIP
-    response.addHeader("Content-Encoding", "gzip");
-  #endif
-  {{/if}}
-{{/case}}
-{{/switch}}
-
-{{#switch ../etag}}
-{{#case "true"}}
-{{#../cacheTime}}
-    response.addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
-    response.addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
-    response.addHeader("ETag", etag_{{this.dataname}});
-{{/case}}
-{{#case "compiler"}}
-  #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
-    response.addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
-    response.addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
-    response.addHeader("ETag", etag_{{this.dataname}});
-  #endif
-{{/case}}
-{{/switch}}
-
-{{#switch ../gzip}}
-{{#case "true"}}
-    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
-{{/case}}
-{{#case "false"}}
-    response.setContent(data_{{this.dataname}}, {{this.length}});
-{{/case}}
-{{#case "compiler"}}
-  #ifdef {{../definePrefix}}_ENABLE_GZIP
-    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
-  #else
-    response.setContent(data_{{this.dataname}}, {{this.length}});
-  #endif
-{{/case}}
-{{/switch}}
-
-    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
-    return response.send();
-  });
-{{#if this.isDefault}}{{#if ../basePath}}
-//
-// {{this.filename}} (base path route)
-  server->on("{{../basePath}}", HTTP_GET, [](PsychicRequest * request) {
-
-{{#switch ../etag}}
-{{#case "true"}}
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
-      PsychicResponse response304(request);
-      response304.setCode(304);
-      {{../definePrefix}}_onFileServed("{{../basePath}}", 304);
-      return response304.send();
-    }
-{{/case}}
-{{#case "compiler"}}
-  #ifdef {{../definePrefix}}_ENABLE_ETAG
-    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
-      PsychicResponse response304(request);
-      response304.setCode(304);
-      {{../definePrefix}}_onFileServed("{{../basePath}}", 304);
-      return response304.send();
-    }
-  #endif
-{{/case}}
-{{/switch}}
-
-    PsychicResponse response(request);
-    response.setContentType("{{this.mime}}");
-
-{{#switch ../gzip}}
-{{#case "true"}}
-{{#if this.isGzip}}
-    response.addHeader("Content-Encoding", "gzip");
-{{/if}}
-{{/case}}
-{{#case "compiler"}}
-  {{#if this.isGzip}}
-  #ifdef {{../definePrefix}}_ENABLE_GZIP
-    response.addHeader("Content-Encoding", "gzip");
-  #endif
-  {{/if}}
-{{/case}}
-{{/switch}}
-
-{{#switch ../etag}}
-{{#case "true"}}
-{{#../cacheTime}}
-    response.addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
-    response.addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
-    response.addHeader("ETag", etag_{{this.dataname}});
-{{/case}}
-{{#case "compiler"}}
-  #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
-    response.addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
-    response.addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
-    response.addHeader("ETag", etag_{{this.dataname}});
-  #endif
-{{/case}}
-{{/switch}}
-
-{{#switch ../gzip}}
-{{#case "true"}}
-    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
-{{/case}}
-{{#case "false"}}
-    response.setContent(data_{{this.dataname}}, {{this.length}});
-{{/case}}
-{{#case "compiler"}}
-  #ifdef {{../definePrefix}}_ENABLE_GZIP
-    response.setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
-  #else
-    response.setContent(data_{{this.dataname}}, {{this.length}});
-  #endif
-{{/case}}
-{{/switch}}
-
-    {{../definePrefix}}_onFileServed("{{../basePath}}", 200);
-    return response.send();
-  });
-{{/if}}{{/if}}
-
-{{/each}}
-}`;
-
-const psychic2Template = `
-//engine:   PsychicHttpServerV2
-//config:   {{{config}}}
 {{#if created }}
 //created:  {{now}}
 {{/if}}
@@ -744,25 +537,35 @@ const getTemplate = (engine: string): string => {
   switch (engine) {
     case 'psychic':
       return psychicTemplate;
-    case 'psychic2':
-      return psychic2Template;
+    case 'async':
+      return asyncTemplate;
     case 'espidf':
       return espidfTemplate;
     default:
-      return asyncTemplate;
+      throw new Error(`Unknown engine: ${engine}`);
   }
 };
 
 /**
  * Transform a source entry into template data with byte arrays
  */
+/**
+ * Convert a Buffer to a comma-separated byte string without creating an intermediate array
+ */
+const bufferToByteString = (buffer: Buffer): string => {
+  if (buffer.length === 0) return '';
+  let result = buffer[0]!.toString(10);
+  for (let index = 1; index < buffer.length; index++) result += ',' + buffer[index]!.toString(10);
+  return result;
+};
+
 const transformSourceToTemplateData = (s: CppCodeSource, etag: string) => ({
   ...s,
   length: s.content.length,
-  bytes: [...s.content].map((v) => `${v.toString(10)}`).join(','),
+  bytes: bufferToByteString(s.content),
   lengthGzip: s.contentGzip.length,
-  bytesGzip: [...s.contentGzip].map((v) => `${v.toString(10)}`).join(','),
-  isDefault: s.filename.startsWith('index.htm'),
+  bytesGzip: bufferToByteString(s.contentGzip),
+  isDefault: s.filename === 'index.html' || s.filename === 'index.htm',
   // Manifest-specific fields
   gzipSizeForManifest: s.isGzip ? s.contentGzip.length : 0,
   etagForManifest: etag === 'false' ? 'NULL' : `etag_${s.dataname}`
@@ -778,7 +581,8 @@ const postProcessCppCode = (code: string): string =>
     .filter(Boolean)
     .map((line) => (line === '//' ? '' : line))
     .join('\n')
-    .replace(/\\n{2}/, '\n');
+    // eslint-disable-next-line unicorn/prefer-string-replace-all -- replaceAll not available in ES2020
+    .replace(/\n{2,}/g, '\n');
 
 /**
  * Create Handlebars helpers with switch/case support
@@ -808,7 +612,10 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
   const template = handlebarsCompile(getTemplate(cmdLine.engine));
   const templateData = {
     config: formatConfiguration(cmdLine),
-    now: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+    now: (() => {
+      const d = new Date();
+      return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+    })(),
     fileCount: sources.length.toString(),
     fileSize: sources.reduce((previous, current) => previous + current.content.length, 0).toString(),
     fileGzipSize: sources.reduce((previous, current) => previous + current.contentGzip.length, 0).toString(),

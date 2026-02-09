@@ -1,6 +1,6 @@
 {
   "name": "svelteesp32",
-  "version": "1.16.1",
+  "version": "2.0.0",
   "description": "Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)",
   "author": "BCsabaEngine",
   "license": "ISC",
@@ -30,7 +30,6 @@
   "scripts": {
     "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --cachetime=86400 --version=v$npm_package_version",
     "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
-    "dev:psychic2": "nodemon src/index.ts -- -e psychic2 -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -56,12 +55,11 @@
     "esp8266",
     "webserver",
     "psychichttpserver",
-    "psychichttpserverV2",
     "espasyncwebserver"
   ],
   "devDependencies": {
     "@types/mime-types": "^3.0.1",
-    "@types/node": "^25.1.0",
+    "@types/node": "^25.2.2",
     "@types/picomatch": "^4.0.2",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",

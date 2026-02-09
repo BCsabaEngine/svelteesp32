@@ -9,18 +9,19 @@ import { cmdLine } from './commandLine';
 import { cyanLog, redLog, yellowLog } from './consoleColor';
 import { getMissingIndexError } from './errorMessages';
 
+export type FileData = { content: Buffer; hash: string };
+
 /**
- * Find files with identical content based on SHA256 hash
+ * Find files with identical content based on pre-computed SHA256 hash
  */
-const findSimilarFiles = (files: Map<string, Buffer>): string[][] => {
+const findSimilarFiles = (files: Map<string, FileData>): string[][] => {
   const contentComparer: Map<string, string[]> = new Map();
 
-  for (const [filename, content] of files.entries()) {
-    const hash = createHash('sha256').update(content).digest('hex');
-    const existingFiles = contentComparer.get(hash);
+  for (const [filename, fileData] of files.entries()) {
+    const existingFiles = contentComparer.get(fileData.hash);
 
     if (existingFiles) existingFiles.push(filename);
-    else contentComparer.set(hash, [filename]);
+    else contentComparer.set(fileData.hash, [filename]);
   }
 
   const result: string[][] = [];
@@ -34,7 +35,7 @@ const findSimilarFiles = (files: Map<string, Buffer>): string[][] => {
  */
 const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
   const extension = path.extname(filename);
-  const compressedExtensions = ['.gz', '.brottli', '.br'];
+  const compressedExtensions = ['.gz', '.brotli', '.br'];
 
   if (compressedExtensions.includes(extension)) {
     const original = filename.slice(0, -1 * extension.length);
@@ -72,9 +73,9 @@ const isExcluded = (filename: string, excludePatterns: string[]): boolean => {
 
 /**
  * Get all files from the source directory, excluding pre-compressed variants
- * @returns Map of filename to file contents
+ * @returns Map of filename to file data (content + SHA256 hash)
  */
-export const getFiles = (): Map<string, Buffer> => {
+export const getFiles = (): Map<string, FileData> => {
   const allFilenames = globSync('**/*', { cwd: cmdLine.sourcepath, onlyFiles: true, dot: false });
 
   // Filter pre-compressed files
@@ -102,12 +103,15 @@ export const getFiles = (): Map<string, Buffer> => {
       console.log(cyanLog(`... and ${excludedFiles.length - displayLimit} more`));
 
     console.log(); // Blank line for readability
-  }
+  } else if (excludePatterns.length > 0)
+    console.log(yellowLog(`Warning: --exclude patterns matched no files: ${excludePatterns.join(', ')}`));
 
-  const result: Map<string, Buffer> = new Map();
+  const result: Map<string, FileData> = new Map();
   for (const filename of filenames) {
     const filePath = path.join(cmdLine.sourcepath, filename);
-    result.set(filename, readFileSync(filePath, { flag: 'r' }));
+    const content = readFileSync(filePath, { flag: 'r' });
+    const hash = createHash('sha256').update(content).digest('hex');
+    result.set(filename, { content, hash });
   }
 
   // Report duplicate files

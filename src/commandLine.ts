@@ -6,7 +6,7 @@ import { cyanLog, yellowLog } from './consoleColor';
 import { getInvalidEngineError, getSourcepathNotFoundError } from './errorMessages';
 
 interface ICopyFilesArguments {
-  engine: 'psychic' | 'psychic2' | 'async' | 'espidf';
+  engine: 'psychic' | 'async' | 'espidf';
   sourcepath: string;
   outputfile: string;
   espmethod: string;
@@ -21,11 +21,12 @@ interface ICopyFilesArguments {
   maxSize?: number;
   maxGzipSize?: number;
   noIndexCheck?: boolean;
+  dryRun?: boolean;
   help?: boolean;
 }
 
 interface IRcFileConfig {
-  engine?: 'psychic' | 'psychic2' | 'async' | 'espidf';
+  engine?: 'psychic' | 'async' | 'espidf';
   sourcepath?: string;
   outputfile?: string;
   espmethod?: string;
@@ -40,6 +41,7 @@ interface IRcFileConfig {
   maxsize?: number | string;
   maxgzipsize?: number | string;
   noindexcheck?: boolean;
+  dryrun?: boolean;
 }
 
 function showHelp(): never {
@@ -51,7 +53,7 @@ Configuration:
 
 Options:
   -e, --engine <value>       The engine for which the include file is created
-                             (psychic|psychic2|async|espidf) (default: "psychic")
+                             (psychic|async|espidf) (default: "psychic")
   -s, --sourcepath <path>    Source dist folder contains compiled web files (required)
   -o, --outputfile <path>    Generated output file with path (default: "svelteesp32.h")
   --etag <value>             Use ETAG header for cache (true|false|compiler) (default: "false")
@@ -66,6 +68,7 @@ Options:
   --basepath <path>          URL prefix for all routes (e.g., "/ui") (default: "")
   --maxsize <size>           Maximum total uncompressed size (e.g., 400k, 1.5m, 409600)
   --maxgzipsize <size>       Maximum total gzip size (e.g., 150k, 1m, 153600)
+  --dryrun                   Show summary without writing the output file (default: false)
   -h, --help                 Shows this help
 
 RC File:
@@ -92,8 +95,8 @@ RC File:
   process.exit(0);
 }
 
-function validateEngine(value: string): 'psychic' | 'psychic2' | 'async' | 'espidf' {
-  if (value === 'psychic' || value === 'psychic2' || value === 'async' || value === 'espidf') return value;
+function validateEngine(value: string): 'psychic' | 'async' | 'espidf' {
+  if (value === 'psychic' || value === 'async' || value === 'espidf') return value;
 
   console.error(getInvalidEngineError(value));
   process.exit(1);
@@ -103,6 +106,14 @@ function validateTriState(value: string, name: string): 'true' | 'false' | 'comp
   if (value === 'true' || value === 'false' || value === 'compiler') return value;
 
   throw new Error(`Invalid ${name}: ${value}`);
+}
+
+function validateCppIdentifier(value: string, name: string): string {
+  if (!/^[A-Z_a-z]\w*$/.test(value))
+    throw new Error(
+      `${name} must be a valid C++ identifier (letters, digits, underscores, not starting with a digit): ${value}`
+    );
+  return value;
 }
 
 function validateBasePath(value: string): string {
@@ -307,7 +318,8 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'basepath',
     'maxsize',
     'maxgzipsize',
-    'noindexcheck'
+    'noindexcheck',
+    'dryrun'
   ]);
 
   // Warn about unknown keys
@@ -323,11 +335,16 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (configObject['gzip'] !== undefined)
     configObject['gzip'] = validateTriState(configObject['gzip'] as string, 'gzip');
 
-  if (
-    configObject['cachetime'] !== undefined &&
-    (typeof configObject['cachetime'] !== 'number' || Number.isNaN(configObject['cachetime']))
-  )
-    throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']}`);
+  if (configObject['espmethod'] !== undefined) validateCppIdentifier(configObject['espmethod'] as string, 'espmethod');
+
+  if (configObject['define'] !== undefined) validateCppIdentifier(configObject['define'] as string, 'define');
+
+  if (configObject['cachetime'] !== undefined) {
+    if (typeof configObject['cachetime'] !== 'number' || Number.isNaN(configObject['cachetime']))
+      throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']}`);
+    if ((configObject['cachetime'] as number) < 0)
+      throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']} (must be non-negative)`);
+  }
 
   if (configObject['exclude'] !== undefined) {
     if (!Array.isArray(configObject['exclude'])) throw new TypeError("'exclude' in RC file must be an array");
@@ -367,6 +384,9 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
 
   if (configObject['noindexcheck'] !== undefined && typeof configObject['noindexcheck'] !== 'boolean')
     throw new TypeError(`Invalid noindexcheck in RC file: ${configObject['noindexcheck']} (must be boolean)`);
+
+  if (configObject['dryrun'] !== undefined && typeof configObject['dryrun'] !== 'boolean')
+    throw new TypeError(`Invalid dryrun in RC file: ${configObject['dryrun']} (must be boolean)`);
 
   return configObject as IRcFileConfig;
 }
@@ -426,12 +446,69 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.maxsize !== undefined) result.maxSize = rcConfig.maxsize as number;
   if (rcConfig.maxgzipsize !== undefined) result.maxGzipSize = rcConfig.maxgzipsize as number;
   if (rcConfig.noindexcheck !== undefined) result.noIndexCheck = rcConfig.noindexcheck;
+  if (rcConfig.dryrun !== undefined) result.dryRun = rcConfig.dryrun;
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
 
   // STEP 5: Parse CLI arguments
   const cliExclude: string[] = [];
+
+  function applyFlag(flagName: string, value: string): void {
+    switch (flagName) {
+      case 'config':
+        // Already processed, skip
+        break;
+      case 'engine':
+        result.engine = validateEngine(value);
+        break;
+      case 'sourcepath':
+        result.sourcepath = value;
+        break;
+      case 'outputfile':
+        result.outputfile = value;
+        break;
+      case 'etag':
+        result.etag = validateTriState(value, 'etag');
+        break;
+      case 'gzip':
+        result.gzip = validateTriState(value, 'gzip');
+        break;
+      case 'version':
+        result.version = value;
+        break;
+      case 'espmethod':
+        result.espmethod = validateCppIdentifier(value, 'espmethod');
+        break;
+      case 'define':
+        result.define = validateCppIdentifier(value, 'define');
+        break;
+      case 'cachetime':
+        result.cachetime = Number.parseInt(value, 10);
+        if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${value}`);
+        if (result.cachetime < 0) throw new TypeError(`Invalid cachetime: ${value} (must be non-negative)`);
+        break;
+      case 'exclude': {
+        const patterns = value
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean);
+        cliExclude.push(...patterns);
+        break;
+      }
+      case 'basepath':
+        result.basePath = validateBasePath(value);
+        break;
+      case 'maxsize':
+        result.maxSize = parseSize(value, '--maxsize');
+        break;
+      case 'maxgzipsize':
+        result.maxGzipSize = parseSize(value, '--maxgzipsize');
+        break;
+      default:
+        throw new Error(`Unknown flag: --${flagName}`);
+    }
+  }
 
   for (let index = 0; index < arguments_.length; index++) {
     const argument = arguments_[index];
@@ -449,61 +526,7 @@ function parseArguments(): ICopyFilesArguments {
 
       if (!flag || !value) throw new Error(`Invalid argument format: ${argument}`);
 
-      const flagName = flag.slice(2);
-
-      switch (flagName) {
-        case 'config':
-          // Already processed, skip
-          break;
-        case 'engine':
-          result.engine = validateEngine(value);
-          break;
-        case 'sourcepath':
-          result.sourcepath = value;
-          break;
-        case 'outputfile':
-          result.outputfile = value;
-          break;
-        case 'etag':
-          result.etag = validateTriState(value, 'etag');
-          break;
-        case 'gzip':
-          result.gzip = validateTriState(value, 'gzip');
-          break;
-        case 'version':
-          result.version = value;
-          break;
-        case 'espmethod':
-          result.espmethod = value;
-          break;
-        case 'define':
-          result.define = value;
-          break;
-        case 'cachetime':
-          result.cachetime = Number.parseInt(value, 10);
-          if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${value}`);
-
-          break;
-        case 'exclude': {
-          const patterns = value
-            .split(',')
-            .map((p) => p.trim())
-            .filter(Boolean);
-          cliExclude.push(...patterns);
-          break;
-        }
-        case 'basepath':
-          result.basePath = validateBasePath(value);
-          break;
-        case 'maxsize':
-          result.maxSize = parseSize(value, '--maxsize');
-          break;
-        case 'maxgzipsize':
-          result.maxGzipSize = parseSize(value, '--maxgzipsize');
-          break;
-        default:
-          throw new Error(`Unknown flag: ${flag}`);
-      }
+      applyFlag(flag.slice(2), value);
       continue;
     }
 
@@ -515,6 +538,11 @@ function parseArguments(): ICopyFilesArguments {
 
     if (argument === '--noindexcheck') {
       result.noIndexCheck = true;
+      continue;
+    }
+
+    if (argument === '--dryrun' || argument === '--dry-run') {
+      result.dryRun = true;
       continue;
     }
 
@@ -551,73 +579,8 @@ function parseArguments(): ICopyFilesArguments {
 
       if (!nextArgument || nextArgument.startsWith('-')) throw new Error(`Missing value for flag: ${argument}`);
 
-      switch (flag) {
-        case 'config':
-          // Already processed, skip
-          index++;
-          break;
-        case 'engine':
-          result.engine = validateEngine(nextArgument);
-          index++;
-          break;
-        case 'sourcepath':
-          result.sourcepath = nextArgument;
-          index++;
-          break;
-        case 'outputfile':
-          result.outputfile = nextArgument;
-          index++;
-          break;
-        case 'etag':
-          result.etag = validateTriState(nextArgument, 'etag');
-          index++;
-          break;
-        case 'gzip':
-          result.gzip = validateTriState(nextArgument, 'gzip');
-          index++;
-          break;
-        case 'version':
-          result.version = nextArgument;
-          index++;
-          break;
-        case 'espmethod':
-          result.espmethod = nextArgument;
-          index++;
-          break;
-        case 'define':
-          result.define = nextArgument;
-          index++;
-          break;
-        case 'cachetime':
-          result.cachetime = Number.parseInt(nextArgument, 10);
-          if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${nextArgument}`);
-
-          index++;
-          break;
-        case 'exclude': {
-          const patterns = nextArgument
-            .split(',')
-            .map((p) => p.trim())
-            .filter(Boolean);
-          cliExclude.push(...patterns);
-          index++;
-          break;
-        }
-        case 'basepath':
-          result.basePath = validateBasePath(nextArgument);
-          index++;
-          break;
-        case 'maxsize':
-          result.maxSize = parseSize(nextArgument, '--maxsize');
-          index++;
-          break;
-        case 'maxgzipsize':
-          result.maxGzipSize = parseSize(nextArgument, '--maxgzipsize');
-          index++;
-          break;
-        default:
-          throw new Error(`Unknown flag: --${flag}`);
-      }
+      applyFlag(flag, nextArgument);
+      index++;
       continue;
     }
 
@@ -637,7 +600,7 @@ function parseArguments(): ICopyFilesArguments {
 }
 
 // Export functions for testing
-export { getNpmPackageVariable, hasNpmVariables, interpolateNpmVariables, parseSize };
+export { getNpmPackageVariable, hasNpmVariables, interpolateNpmVariables, parseSize, validateCppIdentifier };
 
 export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   const parts: string[] = [
