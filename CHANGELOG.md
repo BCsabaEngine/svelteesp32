@@ -5,7 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-02-09
+
+### BREAKING CHANGES
+
+- **Removed `psychic2` engine**: The `psychic` engine now uses PsychicHttpServer V2 API exclusively. The old `-e psychic` (V1) engine has been removed. If you were using `-e psychic2`, change to `-e psychic`. If you were using `-e psychic` with PsychicHttpServer V1, you must upgrade to PsychicHttpServer V2.
+- **3 engines instead of 4**: Valid engines are now `psychic`, `async`, and `espidf`
+
+### Added
+
+- **Dry run mode**: New `--dryrun` flag shows file summary without writing the output file. Useful for CI/CD validation and size budget checks
+- **C++ identifier validation**: `--define` and `--espmethod` values are now validated to be valid C++ identifiers (letters, digits, underscores, cannot start with a digit)
+- **Unknown MIME type warnings**: Files with unrecognized extensions now log a warning with the fallback MIME type (`text/plain`)
+- **Negative cachetime validation**: `--cachetime` now rejects negative values both in CLI arguments and RC files
+- RC file support for `dryrun` as a boolean property
+
+### Changed
+
+- **PsychicHttpServer V2 is now the default**: The `psychic` engine generates PsychicHttpServer V2 API code (response passed as parameter instead of return value)
+- **Improved gzip size tracking**: `gzipsize` summary now reflects actual bytes stored (uncompressed size for files where gzip was not beneficial)
+- **Optimized byte array generation**: `bufferToByteString()` uses string concatenation instead of intermediate array allocation for better memory efficiency
+- **Improved C++ dataname generation**: Uses `\W` regex for broader special character replacement; identifiers starting with a digit are prefixed with `_`
+- **Strict `isDefault` matching**: Only exact `index.html` or `index.htm` filenames are treated as default endpoints (previously matched any filename starting with `index.htm`)
+- **Code cleanup**: Extracted `applyFlag()` helper to eliminate duplicated flag-handling code in CLI parser
+- **Better output formatting**: File sizes displayed as `kB` instead of raw bytes
+- Wrapped pipeline in exported `main()` function for better testability
+- **Complete runnable demo projects**: Arduino/PlatformIO and ESP-IDF demos are now fully working examples with a Svelte web interface that controls the built-in LED on the ESP32
+- Updated dependencies
 
 ## [1.16.1] - 2026-02-01
 
@@ -514,6 +540,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[2.0.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.16.1...v2.0.0
 [1.16.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.16.0...v1.16.1
 [1.16.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.14.0...v1.15.0

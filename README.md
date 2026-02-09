@@ -79,7 +79,7 @@ void setup() {
 
 ## What's New
 
-- **v1.17.0** — Dry run mode (`--dryrun`), C++ identifier validation, improved MIME type warnings
+- **v2.0.0** — **BREAKING**: PsychicHttpServer V2 is now the default `psychic` engine. The `psychic2` engine has been removed. Dry run mode, C++ identifier validation, improved MIME type warnings
 - **v1.16.0** — Size budget constraints (`--maxsize`, `--maxgzipsize`)
 - **v1.15.0** — `--basepath` for multiple frontends (e.g., `/admin`, `/app`)
 - **v1.13.0** — npm package variable interpolation in RC files
@@ -142,7 +142,7 @@ Watch your files get optimized in real-time:
 
 ### ESP32 Integration
 
-**PsychicHttpServer (Recommended)**
+**PsychicHttpServer V2 (Recommended)**
 
 ```c
 #include <PsychicHttp.h>
@@ -151,7 +151,7 @@ Watch your files get optimized in real-time:
 PsychicHttpServer server;
 
 void setup() {
-    server.begin();
+    server.listen(80);
     initSvelteStaticFiles(&server);  // One line. Done.
 }
 ```
@@ -185,14 +185,14 @@ void app_main() {
 }
 ```
 
-Working examples: [Arduino/PlatformIO](demo/esp32) | [ESP-IDF](demo/esp32idf)
+Working examples with LED control via web interface: [Arduino/PlatformIO](demo/esp32) | [ESP-IDF](demo/esp32idf)
 
 ### What Gets Generated
 
 The generated header file includes everything your ESP needs:
 
 ```c
-//engine:   PsychicHttpServer
+//engine:   PsychicHttpServer V2
 //config:   engine=psychic sourcepath=./dist outputfile=./output.h etag=true gzip=true cachetime=0 espmethod=initSvelteStaticFiles define=SVELTEESP32
 //
 #define SVELTEESP32_COUNT 5
@@ -258,13 +258,13 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 ## Supported Web Server Engines
 
-| Engine                | Flag         | Best For                     | Platform        |
-| --------------------- | ------------ | ---------------------------- | --------------- |
-| **PsychicHttpServer** | `-e psychic` | Maximum performance          | ESP32 only      |
-| **ESPAsyncWebServer** | `-e async`   | Cross-platform compatibility | ESP32 + ESP8266 |
-| **Native ESP-IDF**    | `-e espidf`  | Pure ESP-IDF projects        | ESP32 only      |
+| Engine                   | Flag         | Best For                     | Platform        |
+| ------------------------ | ------------ | ---------------------------- | --------------- |
+| **PsychicHttpServer V2** | `-e psychic` | Maximum performance          | ESP32 only      |
+| **ESPAsyncWebServer**    | `-e async`   | Cross-platform compatibility | ESP32 + ESP8266 |
+| **Native ESP-IDF**       | `-e espidf`  | Pure ESP-IDF projects        | ESP32 only      |
 
-**Recommendation:** For ESP32-only projects, use PsychicHttpServer for the fastest, most stable experience.
+**Recommendation:** For ESP32-only projects, use PsychicHttpServer V2 (`-e psychic`) for the fastest, most stable experience.
 
 **Note:** For PsychicHttp, configure `server.config.max_uri_handlers` to match your file count.
 
