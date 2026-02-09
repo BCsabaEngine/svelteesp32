@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project Overview
 
 TypeScript CLI tool converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 3 engines.
@@ -7,10 +9,13 @@ TypeScript CLI tool converting frontend apps (Svelte, React, Angular, Vue) into 
 ## Commands
 
 ```bash
-npm run build          # Build TypeScript
-npm run fix            # Fix formatting and linting
-npm run test           # Run unit tests
+npm run build          # Build TypeScript (clean + force rebuild)
+npm run fix            # Fix formatting and linting (prettier + eslint + prettier)
+npm run test           # Run unit tests (vitest run)
 npm run test:coverage  # Coverage report
+npm run all            # Fix + build + test (full validation)
+npx vitest run test/unit/file.test.ts              # Run a single test file
+npx vitest run test/unit/file.test.ts -t "test name" # Run a specific test by name
 npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true --gzip=true
 ```
 
@@ -63,6 +68,7 @@ Test files in `test/unit/`. Fixtures in `test/fixtures/sample-files/`.
 ## Build Config
 
 - **TypeScript**: Target ES2020, CommonJS, strict mode
-- **ESLint**: TypeScript + Prettier + Unicorn plugins
+- **ESLint**: TypeScript + Prettier + Unicorn (all rules) + simple-import-sort
 - **Prettier**: 120 char width, single quotes, no trailing commas
+- **ESLint `curly` rule**: `"multi"` — braces required only for multi-statement blocks. Single-statement `if`/`else`/`for` must NOT have braces.
 - **ES2020 constraint**: No `replaceAll` with regex — use `.replace(/regex/g, ...)` with `// eslint-disable-next-line unicorn/prefer-string-replace-all`
