@@ -79,6 +79,7 @@ void setup() {
 
 ## What's New
 
+- **v2.0.1** — Dependency updates (ESLint v10, eslint-plugin-unicorn 63), improved error cause chaining
 - **v2.0.0** — **BREAKING**: PsychicHttpServer V2 is now the default `psychic` engine. The `psychic2` engine has been removed. Dry run mode, C++ identifier validation, improved MIME type warnings
 - **v1.16.0** — Size budget constraints (`--maxsize`, `--maxgzipsize`)
 - **v1.15.0** — `--basepath` for multiple frontends (e.g., `/admin`, `/app`)
