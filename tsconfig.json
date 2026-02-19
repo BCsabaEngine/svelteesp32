@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
+    "lib": ["ES2020", "ES2022.Error"],
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": false,

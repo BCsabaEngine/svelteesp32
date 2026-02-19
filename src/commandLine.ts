@@ -191,7 +191,9 @@ function parsePackageJson(packageJsonPath: string): Record<string, unknown> {
     const content = readFileSync(packageJsonPath, 'utf8');
     return JSON.parse(content);
   } catch (error) {
-    throw new Error(`Failed to parse package.json at ${packageJsonPath}: ${(error as Error).message}`);
+    throw new Error(`Failed to parse package.json at ${packageJsonPath}: ${(error as Error).message}`, {
+      cause: error
+    });
   }
 }
 
@@ -291,7 +293,8 @@ function loadRcFile(rcPath: string): IRcFileConfig {
 
     return validateRcConfig(interpolatedConfig, rcPath);
   } catch (error) {
-    if (error instanceof SyntaxError) throw new Error(`Invalid JSON in RC file ${rcPath}: ${error.message}`);
+    if (error instanceof SyntaxError)
+      throw new Error(`Invalid JSON in RC file ${rcPath}: ${error.message}`, { cause: error });
 
     throw error;
   }
