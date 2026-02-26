@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TypeScript CLI tool converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 3 engines.
+TypeScript CLI tool converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines.
 
 ## Commands
 
@@ -12,11 +12,17 @@ TypeScript CLI tool converting frontend apps (Svelte, React, Angular, Vue) into 
 npm run build          # Build TypeScript (clean + force rebuild)
 npm run fix            # Fix formatting and linting (prettier + eslint + prettier)
 npm run test           # Run unit tests (vitest run)
+npm run test:watch     # Run tests in watch mode
 npm run test:coverage  # Coverage report
 npm run all            # Fix + build + test (full validation)
 npx vitest run test/unit/file.test.ts              # Run a single test file
 npx vitest run test/unit/file.test.ts -t "test name" # Run a specific test by name
 npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true --gzip=true
+
+# Dev mode (nodemon, watches src/index.ts, targets demo/esp32)
+npm run dev:psychic    # psychic engine, no etag/gzip
+npm run dev:async      # async engine, etag+gzip+cachetime
+npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 ```
 
 ## Architecture
@@ -25,7 +31,7 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 
 - `src/index.ts` — Main pipeline (`main()`), compression, MIME types, `--dryrun` mode
 - `src/commandLine.ts` — CLI parsing (native `process.argv`), RC files, npm variable interpolation, C++ identifier validation
-- `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`
+- `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists.
 - `src/cppCode.ts` — Handlebars templates for psychic/async engines (data arrays, etag arrays, manifest, hook sections)
 - `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation
 - `src/errorMessages.ts` — Framework-specific error messages
@@ -43,7 +49,7 @@ File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → H
 
 ### CLI Options
 
-`-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--cachetime`, `--define`, `--espmethod`
+`-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--cachetime`, `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
 
 RC files: `.svelteesp32rc.json` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation.
 
