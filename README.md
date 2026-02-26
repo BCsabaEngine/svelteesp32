@@ -406,25 +406,25 @@ Called for every response (200 = content served, 304 = cache hit).
 
 ## CLI Reference
 
-| Option           | Description                                      | Default                 |
-| ---------------- | ------------------------------------------------ | ----------------------- |
-| `-s`             | Source folder with compiled web files            | (required)              |
+| Option           | Description                                        | Default                 |
+| ---------------- | -------------------------------------------------- | ----------------------- |
+| `-s`             | Source folder with compiled web files              | (required)              |
 | `-e`             | Web server engine (psychic/async/espidf/webserver) | `psychic`               |
-| `-o`             | Output header file path                          | `svelteesp32.h`         |
-| `--etag`         | ETag caching (true/false/compiler)               | `false`                 |
-| `--gzip`         | Gzip compression (true/false/compiler)           | `true`                  |
-| `--exclude`      | Exclude files by glob pattern                    | System files            |
-| `--basepath`     | URL prefix for all routes                        | (none)                  |
-| `--maxsize`      | Max total uncompressed size (e.g., `400k`, `1m`) | (none)                  |
-| `--maxgzipsize`  | Max total gzip size (e.g., `150k`, `500k`)       | (none)                  |
-| `--cachetime`    | Cache-Control max-age in seconds                 | `0`                     |
-| `--version`      | Version string in header                         | (none)                  |
-| `--define`       | C++ define prefix                                | `SVELTEESP32`           |
-| `--espmethod`    | Init function name                               | `initSvelteStaticFiles` |
-| `--config`       | Custom RC file path                              | `.svelteesp32rc.json`   |
-| `--dryrun`       | Show summary without writing output              | `false`                 |
-| `--noindexcheck` | Skip index.html validation                       | `false`                 |
-| `-h`             | Show help                                        |                         |
+| `-o`             | Output header file path                            | `svelteesp32.h`         |
+| `--etag`         | ETag caching (true/false/compiler)                 | `false`                 |
+| `--gzip`         | Gzip compression (true/false/compiler)             | `true`                  |
+| `--exclude`      | Exclude files by glob pattern                      | System files            |
+| `--basepath`     | URL prefix for all routes                          | (none)                  |
+| `--maxsize`      | Max total uncompressed size (e.g., `400k`, `1m`)   | (none)                  |
+| `--maxgzipsize`  | Max total gzip size (e.g., `150k`, `500k`)         | (none)                  |
+| `--cachetime`    | Cache-Control max-age in seconds                   | `0`                     |
+| `--version`      | Version string in header                           | (none)                  |
+| `--define`       | C++ define prefix                                  | `SVELTEESP32`           |
+| `--espmethod`    | Init function name                                 | `initSvelteStaticFiles` |
+| `--config`       | Custom RC file path                                | `.svelteesp32rc.json`   |
+| `--dryrun`       | Show summary without writing output                | `false`                 |
+| `--noindexcheck` | Skip index.html validation                         | `false`                 |
+| `-h`             | Show help                                          |                         |
 
 ---
 
