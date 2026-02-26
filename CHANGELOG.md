@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-02-26
+
+### Added
+
+- **Arduino WebServer engine**: New `-e webserver` engine for the built-in Arduino WebServer library
+  - No external library dependencies — uses the WebServer bundled with the ESP32 Arduino core
+  - Synchronous request handling (requires `handleClient()` in your `loop()`)
+  - Full ETag, gzip, and cache-time support
+  - PROGMEM storage for data arrays
+  - File manifest and `onFileServed` hook included
+  - Demo project in `demo/esp32/` updated with `main_webserver.cpp`
+  - Contributed by Michael Haberler via [#74](https://github.com/BCsabaEngine/svelteesp32/pull/74)
+
+### Changed
+
+- Updated dependencies: `@types/node` 25, `@vitest/coverage-v8` 4, `eslint-config-prettier` 10, `memfs` 4.56, `nodemon` 3.1.14, `prettier` 3.8, `tsx` 4.21, `typescript` 5.9, `vitest` 4
+
 ## [2.0.1] - 2026-02-19
 
 ### Fixed
@@ -551,6 +568,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[2.1.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.16.1...v2.0.0
 [1.16.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v1.16.0...v1.16.1

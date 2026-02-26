@@ -25,7 +25,7 @@
 - **Smart Caching** — Built-in SHA256 ETags deliver HTTP 304 responses, slashing bandwidth on constrained devices.
 - **CI/CD Ready** — Simple npm package that slots into any build pipeline.
 - **Zero Runtime Overhead** — Data served directly from flash. No filesystem reads, no RAM allocation.
-- **4 Web Server Engines** — PsychicHttpServer, ESPAsyncWebServer, Arduino WebServer, and native ESP-IDF supported.
+- **4 Web Server Engines** — PsychicHttpServer V2, ESPAsyncWebServer, Arduino WebServer, and native ESP-IDF supported.
 
 ---
 
@@ -79,6 +79,7 @@ void setup() {
 
 ## What's New
 
+- **v2.1.0** — New Arduino WebServer engine (`-e webserver`), dependency updates
 - **v2.0.1** — Dependency updates (ESLint v10, eslint-plugin-unicorn 63), improved error cause chaining
 - **v2.0.0** — **BREAKING**: PsychicHttpServer V2 is now the default `psychic` engine. The `psychic2` engine has been removed. Dry run mode, C++ identifier validation, improved MIME type warnings
 - **v1.16.0** — Size budget constraints (`--maxsize`, `--maxgzipsize`)
@@ -171,6 +172,24 @@ AsyncWebServer server(80);
 void setup() {
     initSvelteStaticFiles(&server);
     server.begin();
+}
+```
+
+**Arduino WebServer (built-in, no dependencies)**
+
+```c
+#include <WebServer.h>
+#include "svelteesp32.h"
+
+WebServer server(80);
+
+void setup() {
+    initSvelteStaticFiles(&server);
+    server.begin();
+}
+
+void loop() {
+    server.handleClient();
 }
 ```
 
