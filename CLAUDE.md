@@ -35,6 +35,7 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true 
 - **psychic** — PsychicHttpServer V2 API, ESP32 only
 - **async** — ESPAsyncWebServer, ESP32/ESP8266, PROGMEM
 - **espidf** — Native ESP-IDF, `unsigned char` data arrays with `(const char *)` casts
+- **webserver** — Arduino WebServer, ESP32, PROGMEM, synchronous (requires `handleClient()` in loop)
 
 ### Pipeline
 

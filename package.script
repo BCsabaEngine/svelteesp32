@@ -27,3 +27,13 @@ npx tsx src/index.ts -e espidf -s ./demo/svelte/dist -o ./demo/esp32idf/include/
 npx tsx src/index.ts -e espidf -s ./demo/svelte/dist -o ./demo/esp32idf/include/ec/svelteesp32espidf.h --etag=compiler --gzip=false --cachetime=86400
 npx tsx src/index.ts -e espidf -s ./demo/svelte/dist -o ./demo/esp32idf/include/ecg/svelteesp32espidf.h --etag=compiler --gzip=true --cachetime=86400
 npx tsx src/index.ts -e espidf -s ./demo/svelte/dist -o ./demo/esp32idf/include/ecgc/svelteesp32espidf.h --etag=compiler --gzip=compiler --cachetime=86400
+
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/_/svelteesp32webserver.h --etag=false --gzip=false --cachetime=86400
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/g/svelteesp32webserver.h --etag=false --gzip=true --cachetime=86400
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/gc/svelteesp32webserver.h --etag=false --gzip=compiler --cachetime=86400
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/e/svelteesp32webserver.h --etag=true --gzip=false --cachetime=86400
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/eg/svelteesp32webserver.h --etag=true --gzip=true --cachetime=86400
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/egc/svelteesp32webserver.h --etag=true --gzip=compiler --cachetime=86400
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/ec/svelteesp32webserver.h --etag=compiler --gzip=false --cachetime=86400
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/ecg/svelteesp32webserver.h --etag=compiler --gzip=true --cachetime=86400
+npx tsx src/index.ts -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/ecgc/svelteesp32webserver.h --etag=compiler --gzip=compiler --cachetime=86400

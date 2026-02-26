@@ -103,6 +103,7 @@ describe('commandLine', () => {
       expect(helpOutput).toContain('psychic');
       expect(helpOutput).toContain('async');
       expect(helpOutput).toContain('espidf');
+      expect(helpOutput).toContain('webserver');
     });
   });
 

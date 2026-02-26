@@ -533,6 +533,206 @@ void {{methodName}}(AsyncWebServer * server) {
 {{/each}}
 }`;
 
+const webserverTemplate = `
+//engine:   Arduino WebServer
+//config:   {{{config}}}
+{{#if created }}
+//created:  {{now}}
+{{/if}}
+//
+${commonHeaderSection}
+
+//
+#include <Arduino.h>
+#include <WebServer.h>
+
+//
+${dataArraysSection(true)}
+
+//
+${etagArraysSection}
+
+//
+${manifestSection}
+
+//
+${hookSection}
+
+//
+// Chunked send helper for PROGMEM data
+static inline void {{definePrefix}}_sendChunked(WebServer * server, const uint8_t * data, size_t len) {
+  const size_t chunkSize = 4096;
+  for (size_t offset = 0; offset < len; offset += chunkSize) {
+    size_t remaining = len - offset;
+    size_t toSend = remaining < chunkSize ? remaining : chunkSize;
+    server->sendContent_P((const char *)(data + offset), toSend);
+  }
+}
+
+//
+// Http Handlers
+void {{methodName}}(WebServer * server) {
+{{#each sources}}
+//
+// {{this.filename}}
+  server->on("{{../basePath}}/{{this.filename}}", HTTP_GET, [server]() {
+
+{{#switch ../etag}}
+{{#case "true"}}
+    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      server->send(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
+      return;
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      server->send(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
+      return;
+    }
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+{{#../cacheTime}}
+    server->sendHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    server->sendHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    server->sendHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    server->sendHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    server->sendHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    server->sendHeader("ETag", etag_{{this.dataname}});
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+{{#if this.isGzip}}
+    server->sendHeader("Content-Encoding", "gzip");
+{{/if}}
+    server->setContentLength({{this.lengthGzip}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, datagzip_{{this.dataname}}, {{this.lengthGzip}});
+{{/case}}
+{{#case "false"}}
+    server->setContentLength({{this.length}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+{{#if this.isGzip}}
+    server->sendHeader("Content-Encoding", "gzip");
+{{/if}}
+    server->setContentLength({{this.lengthGzip}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, datagzip_{{this.dataname}}, {{this.lengthGzip}});
+  #else
+    server->setContentLength({{this.length}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, data_{{this.dataname}}, {{this.length}});
+  #endif
+{{/case}}
+{{/switch}}
+
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
+  });
+  {{#if this.isDefault}}
+  server->on("{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}", HTTP_GET, [server]() {
+
+{{#switch ../etag}}
+{{#case "true"}}
+    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      server->send(304);
+      {{../definePrefix}}_onFileServed("{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}", 304);
+      return;
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      server->send(304);
+      {{../definePrefix}}_onFileServed("{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}", 304);
+      return;
+    }
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+{{#../cacheTime}}
+    server->sendHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    server->sendHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    server->sendHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    server->sendHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    server->sendHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    server->sendHeader("ETag", etag_{{this.dataname}});
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+{{#if this.isGzip}}
+    server->sendHeader("Content-Encoding", "gzip");
+{{/if}}
+    server->setContentLength({{this.lengthGzip}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, datagzip_{{this.dataname}}, {{this.lengthGzip}});
+{{/case}}
+{{#case "false"}}
+    server->setContentLength({{this.length}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+{{#if this.isGzip}}
+    server->sendHeader("Content-Encoding", "gzip");
+{{/if}}
+    server->setContentLength({{this.lengthGzip}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, datagzip_{{this.dataname}}, {{this.lengthGzip}});
+  #else
+    server->setContentLength({{this.length}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, data_{{this.dataname}}, {{this.length}});
+  #endif
+{{/case}}
+{{/switch}}
+
+    {{../definePrefix}}_onFileServed("{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}", 200);
+  });
+  {{/if}}
+
+{{/each}}
+}`;
+
 const getTemplate = (engine: string): string => {
   switch (engine) {
     case 'psychic':
@@ -541,6 +741,8 @@ const getTemplate = (engine: string): string => {
       return asyncTemplate;
     case 'espidf':
       return espidfTemplate;
+    case 'webserver':
+      return webserverTemplate;
     default:
       throw new Error(`Unknown engine: ${engine}`);
   }

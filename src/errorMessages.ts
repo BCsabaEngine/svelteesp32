@@ -9,7 +9,8 @@ function getEngineName(engine: string): string {
   const names: Record<string, string> = {
     psychic: 'PsychicHttpServer',
     async: 'ESPAsyncWebServer',
-    espidf: 'ESP-IDF'
+    espidf: 'ESP-IDF',
+    webserver: 'Arduino WebServer'
   };
   return names[engine] ?? engine;
 }
@@ -29,7 +30,11 @@ export function getMissingIndexError(engine: string): string {
 
     espidf: `  1. Add an index.html file to your source directory
   2. The file will register both "/" and "/index.html" routes
-  3. ESP-IDF uses: httpd_register_uri_handler(server, &route_def_...)`
+  3. ESP-IDF uses: httpd_register_uri_handler(server, &route_def_...)`,
+
+    webserver: `  1. Add an index.html file to your source directory
+  2. The file will automatically create a "/" route handler
+  3. Arduino WebServer uses: server.on("/", HTTP_GET, handler)`
   };
 
   const hint = hints[engine] ?? hints['psychic'];
@@ -63,6 +68,7 @@ Valid engines are:
   ${cyanLog('• psychic')}    - PsychicHttpServer (ESP32 only, fastest performance)
   ${cyanLog('• async')}      - ESPAsyncWebServer (ESP32/ESP8266 compatible)
   ${cyanLog('• espidf')}     - Native ESP-IDF web server (ESP32 only, no Arduino)
+  ${cyanLog('• webserver')}  - Arduino WebServer (ESP32, synchronous, built-in)
 
 How to fix:
   npx svelteesp32 --engine=psychic --sourcepath=./dist

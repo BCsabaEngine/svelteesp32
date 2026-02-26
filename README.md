@@ -25,7 +25,7 @@
 - **Smart Caching** — Built-in SHA256 ETags deliver HTTP 304 responses, slashing bandwidth on constrained devices.
 - **CI/CD Ready** — Simple npm package that slots into any build pipeline.
 - **Zero Runtime Overhead** — Data served directly from flash. No filesystem reads, no RAM allocation.
-- **3 Web Server Engines** — PsychicHttpServer, ESPAsyncWebServer, and native ESP-IDF supported.
+- **4 Web Server Engines** — PsychicHttpServer, ESPAsyncWebServer, Arduino WebServer, and native ESP-IDF supported.
 
 ---
 
@@ -115,6 +115,9 @@ npx svelteesp32 -e psychic -s ./dist -o ./esp32/svelteesp32.h --etag=true
 
 # ESPAsyncWebServer (ESP32 + ESP8266)
 npx svelteesp32 -e async -s ./dist -o ./esp32/svelteesp32.h --etag=true
+
+# Arduino WebServer (ESP32, synchronous, no dependencies)
+npx svelteesp32 -e webserver -s ./dist -o ./esp32/svelteesp32.h --etag=true
 
 # Native ESP-IDF
 npx svelteesp32 -e espidf -s ./dist -o ./esp32/svelteesp32.h --etag=true
@@ -259,11 +262,12 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 ## Supported Web Server Engines
 
-| Engine                   | Flag         | Best For                     | Platform        |
-| ------------------------ | ------------ | ---------------------------- | --------------- |
-| **PsychicHttpServer V2** | `-e psychic` | Maximum performance          | ESP32 only      |
-| **ESPAsyncWebServer**    | `-e async`   | Cross-platform compatibility | ESP32 + ESP8266 |
-| **Native ESP-IDF**       | `-e espidf`  | Pure ESP-IDF projects        | ESP32 only      |
+| Engine                   | Flag           | Best For                     | Platform        |
+| ------------------------ | -------------- | ---------------------------- | --------------- |
+| **PsychicHttpServer V2** | `-e psychic`   | Maximum performance          | ESP32 only      |
+| **ESPAsyncWebServer**    | `-e async`     | Cross-platform compatibility | ESP32 + ESP8266 |
+| **Arduino WebServer**    | `-e webserver` | No dependencies, simplicity  | ESP32 only      |
+| **Native ESP-IDF**       | `-e espidf`    | Pure ESP-IDF projects        | ESP32 only      |
 
 **Recommendation:** For ESP32-only projects, use PsychicHttpServer V2 (`-e psychic`) for the fastest, most stable experience.
 
@@ -288,7 +292,7 @@ Reduce bandwidth dramatically with HTTP 304 "Not Modified" responses. When a bro
 - **Minimal overhead** — adds ~1-3% code size for significant bandwidth savings
 - **Compiler mode** — use `--etag=compiler` and control via `-D SVELTEESP32_ENABLE_ETAG`
 
-All three engines support full ETag validation.
+All four engines support full ETag validation.
 
 ### Browser Cache Control
 
@@ -405,7 +409,7 @@ Called for every response (200 = content served, 304 = cache hit).
 | Option           | Description                                      | Default                 |
 | ---------------- | ------------------------------------------------ | ----------------------- |
 | `-s`             | Source folder with compiled web files            | (required)              |
-| `-e`             | Web server engine (psychic/async/espidf)         | `psychic`               |
+| `-e`             | Web server engine (psychic/async/espidf/webserver) | `psychic`               |
 | `-o`             | Output header file path                          | `svelteesp32.h`         |
 | `--etag`         | ETag caching (true/false/compiler)               | `false`                 |
 | `--gzip`         | Gzip compression (true/false/compiler)           | `true`                  |

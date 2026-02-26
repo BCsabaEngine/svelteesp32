@@ -41,6 +41,12 @@ describe('errorMessages', () => {
       expect(result).toContain('httpd_register_uri_handler');
     });
 
+    it('should include engine-specific hint for webserver', () => {
+      const result = getMissingIndexError('webserver');
+      expect(result).toContain('Arduino WebServer');
+      expect(result).toContain('server.on');
+    });
+
     it('should include alternative solution', () => {
       const result = getMissingIndexError('psychic');
       expect(result).toContain('Alternative:');
@@ -65,6 +71,7 @@ describe('errorMessages', () => {
       expect(result).toContain('psychic');
       expect(result).toContain('async');
       expect(result).toContain('espidf');
+      expect(result).toContain('webserver');
     });
 
     it('should include engine descriptions', () => {
@@ -72,6 +79,7 @@ describe('errorMessages', () => {
       expect(result).toContain('PsychicHttpServer');
       expect(result).toContain('ESPAsyncWebServer');
       expect(result).toContain('ESP-IDF');
+      expect(result).toContain('Arduino WebServer');
       expect(result).toContain('fastest performance');
       expect(result).toContain('ESP32/ESP8266 compatible');
     });
@@ -259,6 +267,11 @@ describe('errorMessages', () => {
 
     it('should return empty string for async engine', () => {
       const result = getMaxUriHandlersHint('async', 10);
+      expect(result).toBe('');
+    });
+
+    it('should return empty string for webserver engine', () => {
+      const result = getMaxUriHandlersHint('webserver', 10);
       expect(result).toBe('');
     });
 
