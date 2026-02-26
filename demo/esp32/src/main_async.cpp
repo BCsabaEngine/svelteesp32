@@ -14,11 +14,13 @@
 bool ledState = false;
 AsyncWebServer server(80);
 
-String getStatusJson() {
+String getStatusJson()
+{
   return "{\"uptime\":" + String(millis() / 1000) + ",\"led\":" + (ledState ? "true" : "false") + "}";
 }
 
-void setup() {
+void setup()
+{
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
@@ -30,15 +32,14 @@ void setup() {
 
   initSvelteStaticFiles(&server);
 
-  server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "application/json", getStatusJson());
-  });
+  server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(200, "application/json", getStatusJson()); });
 
-  server.on("/api/toggle", HTTP_POST, [](AsyncWebServerRequest *request) {
+  server.on("/api/toggle", HTTP_POST, [](AsyncWebServerRequest *request)
+            {
     ledState = !ledState;
     digitalWrite(LED_PIN, ledState ? HIGH : LOW);
-    request->send(200, "application/json", getStatusJson());
-  });
+    request->send(200, "application/json", getStatusJson()); });
 
   server.begin();
 }
