@@ -14,11 +14,13 @@
 bool ledState = false;
 PsychicHttpServer server(80);
 
-String getStatusJson() {
+String getStatusJson()
+{
   return "{\"uptime\":" + String(millis() / 1000) + ",\"led\":" + (ledState ? "true" : "false") + "}";
 }
 
-void setup() {
+void setup()
+{
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
@@ -32,21 +34,21 @@ void setup() {
   server.begin();
   initSvelteStaticFiles(&server);
 
-  server.on("/api/status", HTTP_GET, [](PsychicRequest *request, PsychicResponse *response) {
+  server.on("/api/status", HTTP_GET, [](PsychicRequest *request, PsychicResponse *response)
+            {
     String json = getStatusJson();
     response->setContentType("application/json");
     response->setContent((const uint8_t*)json.c_str(), json.length());
-    return response->send();
-  });
+    return response->send(); });
 
-  server.on("/api/toggle", HTTP_POST, [](PsychicRequest *request, PsychicResponse *response) {
+  server.on("/api/toggle", HTTP_POST, [](PsychicRequest *request, PsychicResponse *response)
+            {
     ledState = !ledState;
     digitalWrite(LED_PIN, ledState ? HIGH : LOW);
     String json = getStatusJson();
     response->setContentType("application/json");
     response->setContent((const uint8_t*)json.c_str(), json.length());
-    return response->send();
-  });
+    return response->send(); });
 }
 
 void loop() {}
