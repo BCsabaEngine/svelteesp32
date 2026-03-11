@@ -79,8 +79,8 @@ void setup() {
 
 ## What's New
 
+- **v2.2.0** — SPA routing catch-all (`--spa`) for client-side routers on all four engines
 - **v2.1.0** — New Arduino WebServer engine (`-e webserver`), dependency updates
-- **v2.0.1** — Dependency updates (ESLint v10, eslint-plugin-unicorn 63), improved error cause chaining
 - **v2.0.0** — **BREAKING**: PsychicHttpServer V2 is now the default `psychic` engine. The `psychic2` engine has been removed. Dry run mode, C++ identifier validation, improved MIME type warnings
 - **v1.16.0** — Size budget constraints (`--maxsize`, `--maxgzipsize`)
 - **v1.15.0** — `--basepath` for multiple frontends (e.g., `/admin`, `/app`)
@@ -376,6 +376,26 @@ void setup() {
 
 **Rules:** Must start with `/`, no trailing slash, no double slashes.
 
+### SPA Routing (Client-Side Routers)
+
+Modern JS frameworks use client-side routing. Without a catch-all, refreshing `/settings` on your ESP32 returns nothing. Add `--spa` to make all unmatched GET requests fall through to `index.html`:
+
+```bash
+npx svelteesp32 -e async -s ./dist -o ./output.h --spa
+npx svelteesp32 -e psychic -s ./dist -o ./output.h --spa --basepath=/app
+```
+
+What gets generated per engine:
+
+| Engine      | Catch-all mechanism                                                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `psychic`   | `server->on("/*", ...)` (no basePath) already handled by `defaultEndpoint`; `server->on("/app/*", ...)` when basePath is set |
+| `async`     | `server->onNotFound(...)` with optional basePath prefix check                                                                |
+| `webserver` | `server->onNotFound(...)` with optional basePath prefix check                                                                |
+| `espidf`    | `httpd_register_err_handler(HTTPD_404_NOT_FOUND, ...)`                                                                       |
+
+**Note:** `--spa` requires `index.html` or `index.htm` in the source directory — a warning is printed if it is missing.
+
 ### C++ Build-Time Validation
 
 Catch configuration issues at compile time with generated defines:
@@ -425,25 +445,26 @@ Called for every response (200 = content served, 304 = cache hit).
 
 ## CLI Reference
 
-| Option           | Description                                        | Default                 |
-| ---------------- | -------------------------------------------------- | ----------------------- |
-| `-s`             | Source folder with compiled web files              | (required)              |
-| `-e`             | Web server engine (psychic/async/espidf/webserver) | `psychic`               |
-| `-o`             | Output header file path                            | `svelteesp32.h`         |
-| `--etag`         | ETag caching (true/false/compiler)                 | `false`                 |
-| `--gzip`         | Gzip compression (true/false/compiler)             | `true`                  |
-| `--exclude`      | Exclude files by glob pattern                      | System files            |
-| `--basepath`     | URL prefix for all routes                          | (none)                  |
-| `--maxsize`      | Max total uncompressed size (e.g., `400k`, `1m`)   | (none)                  |
-| `--maxgzipsize`  | Max total gzip size (e.g., `150k`, `500k`)         | (none)                  |
-| `--cachetime`    | Cache-Control max-age in seconds                   | `0`                     |
-| `--version`      | Version string in header                           | (none)                  |
-| `--define`       | C++ define prefix                                  | `SVELTEESP32`           |
-| `--espmethod`    | Init function name                                 | `initSvelteStaticFiles` |
-| `--config`       | Custom RC file path                                | `.svelteesp32rc.json`   |
-| `--dryrun`       | Show summary without writing output                | `false`                 |
-| `--noindexcheck` | Skip index.html validation                         | `false`                 |
-| `-h`             | Show help                                          |                         |
+| Option           | Description                                         | Default                 |
+| ---------------- | --------------------------------------------------- | ----------------------- |
+| `-s`             | Source folder with compiled web files               | (required)              |
+| `-e`             | Web server engine (psychic/async/espidf/webserver)  | `psychic`               |
+| `-o`             | Output header file path                             | `svelteesp32.h`         |
+| `--etag`         | ETag caching (true/false/compiler)                  | `false`                 |
+| `--gzip`         | Gzip compression (true/false/compiler)              | `true`                  |
+| `--exclude`      | Exclude files by glob pattern                       | System files            |
+| `--basepath`     | URL prefix for all routes                           | (none)                  |
+| `--maxsize`      | Max total uncompressed size (e.g., `400k`, `1m`)    | (none)                  |
+| `--maxgzipsize`  | Max total gzip size (e.g., `150k`, `500k`)          | (none)                  |
+| `--cachetime`    | Cache-Control max-age in seconds                    | `0`                     |
+| `--version`      | Version string in header                            | (none)                  |
+| `--define`       | C++ define prefix                                   | `SVELTEESP32`           |
+| `--espmethod`    | Init function name                                  | `initSvelteStaticFiles` |
+| `--config`       | Custom RC file path                                 | `.svelteesp32rc.json`   |
+| `--dryrun`       | Show summary without writing output                 | `false`                 |
+| `--spa`          | Serve index.html for unmatched routes (SPA routing) | `false`                 |
+| `--noindexcheck` | Skip index.html validation                          | `false`                 |
+| `-h`             | Show help                                           |                         |
 
 ---
 
@@ -463,7 +484,8 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
   "maxsize": "400k",
   "maxgzipsize": "150k",
   "noindexcheck": false,
-  "dryrun": false
+  "dryrun": false,
+  "spa": false
 }
 ```
 

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-03-11
+
+### Added
+
+- **SPA routing support**: New `--spa` flag enables client-side routing catch-all for single-page applications
+  - When set, unmatched GET requests fall through to `index.html` so the JS router handles navigation
+  - Browser refresh on `/settings` or `/dashboard` now works without a 404
+  - Psychic engine (no basePath): already SPA-compatible via `defaultEndpoint` — no extra route added
+  - Psychic engine (with basePath): registers `server->on("{{basePath}}/*", ...)` catch-all
+  - Async engine: adds `server->onNotFound(...)` with optional basePath prefix guard
+  - Arduino WebServer engine: adds `server->onNotFound(...)` with optional basePath prefix guard
+  - ESP-IDF engine: registers `spa_handler_*` via `httpd_register_err_handler(HTTPD_404_NOT_FOUND)`
+  - Configurable via RC file as `"spa": true`
+  - Warns if `--spa` is set but no `index.html`/`index.htm` is found in the source directory
+
 ## [2.1.0] - 2026-02-26
 
 ### Added
