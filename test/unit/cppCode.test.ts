@@ -15,7 +15,8 @@ vi.mock('../../src/commandLine', () => ({
     espmethod: 'initSvelteStaticFiles',
     define: 'SVELTEESP32',
     exclude: [],
-    basePath: ''
+    basePath: '',
+    spa: false
   },
   formatConfiguration: vi.fn((cmdLine) => {
     return `engine=${cmdLine.engine} sourcepath=${cmdLine.sourcepath} outputfile=${cmdLine.outputfile} etag=${cmdLine.etag} gzip=${cmdLine.gzip} cachetime=${cmdLine.cachetime}`;
@@ -1236,6 +1237,165 @@ describe('cppCode', () => {
       // Async engine has a separate handler for "/" that should also have hooks
       expect(result).toContain('SVELTEESP32_onFileServed("/", 200)');
       expect(result).toContain('SVELTEESP32_onFileServed("/", 304)');
+    });
+  });
+
+  describe('SPA catch-all', () => {
+    it('should not generate catch-all when spa is false for psychic engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/app',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).not.toContain('server->on("/app/*"');
+    });
+
+    it('should generate catch-all when spa is true and basePath is set for psychic engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/app',
+          spa: true
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('server->on("/app/*", HTTP_GET');
+    });
+
+    it('should not generate extra catch-all for psychic engine without basePath (defaultEndpoint handles it)', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: true
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).not.toContain('server->on("/*"');
+    });
+
+    it('should not generate onNotFound when spa is false for async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).not.toContain('onNotFound');
+    });
+
+    it('should generate onNotFound when spa is true for async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: true
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('onNotFound');
+    });
+
+    it('should include basePath prefix check in onNotFound when spa and basePath set for async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '/app',
+          spa: true
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('onNotFound');
+      expect(result).toContain('startsWith("/app/")');
     });
   });
 });

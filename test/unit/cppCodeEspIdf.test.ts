@@ -15,7 +15,8 @@ vi.mock('../../src/commandLine', () => ({
     espmethod: 'initSvelteStaticFiles',
     define: 'SVELTEESP32',
     exclude: [],
-    basePath: ''
+    basePath: '',
+    spa: false
   },
   formatConfiguration: vi.fn((cmdLine) => {
     return `engine=${cmdLine.engine} sourcepath=${cmdLine.sourcepath} outputfile=${cmdLine.outputfile} etag=${cmdLine.etag} gzip=${cmdLine.gzip} cachetime=${cmdLine.cachetime}`;
@@ -803,6 +804,63 @@ describe('cppCodeEspIdf', () => {
       const result = getCppCode(sources, mockFilesByExtension);
 
       expect(result).toContain('#define SVELTEESP32_COUNT 2');
+    });
+  });
+
+  describe('SPA catch-all', () => {
+    it('should not generate spa_handler when spa is false', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'espidf',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).not.toContain('spa_handler_');
+      expect(result).not.toContain('httpd_register_err_handler');
+    });
+
+    it('should generate spa_handler and register it when spa is true', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'espidf',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: true
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('spa_handler_INDEX_HTML');
+      expect(result).toContain('httpd_register_err_handler');
+      expect(result).toContain('HTTPD_404_NOT_FOUND');
     });
   });
 });

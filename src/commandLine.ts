@@ -22,6 +22,7 @@ interface ICopyFilesArguments {
   maxGzipSize?: number;
   noIndexCheck?: boolean;
   dryRun?: boolean;
+  spa?: boolean;
   help?: boolean;
 }
 
@@ -42,6 +43,7 @@ interface IRcFileConfig {
   maxgzipsize?: number | string;
   noindexcheck?: boolean;
   dryrun?: boolean;
+  spa?: boolean;
 }
 
 function showHelp(): never {
@@ -69,6 +71,7 @@ Options:
   --maxsize <size>           Maximum total uncompressed size (e.g., 400k, 1.5m, 409600)
   --maxgzipsize <size>       Maximum total gzip size (e.g., 150k, 1m, 153600)
   --dryrun                   Show summary without writing the output file (default: false)
+  --spa                      Serve index.html for unmatched routes (SPA routing) (default: false)
   -h, --help                 Shows this help
 
 RC File:
@@ -87,7 +90,8 @@ RC File:
       "basepath": "/ui",
       "maxsize": "400k",
       "maxgzipsize": "150k",
-      "noindexcheck": false
+      "noindexcheck": false,
+      "spa": false
     }
 
   CLI arguments override RC file values.
@@ -322,7 +326,8 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'maxsize',
     'maxgzipsize',
     'noindexcheck',
-    'dryrun'
+    'dryrun',
+    'spa'
   ]);
 
   // Warn about unknown keys
@@ -391,6 +396,9 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (configObject['dryrun'] !== undefined && typeof configObject['dryrun'] !== 'boolean')
     throw new TypeError(`Invalid dryrun in RC file: ${configObject['dryrun']} (must be boolean)`);
 
+  if (configObject['spa'] !== undefined && typeof configObject['spa'] !== 'boolean')
+    throw new TypeError(`Invalid spa in RC file: ${configObject['spa']} (must be boolean)`);
+
   return configObject as IRcFileConfig;
 }
 
@@ -450,6 +458,7 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.maxgzipsize !== undefined) result.maxGzipSize = rcConfig.maxgzipsize as number;
   if (rcConfig.noindexcheck !== undefined) result.noIndexCheck = rcConfig.noindexcheck;
   if (rcConfig.dryrun !== undefined) result.dryRun = rcConfig.dryrun;
+  if (rcConfig.spa !== undefined) result.spa = rcConfig.spa;
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
@@ -549,6 +558,11 @@ function parseArguments(): ICopyFilesArguments {
       continue;
     }
 
+    if (argument === '--spa') {
+      result.spa = true;
+      continue;
+    }
+
     // Handle -flag value format
     if (argument.startsWith('-') && !argument.startsWith('--')) {
       const flag = argument.slice(1);
@@ -628,6 +642,8 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   if (cmdLine.maxSize !== undefined) parts.push(`maxSize=${cmdLine.maxSize}`);
 
   if (cmdLine.maxGzipSize !== undefined) parts.push(`maxGzipSize=${cmdLine.maxGzipSize}`);
+
+  if (cmdLine.spa) parts.push(`spa=${cmdLine.spa}`);
 
   if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
 
