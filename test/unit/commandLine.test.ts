@@ -280,6 +280,22 @@ describe('commandLine', () => {
       expect(cmdLine.noIndexCheck).toBe(true);
     });
 
+    it('should parse --spa flag', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--spa'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.spa).toBe(true);
+    });
+
+    it('should have undefined spa by default', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.spa).toBeUndefined();
+    });
+
     it('should have empty basePath by default', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
@@ -1232,6 +1248,39 @@ describe('commandLine', () => {
         const { cmdLine } = await import('../../src/commandLine');
 
         expect(cmdLine.noIndexCheck).toBe(true);
+      });
+
+      it('should load spa from RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          spa: true
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+        vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+        process.argv = ['node', 'script.js'];
+
+        const { cmdLine } = await import('../../src/commandLine');
+
+        expect(cmdLine.spa).toBe(true);
+      });
+
+      it('should validate spa is a boolean in RC file', async () => {
+        const mockRcContent = JSON.stringify({
+          sourcepath: '/test/dist',
+          spa: 'yes'
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+        process.argv = ['node', 'script.js'];
+
+        await expect(import('../../src/commandLine')).rejects.toThrow('Invalid spa in RC file: yes (must be boolean)');
       });
     });
 
