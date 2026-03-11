@@ -352,6 +352,94 @@ void {{methodName}}(PsychicHttpServer * server) {
 {{/if}}{{/if}}
 
 {{/each}}
+{{#if spa}}
+{{#with spaSource}}
+{{#if ../basePath}}
+//
+// SPA catch-all: unmatched routes serve {{this.filename}}
+  server->on("{{../basePath}}/*", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
+
+{{#switch ../etag}}
+{{#case "true"}}
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      response->setCode(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
+      return response->send();
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      response->setCode(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
+      return response->send();
+    }
+  #endif
+{{/case}}
+{{/switch}}
+
+    response->setContentType("{{this.mime}}");
+
+{{#switch ../gzip}}
+{{#case "true"}}
+{{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
+{{/if}}
+{{/case}}
+{{#case "compiler"}}
+  {{#if this.isGzip}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response->addHeader("Content-Encoding", "gzip");
+  #endif
+  {{/if}}
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+{{#../cacheTime}}
+    response->addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response->addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    response->addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response->addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+    response->setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+{{/case}}
+{{#case "false"}}
+    response->setContent(data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    response->setContent(datagzip_{{this.dataname}}, {{this.lengthGzip}});
+  #else
+    response->setContent(data_{{this.dataname}}, {{this.length}});
+  #endif
+{{/case}}
+{{/switch}}
+
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
+    return response->send();
+  });
+{{/if}}
+{{/with}}
+{{/if}}
 }`;
 
 const asyncTemplate = `
@@ -531,6 +619,87 @@ void {{methodName}}(AsyncWebServer * server) {
   {{/if}}
 
 {{/each}}
+{{#if spa}}
+{{#with spaSource}}
+//
+// SPA catch-all: unmatched routes serve {{this.filename}}
+  server->onNotFound([](AsyncWebServerRequest * request) {
+    if (request->method() != HTTP_GET) { request->send(404); return; }
+{{#if ../basePath}}
+    if (!request->url().startsWith("{{../basePath}}/") && request->url() != "{{../basePath}}") { request->send(404); return; }
+{{/if}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+    const AsyncWebHeader* h = request->getHeader("If-None-Match");
+    if (h && h->value().equals(etag_{{this.dataname}})) {
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
+      request->send(304);
+      return;
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    const AsyncWebHeader* h = request->getHeader("If-None-Match");
+    if (h && h->value().equals(etag_{{this.dataname}})) {
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
+      request->send(304);
+      return;
+    }
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    {{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
+    {{/if}}
+{{/case}}
+{{#case "false"}}
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", datagzip_{{this.dataname}}, {{this.lengthGzip}});
+    {{#if this.isGzip}}
+    response->addHeader("Content-Encoding", "gzip");
+    {{/if}}
+  #else
+    AsyncWebServerResponse *response = request->beginResponse(200, "{{this.mime}}", data_{{this.dataname}}, {{this.length}});
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+{{#../cacheTime}}
+    response->addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response->addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    response->addHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    response->addHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    response->addHeader("ETag", etag_{{this.dataname}});
+  #endif
+{{/case}}
+{{/switch}}
+
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
+    request->send(response);
+  });
+{{/with}}
+{{/if}}
 }`;
 
 const webserverTemplate = `
@@ -731,6 +900,92 @@ void {{methodName}}(WebServer * server) {
   {{/if}}
 
 {{/each}}
+{{#if spa}}
+{{#with spaSource}}
+//
+// SPA catch-all: unmatched routes serve {{this.filename}}
+  server->onNotFound([server]() {
+    if (server->method() != HTTP_GET) { server->send(404, "text/plain", "Not found"); return; }
+{{#if ../basePath}}
+    if (!server->uri().startsWith("{{../basePath}}/") && server->uri() != "{{../basePath}}") { server->send(404, "text/plain", "Not found"); return; }
+{{/if}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      server->send(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
+      return;
+    }
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_{{this.dataname}})) {
+      server->send(304);
+      {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
+      return;
+    }
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../etag}}
+{{#case "true"}}
+{{#../cacheTime}}
+    server->sendHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    server->sendHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    server->sendHeader("ETag", etag_{{this.dataname}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_ETAG
+{{#../cacheTime}}
+    server->sendHeader("Cache-Control", "max-age={{value}}");
+{{/../cacheTime}}
+{{^../cacheTime}}
+    server->sendHeader("Cache-Control", "no-cache");
+{{/../cacheTime}}
+    server->sendHeader("ETag", etag_{{this.dataname}});
+  #endif
+{{/case}}
+{{/switch}}
+
+{{#switch ../gzip}}
+{{#case "true"}}
+{{#if this.isGzip}}
+    server->sendHeader("Content-Encoding", "gzip");
+{{/if}}
+    server->setContentLength({{this.lengthGzip}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, datagzip_{{this.dataname}}, {{this.lengthGzip}});
+{{/case}}
+{{#case "false"}}
+    server->setContentLength({{this.length}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, data_{{this.dataname}}, {{this.length}});
+{{/case}}
+{{#case "compiler"}}
+  #ifdef {{../definePrefix}}_ENABLE_GZIP
+{{#if this.isGzip}}
+    server->sendHeader("Content-Encoding", "gzip");
+{{/if}}
+    server->setContentLength({{this.lengthGzip}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, datagzip_{{this.dataname}}, {{this.lengthGzip}});
+  #else
+    server->setContentLength({{this.length}});
+    server->send(200, "{{this.mime}}", "");
+    {{../definePrefix}}_sendChunked(server, data_{{this.dataname}}, {{this.length}});
+  #endif
+{{/case}}
+{{/switch}}
+
+    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
+  });
+{{/with}}
+{{/if}}
 }`;
 
 const getTemplate = (engine: string): string => {
@@ -812,6 +1067,8 @@ const createHandlebarsHelpers = () => {
  */
 export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string => {
   const template = handlebarsCompile(getTemplate(cmdLine.engine));
+  const transformedSources = sources.map((s) => transformSourceToTemplateData(s, cmdLine.etag));
+  const spaSource = cmdLine.spa ? transformedSources.find((s) => s.isDefault) : undefined;
   const templateData = {
     config: formatConfiguration(cmdLine),
     now: (() => {
@@ -821,7 +1078,7 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     fileCount: sources.length.toString(),
     fileSize: sources.reduce((previous, current) => previous + current.content.length, 0).toString(),
     fileGzipSize: sources.reduce((previous, current) => previous + current.contentGzip.length, 0).toString(),
-    sources: sources.map((s) => transformSourceToTemplateData(s, cmdLine.etag)),
+    sources: transformedSources,
     filesByExtension,
     etag: cmdLine.etag,
     gzip: cmdLine.gzip,
@@ -830,7 +1087,9 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     methodName: cmdLine.espmethod,
     cacheTime: cmdLine.cachetime ? { value: cmdLine.cachetime } : undefined,
     definePrefix: cmdLine.define,
-    basePath: cmdLine.basePath
+    basePath: cmdLine.basePath,
+    spa: !!cmdLine.spa,
+    spaSource
   };
 
   const rawCode = template(templateData, { helpers: createHandlebarsHelpers() });

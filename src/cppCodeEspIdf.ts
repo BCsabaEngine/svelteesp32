@@ -237,6 +237,20 @@ static const httpd_uri_t route_{{this.datanameUpperCase}} = {
 
 {{/each}}
 
+{{#if spa}}
+{{#with spaSource}}
+static esp_err_t spa_handler_{{this.datanameUpperCase}}(httpd_req_t *req, httpd_err_code_t err) {
+{{#if ../basePath}}
+    const char* prefix = "{{../basePath}}/";
+    if (strncmp(req->uri, prefix, strlen(prefix)) != 0 && strcmp(req->uri, "{{../basePath}}") != 0) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Not found");
+        return ESP_FAIL;
+    }
+{{/if}}
+    return file_handler_{{this.datanameUpperCase}}(req);
+}
+{{/with}}
+{{/if}}
 
 
 static inline void {{methodName}}(httpd_handle_t server) {
@@ -246,5 +260,10 @@ static inline void {{methodName}}(httpd_handle_t server) {
 {{/if}}
     httpd_register_uri_handler(server, &route_{{this.datanameUpperCase}});
 {{/each}}
+{{#if spa}}
+{{#with spaSource}}
+    httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, spa_handler_{{this.datanameUpperCase}});
+{{/with}}
+{{/if}}
 
 }`;

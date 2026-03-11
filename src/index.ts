@@ -111,6 +111,13 @@ export function main(): void {
     process.exit(1);
   }
 
+  if (cmdLine.spa && ![...files.keys()].some((f) => f === 'index.html' || f === 'index.htm'))
+    console.warn(
+      yellowLog(
+        '[SvelteESP32] Warning: --spa is set but no index.html/index.htm found; catch-all will not be generated.'
+      )
+    );
+
   console.log();
   console.log('Translation to header file');
   const longestFilename = [...files.keys()].reduce((p, c) => Math.max(c.length, p), 0);
