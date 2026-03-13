@@ -91,6 +91,61 @@ const updateExtensionGroup = (filesByExtension: ExtensionGroups, extension: stri
   else filesByExtension.push({ extension, count: 1 });
 };
 
+const sizeCellFor = (s: CppCodeSource): string => {
+  const orig = formatSize(s.content.length);
+  if (s.isGzip) return `${orig} → ${formatSize(s.contentGzip.length)}`;
+  return orig;
+};
+
+/**
+ * Format the route listing for dry-run output
+ */
+const formatDryRunRoutes = (
+  sources: CppCodeSources,
+  engine: 'psychic' | 'async' | 'espidf' | 'webserver',
+  basePath: string,
+  spa: boolean
+): string => {
+  if (sources.length === 0) return '  (no files)';
+
+  const defaultSource = sources.find((s) => s.filename === 'index.html' || s.filename === 'index.htm');
+
+  type RouteRow = { url: string; mime: string; sizeCell: string; tag: string };
+  const rows: RouteRow[] = [];
+
+  if (defaultSource)
+    rows.push({
+      url: basePath || '/',
+      mime: defaultSource.mime,
+      sizeCell: sizeCellFor(defaultSource),
+      tag: '[default]'
+    });
+
+  for (const source of sources)
+    rows.push({
+      url: `${basePath}/${source.filename}`,
+      mime: source.mime,
+      sizeCell: sizeCellFor(source),
+      tag: source.isGzip ? '' : '[no gzip]'
+    });
+
+  if (spa && defaultSource) {
+    const spaUrl = engine === 'psychic' && basePath ? `${basePath}/*` : '(SPA catch-all)';
+    rows.push({ url: spaUrl, mime: defaultSource.mime, sizeCell: '', tag: '[SPA catch-all → index.html]' });
+  }
+
+  const urlWidth = Math.max(...rows.map((r) => r.url.length));
+  const mimeWidth = Math.max(...rows.map((r) => r.mime.length));
+  const sizeWidth = Math.max(...rows.map((r) => r.sizeCell.length));
+
+  return rows
+    .map((r) => {
+      const tagPart = r.tag ? `  ${r.tag}` : '';
+      return `  GET ${r.url.padEnd(urlWidth)}  ${r.mime.padEnd(mimeWidth)}  ${r.sizeCell.padEnd(sizeWidth)}${tagPart}`.trimEnd();
+    })
+    .join('\n');
+};
+
 /**
  * Main processing pipeline
  */
@@ -175,10 +230,17 @@ export function main(): void {
 
   // Dry run mode: show summary without writing
   if (cmdLine.dryRun) {
+    const baseLabel = cmdLine.basePath || '(none)';
+    const spaLabel = cmdLine.spa ? 'yes' : 'no';
     console.log(
-      `[DRY RUN] ${summary.filecount} files, ${formatSize(summary.size)} original size, ${formatSize(summary.gzipsize)} gzip size`
+      `[DRY RUN] Engine: ${cmdLine.engine} | ETag: ${cmdLine.etag} | Gzip: ${cmdLine.gzip} | Base: ${baseLabel} | SPA: ${spaLabel}`
     );
-    console.log(`[DRY RUN] Would write to ${cmdLine.outputfile}`);
+    console.log(
+      `[DRY RUN] ${summary.filecount} files, ${formatSize(summary.size)} → ${formatSize(summary.gzipsize)} gzip | would write to ${cmdLine.outputfile}`
+    );
+    console.log('');
+    console.log('[DRY RUN] Routes:');
+    console.log(formatDryRunRoutes(sources, cmdLine.engine, cmdLine.basePath, cmdLine.spa ?? false));
     return;
   }
 
@@ -205,6 +267,7 @@ export {
   calculateCompressionRatio,
   createSourceEntry,
   formatCompressionLog,
+  formatDryRunRoutes,
   formatSize,
   shouldUseGzip,
   updateExtensionGroup

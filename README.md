@@ -79,6 +79,7 @@ void setup() {
 
 ## What's New
 
+- **v2.2.1** — Enhanced `--dryrun` output: engine/ETag/gzip/SPA summary header + aligned route table with MIME types, sizes, and tags (`[default]`, `[no gzip]`, `[SPA catch-all]`)
 - **v2.2.0** — SPA routing catch-all (`--spa`) for client-side routers on all four engines
 - **v2.1.0** — New Arduino WebServer engine (`-e webserver`), dependency updates
 - **v2.0.0** — **BREAKING**: PsychicHttpServer V2 is now the default `psychic` engine. The `psychic2` engine has been removed. Dry run mode, C++ identifier validation, improved MIME type warnings
@@ -461,7 +462,7 @@ Called for every response (200 = content served, 304 = cache hit).
 | `--define`       | C++ define prefix                                   | `SVELTEESP32`           |
 | `--espmethod`    | Init function name                                  | `initSvelteStaticFiles` |
 | `--config`       | Custom RC file path                                 | `.svelteesp32rc.json`   |
-| `--dryrun`       | Show summary without writing output                 | `false`                 |
+| `--dryrun`       | Show route table + summary without writing output   | `false`                 |
 | `--spa`          | Serve index.html for unmatched routes (SPA routing) | `false`                 |
 | `--noindexcheck` | Skip index.html validation                          | `false`                 |
 | `-h`             | Show help                                           |                         |
