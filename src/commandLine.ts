@@ -231,8 +231,7 @@ function hasNpmVariables(config: IRcFileConfig): boolean {
     checkStringForNpmVariable(config.define) ||
     checkStringForNpmVariable(config.version) ||
     checkStringForNpmVariable(config.basepath) ||
-    (Array.isArray(config.exclude) && config.exclude.some((pattern) => checkStringForNpmVariable(pattern))) ||
-    false
+    (Array.isArray(config.exclude) && config.exclude.some((pattern) => checkStringForNpmVariable(pattern)))
   );
 }
 
@@ -304,6 +303,19 @@ function loadRcFile(rcPath: string): IRcFileConfig {
   }
 }
 
+function validateSizeOption(configObject: Record<string, unknown>, key: string): void {
+  const value = configObject[key];
+  if (value === undefined) return;
+  if (typeof value === 'string')
+    try {
+      configObject[key] = parseSize(value, key);
+    } catch {
+      throw new TypeError(`Invalid ${key} in RC file: ${value} (must be a positive number with optional k/m suffix)`);
+    }
+  else if (typeof value !== 'number' || Number.isNaN(value) || value <= 0)
+    throw new TypeError(`Invalid ${key} in RC file: ${value} (must be a positive number)`);
+}
+
 function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (typeof config !== 'object' || config === null) throw new Error(`RC file ${rcPath} must contain a JSON object`);
 
@@ -362,33 +374,8 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
       if (typeof pattern !== 'string') throw new TypeError('All exclude patterns must be strings');
   }
 
-  if (configObject['maxsize'] !== undefined) {
-    const value = configObject['maxsize'];
-    if (typeof value === 'string')
-      try {
-        configObject['maxsize'] = parseSize(value, 'maxsize');
-      } catch {
-        throw new TypeError(
-          `Invalid maxsize in RC file: ${value} (must be a positive number with optional k/m suffix)`
-        );
-      }
-    else if (typeof value !== 'number' || Number.isNaN(value) || value <= 0)
-      throw new TypeError(`Invalid maxsize in RC file: ${value} (must be a positive number)`);
-  }
-
-  if (configObject['maxgzipsize'] !== undefined) {
-    const value = configObject['maxgzipsize'];
-    if (typeof value === 'string')
-      try {
-        configObject['maxgzipsize'] = parseSize(value, 'maxgzipsize');
-      } catch {
-        throw new TypeError(
-          `Invalid maxgzipsize in RC file: ${value} (must be a positive number with optional k/m suffix)`
-        );
-      }
-    else if (typeof value !== 'number' || Number.isNaN(value) || value <= 0)
-      throw new TypeError(`Invalid maxgzipsize in RC file: ${value} (must be a positive number)`);
-  }
+  validateSizeOption(configObject, 'maxsize');
+  validateSizeOption(configObject, 'maxgzipsize');
 
   if (configObject['noindexcheck'] !== undefined && typeof configObject['noindexcheck'] !== 'boolean')
     throw new TypeError(`Invalid noindexcheck in RC file: ${configObject['noindexcheck']} (must be boolean)`);
