@@ -215,6 +215,200 @@ const makeFileData = (content: string, hash = 'mock-sha256-hash') => ({
   hash
 });
 
+describe('formatDryRunRoutes', () => {
+  let createSourceEntry: Awaited<ReturnType<typeof import('../../src/index')>>['createSourceEntry'];
+  let formatDryRunRoutes: Awaited<ReturnType<typeof import('../../src/index')>>['formatDryRunRoutes'];
+
+  beforeEach(async () => {
+    vi.resetModules();
+    const module_ = await import('../../src/index');
+    createSourceEntry = module_.createSourceEntry;
+    formatDryRunRoutes = module_.formatDryRunRoutes;
+  });
+
+  it('should return "(no files)" for empty sources', () => {
+    expect(formatDryRunRoutes([], 'psychic', '', false)).toBe('  (no files)');
+  });
+
+  it('should show "/" as default route when no basePath', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(500),
+      Buffer.alloc(300),
+      'text/html',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '', false);
+    expect(result).toContain('GET /  ');
+    expect(result).toContain('[default]');
+  });
+
+  it('should show basePath as default route when basePath is set', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(500),
+      Buffer.alloc(300),
+      'text/html',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '/ui', false);
+    expect(result).toContain('GET /ui ');
+    expect(result).toContain('[default]');
+    expect(result).toContain('GET /ui/index.html');
+  });
+
+  it('should add [no gzip] tag when isGzip is false', () => {
+    const source = createSourceEntry(
+      'app.css',
+      'app_css',
+      Buffer.alloc(500),
+      Buffer.alloc(480),
+      'text/css',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '', false);
+    expect(result).toContain('[no gzip]');
+  });
+
+  it('should show arrow in size cell when isGzip is true', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(2048),
+      Buffer.alloc(800),
+      'text/html',
+      'h',
+      true
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '', false);
+    expect(result).toContain('→');
+    expect(result).not.toContain('[no gzip]');
+  });
+
+  it('should show no arrow in size cell when isGzip is false', () => {
+    const source = createSourceEntry(
+      'app.css',
+      'app_css',
+      Buffer.alloc(500),
+      Buffer.alloc(480),
+      'text/css',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '', false);
+    expect(result).not.toContain('→');
+  });
+
+  it('should show SPA catch-all with basePath for psychic engine', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(500),
+      Buffer.alloc(300),
+      'text/html',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '/ui', true);
+    expect(result).toContain('GET /ui/*');
+    expect(result).toContain('[SPA catch-all → index.html]');
+  });
+
+  it('should show "(SPA catch-all)" for psychic engine without basePath', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(500),
+      Buffer.alloc(300),
+      'text/html',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '', true);
+    expect(result).toContain('(SPA catch-all)');
+    expect(result).toContain('[SPA catch-all → index.html]');
+  });
+
+  it('should show "(SPA catch-all)" for async engine even with basePath', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(500),
+      Buffer.alloc(300),
+      'text/html',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'async', '/ui', true);
+    expect(result).toContain('(SPA catch-all)');
+    expect(result).not.toContain('/ui/*');
+  });
+
+  it('should show "(SPA catch-all)" for webserver engine even with basePath', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(500),
+      Buffer.alloc(300),
+      'text/html',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'webserver', '/ui', true);
+    expect(result).toContain('(SPA catch-all)');
+    expect(result).not.toContain('/ui/*');
+  });
+
+  it('should show "(SPA catch-all)" for espidf engine even with basePath', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(500),
+      Buffer.alloc(300),
+      'text/html',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'espidf', '/ui', true);
+    expect(result).toContain('(SPA catch-all)');
+    expect(result).not.toContain('/ui/*');
+  });
+
+  it('should not add SPA row when spa is false', () => {
+    const source = createSourceEntry(
+      'index.html',
+      'index_html',
+      Buffer.alloc(500),
+      Buffer.alloc(300),
+      'text/html',
+      'h',
+      false
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '/ui', false);
+    expect(result).not.toContain('[SPA catch-all');
+  });
+
+  it('should not add SPA or default rows when no index.html/htm in sources', () => {
+    const source = createSourceEntry(
+      'app.js',
+      'app_js',
+      Buffer.alloc(2048),
+      Buffer.alloc(800),
+      'application/javascript',
+      'h',
+      true
+    );
+    const result = formatDryRunRoutes([source], 'psychic', '/ui', true);
+    expect(result).not.toContain('[default]');
+    expect(result).not.toContain('[SPA catch-all');
+  });
+});
+
 describe('index.ts main pipeline integration', () => {
   const originalArgv = process.argv;
   const originalExit = process.exit;
@@ -474,6 +668,142 @@ describe('index.ts main pipeline integration', () => {
       const filesByExtension = mockGetCppCode.mock.calls[0][1];
       const extensions = filesByExtension.map((group: ExtensionGroup) => group.extension);
       expect(extensions).toEqual(['CSS', 'HTML', 'JS']);
+    });
+  });
+
+  describe('dry-run mode', () => {
+    beforeEach(() => {
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
+      mockGzipSync.mockReturnValue(Buffer.from('gz'));
+    });
+
+    it('should not write file in dry-run mode', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          dryRun: true,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+
+      vi.resetModules();
+      await import('../../src/index');
+
+      expect(mockWriteFileSync).not.toHaveBeenCalled();
+    });
+
+    it('should log header line with engine, etag, gzip, base, spa info', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'compiler',
+          basePath: '/ui',
+          spa: true,
+          dryRun: true,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+
+      vi.resetModules();
+      await import('../../src/index');
+
+      const mockLog = vi.mocked(console.log);
+      const allLogs = mockLog.mock.calls.map((call) => call[0]).filter((l): l is string => typeof l === 'string');
+      const headerLine = allLogs.find((l) => l.includes('[DRY RUN] Engine:'));
+      expect(headerLine).toBeDefined();
+      expect(headerLine).toContain('Engine: psychic');
+      expect(headerLine).toContain('ETag: true');
+      expect(headerLine).toContain('Gzip: compiler');
+      expect(headerLine).toContain('Base: /ui');
+      expect(headerLine).toContain('SPA: yes');
+    });
+
+    it('should log "[DRY RUN] Routes:" line', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          dryRun: true,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+
+      vi.resetModules();
+      await import('../../src/index');
+
+      expect(console.log).toHaveBeenCalledWith('[DRY RUN] Routes:');
+    });
+
+    it('should log route lines containing "GET /"', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          dryRun: true,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+
+      vi.resetModules();
+      await import('../../src/index');
+
+      const mockLog = vi.mocked(console.log);
+      const allLogs = mockLog.mock.calls.map((call) => call[0]).filter((l): l is string => typeof l === 'string');
+      const hasRoutes = allLogs.some((l) => l.includes('GET /'));
+      expect(hasRoutes).toBe(true);
+    });
+
+    it('should show "Base: (none)" when basePath is empty', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'false',
+          gzip: 'false',
+          basePath: '',
+          spa: false,
+          dryRun: true,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+
+      vi.resetModules();
+      await import('../../src/index');
+
+      const mockLog = vi.mocked(console.log);
+      const allLogs = mockLog.mock.calls.map((call) => call[0]).filter((l): l is string => typeof l === 'string');
+      const headerLine = allLogs.find((l) => l.includes('[DRY RUN] Engine:'));
+      expect(headerLine).toContain('Base: (none)');
     });
   });
 });
