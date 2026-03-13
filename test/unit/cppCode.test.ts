@@ -72,6 +72,46 @@ describe('cppCode', () => {
       expect(result).toContain('#define SVELTEESP32_SIZE_GZIP');
     });
 
+    it('should generate MAX_URI_HANDLERS define for psychic engine', () => {
+      const sources: CppCodeSources = [
+        createMockSource('index.html', '<html></html>'),
+        createMockSource('style.css', 'body{}')
+      ];
+
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 7');
+    });
+
+    it('should not generate MAX_URI_HANDLERS define for async engine', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'async',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode: getCppCodeAsync } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [
+        createMockSource('index.html', '<html></html>'),
+        createMockSource('style.css', 'body{}')
+      ];
+      const result = getCppCodeAsync(sources, mockFilesByExtension);
+
+      expect(result).not.toContain('MAX_URI_HANDLERS');
+    });
+
     it('should generate file defines for each source', () => {
       const sources: CppCodeSources = [
         createMockSource('index.html', '<html></html>'),

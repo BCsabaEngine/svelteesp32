@@ -58,6 +58,9 @@ const commonHeaderSection = `
 #define {{definePrefix}}_COUNT {{fileCount}}
 #define {{definePrefix}}_SIZE {{fileSize}}
 #define {{definePrefix}}_SIZE_GZIP {{fileGzipSize}}
+{{#if isPsychic}}
+#define {{definePrefix}}_MAX_URI_HANDLERS {{maxUriHandlers}}
+{{/if}}
 
 //
 {{#each sources}}
@@ -1089,7 +1092,9 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     definePrefix: cmdLine.define,
     basePath: cmdLine.basePath,
     spa: !!cmdLine.spa,
-    spaSource
+    spaSource,
+    isPsychic: cmdLine.engine === 'psychic',
+    maxUriHandlers: (sources.length + 5).toString()
   };
 
   const rawCode = template(templateData, { helpers: createHandlebarsHelpers() });
