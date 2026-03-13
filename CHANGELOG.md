@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-03-13
+
+### Changed
+
+- **Enhanced `--dryrun` output**: Dry-run mode now prints a full route table instead of a single summary line
+  - Header line shows engine, ETag mode, gzip mode, base path, and SPA flag at a glance
+  - Route table lists every `GET` route with its MIME type and original → gzip size
+  - `[default]` tag marks the root/basePath catch for `index.html`/`index.htm`
+  - `[no gzip]` tag flags files where gzip was skipped
+  - `[SPA catch-all → index.html]` tag shows the SPA fallback route (psychic engine with basePath shows the real `basePath/*` URL; others show `(SPA catch-all)`)
+  - `formatDryRunRoutes` is now exported for programmatic use and unit-tested
+
 ## [2.2.0] - 2026-03-11
 
 ### Added
