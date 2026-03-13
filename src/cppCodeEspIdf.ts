@@ -60,22 +60,22 @@ export const espidfTemplate = `
 {{#switch gzip}}
 {{#case "true"}}
   {{#each sources}}
-const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+static const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
   {{/each}}
 {{/case}}
 {{#case "false"}}
   {{#each sources}}
-const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+static const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
   {{/each}}
 {{/case}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
   {{#each sources}}
-const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
+static const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
   {{/each}}
 #else
   {{#each sources}}
-const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
+static const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
   {{/each}}
 #endif 
 {{/case}}

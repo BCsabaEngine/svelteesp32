@@ -107,7 +107,7 @@ describe('cppCode', () => {
 
       const result = getCppCode(sources, mockFilesByExtension);
 
-      expect(result).toContain('const char * etag_index_html = "abc123"');
+      expect(result).toContain('static const char etag_index_html[] = "abc123"');
     });
 
     it('should generate route handlers for each file', () => {

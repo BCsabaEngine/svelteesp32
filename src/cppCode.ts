@@ -79,22 +79,22 @@ const dataArraysSection = (progmem = false) => {
 {{#switch gzip}}
 {{#case "true"}}
   {{#each sources}}
-const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}]${memDirective} = { {{this.bytesGzip}} };
+static const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}]${memDirective} = { {{this.bytesGzip}} };
   {{/each}}
 {{/case}}
 {{#case "false"}}
   {{#each sources}}
-const uint8_t data_{{this.dataname}}[{{this.length}}]${memDirective} = { {{this.bytes}} };
+static const uint8_t data_{{this.dataname}}[{{this.length}}]${memDirective} = { {{this.bytes}} };
   {{/each}}
 {{/case}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
   {{#each sources}}
-const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}]${memDirective} = { {{this.bytesGzip}} };
+static const uint8_t datagzip_{{this.dataname}}[{{this.lengthGzip}}]${memDirective} = { {{this.bytesGzip}} };
   {{/each}}
 #else
   {{#each sources}}
-const uint8_t data_{{this.dataname}}[{{this.length}}]${memDirective} = { {{this.bytes}} };
+static const uint8_t data_{{this.dataname}}[{{this.length}}]${memDirective} = { {{this.bytes}} };
   {{/each}}
 #endif
 {{/case}}
@@ -109,7 +109,7 @@ const etagArraysSection = `
 {{#switch etag}}
 {{#case "true"}}
   {{#each sources}}
-const char * etag_{{this.dataname}} = "{{this.sha256}}";
+static const char etag_{{this.dataname}}[] = "{{this.sha256}}";
   {{/each}}
 {{/case}}
 {{#case "false"}}
@@ -117,7 +117,7 @@ const char * etag_{{this.dataname}} = "{{this.sha256}}";
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_ETAG
   {{#each sources}}
-const char * etag_{{this.dataname}} = "{{this.sha256}}";
+static const char etag_{{this.dataname}}[] = "{{this.sha256}}";
   {{/each}}
 #endif
 {{/case}}
@@ -138,12 +138,12 @@ struct {{definePrefix}}_FileInfo {
 };
 
 // File manifest array
-const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
+static const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
 {{#each sources}}
   { "{{../basePath}}/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
 {{/each}}
 };
-const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
+static const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
 `;
 
 /**
