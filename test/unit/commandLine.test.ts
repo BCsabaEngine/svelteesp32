@@ -355,7 +355,7 @@ describe('commandLine', () => {
       const { cmdLine } = await import('../../src/commandLine');
 
       expect(cmdLine.exclude).toContain('*.map');
-      expect(cmdLine.exclude).not.toContain('.DS_Store'); // Replace mode: defaults replaced by CLI
+      expect(cmdLine.exclude).not.toContain('.DS_Store');
     });
 
     it('should parse multiple exclude patterns with repeated flag', async () => {
@@ -387,14 +387,12 @@ describe('commandLine', () => {
       expect(cmdLine.exclude).toContain('test/**/*.ts');
     });
 
-    it('should include default exclude patterns by default', async () => {
+    it('should have empty exclude patterns by default', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
-      expect(cmdLine.exclude).toContain('.DS_Store');
-      expect(cmdLine.exclude).toContain('Thumbs.db');
-      expect(cmdLine.exclude).toContain('.git');
+      expect(cmdLine.exclude).toEqual([]);
     });
 
     it('should handle patterns with spaces after comma', async () => {
@@ -862,14 +860,12 @@ describe('commandLine', () => {
     });
 
     describe('Exclude pattern replace mode', () => {
-      it('should use default exclude patterns when no RC or CLI exclude', async () => {
+      it('should use empty exclude patterns when no RC or CLI exclude', async () => {
         process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
         const { cmdLine } = await import('../../src/commandLine');
 
-        expect(cmdLine.exclude).toContain('.DS_Store');
-        expect(cmdLine.exclude).toContain('Thumbs.db');
-        expect(cmdLine.exclude).toContain('.git');
+        expect(cmdLine.exclude).toEqual([]);
       });
 
       it('should replace defaults with RC exclude patterns', async () => {
@@ -889,7 +885,7 @@ describe('commandLine', () => {
 
         expect(cmdLine.exclude).toContain('*.map');
         expect(cmdLine.exclude).toContain('*.md');
-        expect(cmdLine.exclude).not.toContain('.DS_Store'); // Defaults replaced
+        expect(cmdLine.exclude).not.toContain('.DS_Store');
       });
 
       it('should replace RC exclude patterns with CLI exclude', async () => {
@@ -909,7 +905,7 @@ describe('commandLine', () => {
 
         expect(cmdLine.exclude).toContain('*.txt'); // From CLI
         expect(cmdLine.exclude).not.toContain('*.map'); // RC replaced
-        expect(cmdLine.exclude).not.toContain('.DS_Store'); // Defaults replaced
+        expect(cmdLine.exclude).not.toContain('.DS_Store');
       });
     });
 

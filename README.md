@@ -79,6 +79,7 @@ void setup() {
 
 ## What's New
 
+- **v2.2.2** — `static const` data/ETag arrays prevent multi-TU linker collisions; `SVELTEESP32_MAX_URI_HANDLERS` define added for psychic engine; default exclude patterns removed (now explicit-only)
 - **v2.2.1** — Enhanced `--dryrun` output: engine/ETag/gzip/SPA summary header + aligned route table with MIME types, sizes, and tags (`[default]`, `[no gzip]`, `[SPA catch-all]`)
 - **v2.2.0** — SPA routing catch-all (`--spa`) for client-side routers on all four engines
 - **v2.1.0** — New Arduino WebServer engine (`-e webserver`), dependency updates
@@ -291,7 +292,7 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 **Recommendation:** For ESP32-only projects, use PsychicHttpServer V2 (`-e psychic`) for the fastest, most stable experience.
 
-**Note:** For PsychicHttp, configure `server.config.max_uri_handlers` to match your file count.
+**Note:** For PsychicHttp, configure `server.config.max_uri_handlers`. The generated header provides `SVELTEESP32_MAX_URI_HANDLERS` (file count + 5 safety margin) for use directly in your sketch.
 
 ---
 
@@ -343,7 +344,7 @@ npx svelteesp32 -s ./dist -o ./output.h --exclude="*.map"
 npx svelteesp32 -s ./dist -o ./output.h --exclude="*.map,*.md,test/**/*"
 ```
 
-**Default exclusions:** `.DS_Store`, `Thumbs.db`, `.git`, `.svn`, `*.swp`, `*~`, `.gitignore`, `.gitattributes`
+No patterns are excluded by default — specify everything you need explicitly.
 
 Build output shows exactly what's excluded:
 

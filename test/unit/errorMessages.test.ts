@@ -240,7 +240,7 @@ describe('errorMessages', () => {
     it('should calculate recommended handler count', () => {
       const result = getMaxUriHandlersHint('psychic', 10);
       expect(result).toContain('15'); // 10 + 5
-      expect(result).toContain('at least 10');
+      expect(result).toContain('SVELTEESP32_MAX_URI_HANDLERS');
     });
 
     it('should include route count in message', () => {

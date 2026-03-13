@@ -174,7 +174,7 @@ export function getMaxUriHandlersHint(engine: string, routeCount: number, espmet
 
   const hints: Record<string, string> = {
     psychic: `PsychicHttpServer server;
-  server.config.max_uri_handlers = ${recommended};  // Default is 8, you need at least ${routeCount}
+  server.config.max_uri_handlers = SVELTEESP32_MAX_URI_HANDLERS;  // already defined in the header (${recommended})
   ${espmethod}(&server);
   server.listen(80);`,
 

@@ -49,7 +49,7 @@ File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → H
 
 ### CLI Options
 
-`-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--spa` (catch-all for SPA client-side routing), `--cachetime`, `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
+`-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--spa` (catch-all for SPA client-side routing), `--cachetime`, `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
 
 RC files: `.svelteesp32rc.json` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation.
 
@@ -62,6 +62,9 @@ RC files: `.svelteesp32rc.json` in cwd, home, or `--config=path`. Supports `$npm
 - `//config:` comment for traceability
 - `isDefault` matching: strict `=== 'index.html' || === 'index.htm'`
 - `--spa` catch-all: psychic adds `server->on("{{basePath}}/*", ...)` only when basePath is set (no-basePath case handled by `defaultEndpoint`); async/webserver add `server->onNotFound(...)` with optional basePath prefix guard; espidf uses `httpd_register_err_handler(HTTPD_404_NOT_FOUND, spa_handler_*)`
+- Data arrays: `static const uint8_t data_*[]` / `static const uint8_t datagzip_*[]` — `static` prevents multiple-definition linker errors when included in more than one TU
+- ETag variables: `static const char etag_*[]` (char array, not pointer) — avoids pointer indirection and keeps `static` linkage
+- `{{definePrefix}}_MAX_URI_HANDLERS`: psychic engine only; `#define` set to `sources.length + 5` for use in `server.config.max_uri_handlers`
 
 ## Testing (Vitest)
 
