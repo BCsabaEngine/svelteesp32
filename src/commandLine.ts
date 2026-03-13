@@ -150,17 +150,6 @@ function parseSize(value: string, name: string): number {
   return bytes;
 }
 
-const DEFAULT_EXCLUDE_PATTERNS = [
-  '.DS_Store', // macOS system file
-  'Thumbs.db', // Windows thumbnail cache
-  '.git', // Git directory
-  '.svn', // SVN directory
-  '*.swp', // Vim swap files
-  '*~', // Backup files
-  '.gitignore', // Git ignore file
-  '.gitattributes' // Git attributes file
-];
-
 function findRcFile(customConfigPath?: string): string | undefined {
   // If --config specified, use that exclusively
   if (customConfigPath) {
@@ -425,7 +414,7 @@ function parseArguments(): ICopyFilesArguments {
     espmethod: 'initSvelteStaticFiles',
     define: 'SVELTEESP32',
     cachetime: 0,
-    exclude: [...DEFAULT_EXCLUDE_PATTERNS],
+    exclude: [],
     basePath: ''
   };
 
