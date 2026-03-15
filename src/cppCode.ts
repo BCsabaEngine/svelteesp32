@@ -229,22 +229,22 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -312,22 +312,22 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -400,22 +400,22 @@ void {{methodName}}(PsychicHttpServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -523,22 +523,22 @@ void {{methodName}}(AsyncWebServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -595,22 +595,22 @@ void {{methodName}}(AsyncWebServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -677,22 +677,22 @@ void {{methodName}}(AsyncWebServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     response->addHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     response->addHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     response->addHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -770,22 +770,22 @@ void {{methodName}}(WebServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     server->sendHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     server->sendHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     server->sendHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     server->sendHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     server->sendHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     server->sendHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -847,22 +847,22 @@ void {{methodName}}(WebServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     server->sendHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     server->sendHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     server->sendHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     server->sendHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     server->sendHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     server->sendHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -934,22 +934,22 @@ void {{methodName}}(WebServer * server) {
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     server->sendHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     server->sendHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     server->sendHeader("ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     server->sendHeader("Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     server->sendHeader("Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     server->sendHeader("ETag", etag_{{this.dataname}});
   #endif
 {{/case}}
@@ -1019,7 +1019,7 @@ const bufferToByteString = (buffer: Buffer): string => {
   return result;
 };
 
-const transformSourceToTemplateData = (s: CppCodeSource, etag: string) => ({
+const transformSourceToTemplateData = (s: CppCodeSource, etag: string, effectiveCacheTime: number) => ({
   ...s,
   length: s.content.length,
   bytes: bufferToByteString(s.content),
@@ -1028,7 +1028,8 @@ const transformSourceToTemplateData = (s: CppCodeSource, etag: string) => ({
   isDefault: s.filename === 'index.html' || s.filename === 'index.htm',
   // Manifest-specific fields
   gzipSizeForManifest: s.isGzip ? s.contentGzip.length : 0,
-  etagForManifest: etag === 'false' ? 'NULL' : `etag_${s.dataname}`
+  etagForManifest: etag === 'false' ? 'NULL' : `etag_${s.dataname}`,
+  cacheTime: effectiveCacheTime ? { value: effectiveCacheTime } : undefined
 });
 
 /**
@@ -1070,7 +1071,13 @@ const createHandlebarsHelpers = () => {
  */
 export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string => {
   const template = handlebarsCompile(getTemplate(cmdLine.engine));
-  const transformedSources = sources.map((s) => transformSourceToTemplateData(s, cmdLine.etag));
+  const transformedSources = sources.map((s) => {
+    const effectiveCacheTime =
+      s.mime === 'text/html'
+        ? (cmdLine.cachetimeHtml ?? cmdLine.cachetime)
+        : (cmdLine.cachetimeAssets ?? cmdLine.cachetime);
+    return transformSourceToTemplateData(s, cmdLine.etag, effectiveCacheTime);
+  });
   const spaSource = cmdLine.spa ? transformedSources.find((s) => s.isDefault) : undefined;
   const templateData = {
     config: formatConfiguration(cmdLine),
@@ -1088,7 +1095,6 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     created: cmdLine.created,
     version: cmdLine.version,
     methodName: cmdLine.espmethod,
-    cacheTime: cmdLine.cachetime ? { value: cmdLine.cachetime } : undefined,
     definePrefix: cmdLine.define,
     basePath: cmdLine.basePath,
     spa: !!cmdLine.spa,

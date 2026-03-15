@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-03-15
+
+### Added
+
+- **`--cachetime-html` and `--cachetime-assets` options**: Per-type `Cache-Control` overrides so Vite/webpack content-hashed assets can be cached for up to 1 year while `index.html` stays `no-cache`
+  - `--cachetime-html <sec>` — `Cache-Control: max-age=N` applied only to `text/html` files; overrides `--cachetime`
+  - `--cachetime-assets <sec>` — `Cache-Control: max-age=N` applied to all non-HTML files; overrides `--cachetime`
+  - When neither override is set, behaviour is identical to the existing `--cachetime` (fully backwards-compatible)
+  - `--cachetime-html=0` disables caching for HTML even when `--cachetime` sets a positive value
+  - Cache time is resolved **per source file** instead of globally, so a single run can produce `no-cache` for `index.html` and `max-age=31536000` for JS/CSS in the same header
+  - Both options supported in RC file (`cachetimehtml`, `cachetimeassets`) and via CLI (`--cachetime-html`, `--cachetime-assets`)
+  - Shown in `formatConfiguration` / `//config:` header comment only when set
+  - All four engines (psychic, async, webserver, espidf) supported
+
 ## [2.2.2] - 2026-03-13
 
 ### Added
@@ -609,6 +623,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[2.3.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.2.2...v2.3.0
 [2.2.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.1.0...v2.2.0

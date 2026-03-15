@@ -49,7 +49,7 @@ File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → H
 
 ### CLI Options
 
-`-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--spa` (catch-all for SPA client-side routing), `--cachetime`, `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
+`-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--spa` (catch-all for SPA client-side routing), `--cachetime`, `--cachetime-html` (HTML-only max-age, overrides `--cachetime`), `--cachetime-assets` (non-HTML max-age, overrides `--cachetime`), `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
 
 RC files: `.svelteesp32rc.json` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation.
 
@@ -65,6 +65,7 @@ RC files: `.svelteesp32rc.json` in cwd, home, or `--config=path`. Supports `$npm
 - Data arrays: `static const uint8_t data_*[]` / `static const uint8_t datagzip_*[]` — `static` prevents multiple-definition linker errors when included in more than one TU
 - ETag variables: `static const char etag_*[]` (char array, not pointer) — avoids pointer indirection and keeps `static` linkage
 - `{{definePrefix}}_MAX_URI_HANDLERS`: psychic engine only; `#define` set to `sources.length + 5` for use in `server.config.max_uri_handlers`
+- Per-source cache time: `cacheTime` is computed per file in `transformSourceToTemplateData` — HTML files use `cachetimeHtml ?? cachetime`, non-HTML use `cachetimeAssets ?? cachetime`; templates reference `{{#this.cacheTime}}` (not `{{#../cacheTime}}`)
 
 ## Testing (Vitest)
 

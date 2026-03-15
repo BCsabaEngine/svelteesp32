@@ -79,6 +79,7 @@ void setup() {
 
 ## What's New
 
+- **v2.3.0** — `--cachetime-html` and `--cachetime-assets` for per-type cache control (e.g. `no-cache` for HTML, 1-year for content-hashed JS/CSS)
 - **v2.2.2** — `static const` data/ETag arrays prevent multi-TU linker collisions; `SVELTEESP32_MAX_URI_HANDLERS` define added for psychic engine; default exclude patterns removed (now explicit-only)
 - **v2.2.1** — Enhanced `--dryrun` output: engine/ETag/gzip/SPA summary header + aligned route table with MIME types, sizes, and tags (`[default]`, `[no gzip]`, `[SPA catch-all]`)
 - **v2.2.0** — SPA routing catch-all (`--spa`) for client-side routers on all four engines
@@ -321,6 +322,22 @@ Fine-tune how browsers cache your content:
 
 - **Default:** `no-cache` — browsers always validate with server (ETag check)
 - **Long-term caching:** `--cachetime=86400` — cache for 24 hours without any server requests
+- **Per-type caching:** Use `--cachetime-html` and `--cachetime-assets` independently
+
+Vite and webpack produce content-hashed filenames for JS/CSS (e.g., `app.a1b2c3.js`). Those can be cached for up to a year because the hash changes with every build, but `index.html` must stay `no-cache` since it's the entry point that references them:
+
+```bash
+npx svelteesp32 -e psychic -s ./dist -o ./output.h \
+  --etag=true --cachetime-html=0 --cachetime-assets=31536000
+```
+
+This emits `Cache-Control: no-cache` for every `text/html` file and `Cache-Control: max-age=31536000` for all other assets in the same header, with no per-file configuration needed.
+
+| Option               | Applies to                       | Falls back to  |
+| -------------------- | -------------------------------- | -------------- |
+| `--cachetime-html`   | `text/html` only                 | `--cachetime`  |
+| `--cachetime-assets` | everything else                  | `--cachetime`  |
+| `--cachetime`        | all files (when no override set) | `0` (no-cache) |
 
 ### Automatic Index Handling
 
@@ -447,26 +464,28 @@ Called for every response (200 = content served, 304 = cache hit).
 
 ## CLI Reference
 
-| Option           | Description                                         | Default                 |
-| ---------------- | --------------------------------------------------- | ----------------------- |
-| `-s`             | Source folder with compiled web files               | (required)              |
-| `-e`             | Web server engine (psychic/async/espidf/webserver)  | `psychic`               |
-| `-o`             | Output header file path                             | `svelteesp32.h`         |
-| `--etag`         | ETag caching (true/false/compiler)                  | `false`                 |
-| `--gzip`         | Gzip compression (true/false/compiler)              | `true`                  |
-| `--exclude`      | Exclude files by glob pattern                       | System files            |
-| `--basepath`     | URL prefix for all routes                           | (none)                  |
-| `--maxsize`      | Max total uncompressed size (e.g., `400k`, `1m`)    | (none)                  |
-| `--maxgzipsize`  | Max total gzip size (e.g., `150k`, `500k`)          | (none)                  |
-| `--cachetime`    | Cache-Control max-age in seconds                    | `0`                     |
-| `--version`      | Version string in header                            | (none)                  |
-| `--define`       | C++ define prefix                                   | `SVELTEESP32`           |
-| `--espmethod`    | Init function name                                  | `initSvelteStaticFiles` |
-| `--config`       | Custom RC file path                                 | `.svelteesp32rc.json`   |
-| `--dryrun`       | Show route table + summary without writing output   | `false`                 |
-| `--spa`          | Serve index.html for unmatched routes (SPA routing) | `false`                 |
-| `--noindexcheck` | Skip index.html validation                          | `false`                 |
-| `-h`             | Show help                                           |                         |
+| Option               | Description                                          | Default                 |
+| -------------------- | ---------------------------------------------------- | ----------------------- |
+| `-s`                 | Source folder with compiled web files                | (required)              |
+| `-e`                 | Web server engine (psychic/async/espidf/webserver)   | `psychic`               |
+| `-o`                 | Output header file path                              | `svelteesp32.h`         |
+| `--etag`             | ETag caching (true/false/compiler)                   | `false`                 |
+| `--gzip`             | Gzip compression (true/false/compiler)               | `true`                  |
+| `--exclude`          | Exclude files by glob pattern                        | (none)                  |
+| `--basepath`         | URL prefix for all routes                            | (none)                  |
+| `--maxsize`          | Max total uncompressed size (e.g., `400k`, `1m`)     | (none)                  |
+| `--maxgzipsize`      | Max total gzip size (e.g., `150k`, `500k`)           | (none)                  |
+| `--cachetime`        | Cache-Control max-age in seconds (all files)         | `0`                     |
+| `--cachetime-html`   | max-age for HTML files (overrides `--cachetime`)     | (unset)                 |
+| `--cachetime-assets` | max-age for non-HTML files (overrides `--cachetime`) | (unset)                 |
+| `--version`          | Version string in header                             | (none)                  |
+| `--define`           | C++ define prefix                                    | `SVELTEESP32`           |
+| `--espmethod`        | Init function name                                   | `initSvelteStaticFiles` |
+| `--config`           | Custom RC file path                                  | `.svelteesp32rc.json`   |
+| `--dryrun`           | Show route table + summary without writing output    | `false`                 |
+| `--spa`              | Serve index.html for unmatched routes (SPA routing)  | `false`                 |
+| `--noindexcheck`     | Skip index.html validation                           | `false`                 |
+| `-h`                 | Show help                                            |                         |
 
 ---
 
@@ -485,6 +504,9 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
   "basepath": "/ui",
   "maxsize": "400k",
   "maxgzipsize": "150k",
+  "cachetime": 0,
+  "cachetimehtml": 0,
+  "cachetimeassets": 31536000,
   "noindexcheck": false,
   "dryrun": false,
   "spa": false
