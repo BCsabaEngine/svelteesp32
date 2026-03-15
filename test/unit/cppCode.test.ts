@@ -34,6 +34,11 @@ const createMockSource = (filename: string, content: string): CppCodeSource => (
   sha256: 'abc123'
 });
 
+const createMockAssetSource = (filename: string, content: string): CppCodeSource => ({
+  ...createMockSource(filename, content),
+  mime: 'text/css'
+});
+
 describe('cppCode', () => {
   const mockFilesByExtension: ExtensionGroups = [
     { extension: 'HTML', count: 1 },
@@ -1436,6 +1441,177 @@ describe('cppCode', () => {
 
       expect(result).toContain('onNotFound');
       expect(result).toContain('startsWith("/app/")');
+    });
+  });
+
+  describe('per-source cache time', () => {
+    it('should use cachetimeHtml for HTML file when set', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 3600,
+          cachetimeHtml: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      // cachetimeHtml=0 means no-cache for HTML; cachetime=3600 is ignored
+      expect(result).toContain('no-cache');
+      expect(result).not.toContain('max-age=3600');
+    });
+
+    it('should use cachetimeAssets for non-HTML file when set', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 60,
+          cachetimeAssets: 86_400,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockAssetSource('style.css', 'body{}')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('max-age=86400');
+      expect(result).not.toContain('max-age=60');
+    });
+
+    it('should fall back to cachetime for HTML when cachetimeHtml is undefined', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 7200,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('max-age=7200');
+    });
+
+    it('should fall back to cachetime for assets when cachetimeAssets is undefined', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 3600,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockAssetSource('style.css', 'body{}')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('max-age=3600');
+    });
+
+    it('should emit no-cache for HTML when cachetimeHtml=0 overrides positive cachetime', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 31_536_000,
+          cachetimeHtml: 0,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('no-cache');
+      expect(result).not.toContain('max-age=31536000');
+    });
+
+    it('should produce different max-age for HTML vs CSS in mixed sources', async () => {
+      vi.resetModules();
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          etag: 'true',
+          gzip: 'true',
+          cachetime: 0,
+          cachetimeHtml: 0,
+          cachetimeAssets: 31_536_000,
+          created: false,
+          version: '',
+          espmethod: 'initSvelteStaticFiles',
+          define: 'SVELTEESP32',
+          exclude: [],
+          basePath: '',
+          spa: false
+        },
+        formatConfiguration: vi.fn((cmdLine) => `engine=${cmdLine.engine}`)
+      }));
+
+      const { getCppCode } = await import('../../src/cppCode');
+      const sources: CppCodeSources = [
+        createMockSource('index.html', '<html></html>'),
+        createMockAssetSource('app.a1b2c3.css', 'body{}')
+      ];
+      const result = getCppCode(sources, mockFilesByExtension);
+
+      expect(result).toContain('max-age=31536000');
+      expect(result).toContain('no-cache');
     });
   });
 });

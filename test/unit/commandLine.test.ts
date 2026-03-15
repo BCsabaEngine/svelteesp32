@@ -2189,5 +2189,246 @@ describe('commandLine', () => {
       expect(result).not.toContain('define=');
       expect(result).not.toContain('exclude=');
     });
+
+    it('should include cachetimeHtml when set', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 0,
+        cachetimeHtml: 0,
+        exclude: []
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('cachetimeHtml=0');
+    });
+
+    it('should include cachetimeAssets when set', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 0,
+        cachetimeAssets: 31_536_000,
+        exclude: []
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).toContain('cachetimeAssets=31536000');
+    });
+
+    it('should omit cachetimeHtml and cachetimeAssets when undefined', async () => {
+      vi.resetModules();
+      const mockConfig = {
+        engine: 'psychic' as const,
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true' as const,
+        gzip: 'true' as const,
+        cachetime: 3600,
+        exclude: []
+      };
+
+      const { formatConfiguration } = await import('../../src/commandLine');
+      const result = formatConfiguration(mockConfig);
+      expect(result).not.toContain('cachetimeHtml=');
+      expect(result).not.toContain('cachetimeAssets=');
+    });
+  });
+
+  describe('cachetime-html and cachetime-assets', () => {
+    it('should parse --cachetime-html with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html=3600'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeHtml).toBe(3600);
+    });
+
+    it('should parse --cachetime-html with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html', '7200'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeHtml).toBe(7200);
+    });
+
+    it('should parse --cachetime-assets with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets=86400'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeAssets).toBe(86_400);
+    });
+
+    it('should parse --cachetime-assets with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets', '31536000'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeAssets).toBe(31_536_000);
+    });
+
+    it('should default cachetimeHtml to undefined', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeHtml).toBeUndefined();
+    });
+
+    it('should default cachetimeAssets to undefined', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeAssets).toBeUndefined();
+    });
+
+    it('should accept --cachetime-html=0', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html=0'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeHtml).toBe(0);
+    });
+
+    it('should accept --cachetime-assets=0', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets=0'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeAssets).toBe(0);
+    });
+
+    it('should reject non-numeric --cachetime-html', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html=abc'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Invalid cachetime-html: abc');
+    });
+
+    it('should reject negative --cachetime-html', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html=-1'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow(
+        'Invalid cachetime-html: -1 (must be non-negative)'
+      );
+    });
+
+    it('should reject non-numeric --cachetime-assets', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets=abc'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Invalid cachetime-assets: abc');
+    });
+
+    it('should reject negative --cachetime-assets', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets=-1'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow(
+        'Invalid cachetime-assets: -1 (must be non-negative)'
+      );
+    });
+
+    it('should load cachetimehtml from RC file', async () => {
+      const mockRcContent = JSON.stringify({ sourcepath: '/test/dist', cachetimehtml: 3600 });
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+      vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+      process.argv = ['node', 'script.js'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeHtml).toBe(3600);
+    });
+
+    it('should load cachetimeassets from RC file', async () => {
+      const mockRcContent = JSON.stringify({ sourcepath: '/test/dist', cachetimeassets: 86_400 });
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+      vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+      process.argv = ['node', 'script.js'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeAssets).toBe(86_400);
+    });
+
+    it('should validate cachetimehtml type in RC file', async () => {
+      const mockRcContent = JSON.stringify({ sourcepath: '/test/dist', cachetimehtml: 'notanumber' });
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+      process.argv = ['node', 'script.js'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Invalid cachetimehtml in RC file');
+    });
+
+    it('should validate cachetimeassets type in RC file', async () => {
+      const mockRcContent = JSON.stringify({ sourcepath: '/test/dist', cachetimeassets: 'notanumber' });
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+      process.argv = ['node', 'script.js'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Invalid cachetimeassets in RC file');
+    });
+
+    it('should validate cachetimehtml is non-negative in RC file', async () => {
+      const mockRcContent = JSON.stringify({ sourcepath: '/test/dist', cachetimehtml: -1 });
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+      process.argv = ['node', 'script.js'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Invalid cachetimehtml in RC file');
+    });
+
+    it('should validate cachetimeassets is non-negative in RC file', async () => {
+      const mockRcContent = JSON.stringify({ sourcepath: '/test/dist', cachetimeassets: -1 });
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+
+      process.argv = ['node', 'script.js'];
+
+      await expect(import('../../src/commandLine')).rejects.toThrow('Invalid cachetimeassets in RC file');
+    });
+
+    it('should allow CLI --cachetime-html to override RC cachetimehtml', async () => {
+      const mockRcContent = JSON.stringify({ sourcepath: '/test/dist', cachetimehtml: 1800 });
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+      vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+      process.argv = ['node', 'script.js', '--cachetime-html=3600'];
+
+      const { cmdLine } = await import('../../src/commandLine');
+
+      expect(cmdLine.cachetimeHtml).toBe(3600);
+    });
   });
 });
