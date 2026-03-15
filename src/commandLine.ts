@@ -131,6 +131,14 @@ function validateBasePath(value: string): string {
   if (!value.startsWith('/')) throw new Error(`basePath must start with /: ${value}`);
   if (value.endsWith('/')) throw new Error(`basePath must not end with /: ${value}`);
   if (value.includes('//')) throw new Error(`basePath must not contain //: ${value}`);
+  if (value.includes('"')) throw new Error(`basePath must not contain double quotes: ${value}`);
+  if (value.includes('\\')) throw new Error(`basePath must not contain backslashes: ${value}`);
+  return value;
+}
+
+function validateVersion(value: string): string {
+  if (!/^[\w+.-]+$/.test(value))
+    throw new Error(`version must only contain word characters, dots, hyphens, and plus signs: ${value}`);
   return value;
 }
 
@@ -489,7 +497,7 @@ function parseArguments(): ICopyFilesArguments {
         result.gzip = validateTriState(value, 'gzip');
         break;
       case 'version':
-        result.version = value;
+        result.version = validateVersion(value);
         break;
       case 'espmethod':
         result.espmethod = validateCppIdentifier(value, 'espmethod');
@@ -666,7 +674,8 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
 
   if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
 
-  return parts.join(' ');
+  // eslint-disable-next-line unicorn/prefer-string-replace-all
+  return parts.join(' ').replace(/[\n\r]/g, ' ');
 }
 
 export const cmdLine = parseArguments();

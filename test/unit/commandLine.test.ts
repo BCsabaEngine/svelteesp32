@@ -340,11 +340,11 @@ describe('commandLine', () => {
     });
 
     it('should handle value with equals sign in --flag=value format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--version=v1.0.0=beta'];
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--outputfile=./out=put.h'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
-      expect(cmdLine.version).toBe('v1.0.0=beta');
+      expect(cmdLine.outputfile).toBe('./out=put.h');
     });
   });
 
