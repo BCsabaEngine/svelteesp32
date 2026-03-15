@@ -179,13 +179,14 @@ export function main(): void {
 
   for (const [originalFilename, fileData] of files) {
     const { content, hash: sha256 } = fileData;
-    const mimeType = mimeLookup(originalFilename) || 'text/plain';
-    if (!mimeLookup(originalFilename))
+    const rawMime = mimeLookup(originalFilename);
+    if (!rawMime)
       console.log(
         yellowLog(
           ` [${originalFilename}] unknown MIME type for extension '${path.extname(originalFilename)}', using text/plain`
         )
       );
+    const mimeType = rawMime || 'text/plain';
     summary.filecount++;
 
     // Normalize filename and generate data name

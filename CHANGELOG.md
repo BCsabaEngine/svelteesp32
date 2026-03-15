@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] - 2026-03-15
+
+### Fixed
+
+- **`--version` validation**: Values are now validated against `/^[\w.+-]+$/`; strings containing `"`, newlines, or other characters that would break the generated `#define` line are rejected with a clear error
+- **`--basepath` validation**: Rejects `"` and `\` characters which are invalid in URL paths and would corrupt C++ string literals in generated code
+- **`formatConfiguration()` newline safety**: Newlines and carriage returns in any user-supplied value (e.g. from RC file JSON) are replaced with spaces, preventing injection of content after the `//config:` comment line
+- **Double MIME lookup eliminated**: `mimeLookup()` was called twice per file in the hot loop (once to get the value, once to test it for the warning); now called once
+
 ## [2.3.0] - 2026-03-15
 
 ### Added

@@ -80,8 +80,6 @@ void setup() {
 ## What's New
 
 - **v2.3.0** — `--cachetime-html` and `--cachetime-assets` for per-type cache control (e.g. `no-cache` for HTML, 1-year for content-hashed JS/CSS)
-- **v2.2.2** — `static const` data/ETag arrays prevent multi-TU linker collisions; `SVELTEESP32_MAX_URI_HANDLERS` define added for psychic engine; default exclude patterns removed (now explicit-only)
-- **v2.2.1** — Enhanced `--dryrun` output: engine/ETag/gzip/SPA summary header + aligned route table with MIME types, sizes, and tags (`[default]`, `[no gzip]`, `[SPA catch-all]`)
 - **v2.2.0** — SPA routing catch-all (`--spa`) for client-side routers on all four engines
 - **v2.1.0** — New Arduino WebServer engine (`-e webserver`), dependency updates
 - **v2.0.0** — **BREAKING**: PsychicHttpServer V2 is now the default `psychic` engine. The `psychic2` engine has been removed. Dry run mode, C++ identifier validation, improved MIME type warnings
