@@ -14,6 +14,8 @@ interface ICopyFilesArguments {
   gzip: 'true' | 'false' | 'compiler';
   etag: 'true' | 'false' | 'compiler';
   cachetime: number;
+  cachetimeHtml?: number;
+  cachetimeAssets?: number;
   created: boolean;
   version: string;
   exclude: string[];
@@ -35,6 +37,8 @@ interface IRcFileConfig {
   gzip?: 'true' | 'false' | 'compiler';
   etag?: 'true' | 'false' | 'compiler';
   cachetime?: number;
+  cachetimehtml?: number;
+  cachetimeassets?: number;
   created?: boolean;
   version?: string;
   exclude?: string[];
@@ -65,6 +69,8 @@ Options:
   --espmethod <name>         Name of generated method (default: "initSvelteStaticFiles")
   --define <prefix>          Prefix of c++ defines (default: "SVELTEESP32")
   --cachetime <seconds>      max-age cache time in seconds (default: 0)
+  --cachetime-html <sec>     Cache-Control max-age for HTML files (overrides --cachetime)
+  --cachetime-assets <sec>   Cache-Control max-age for non-HTML assets (overrides --cachetime)
   --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
                              Examples: --exclude="*.map" --exclude="test/**/*.ts"
   --basepath <path>          URL prefix for all routes (e.g., "/ui") (default: "")
@@ -320,6 +326,8 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'gzip',
     'etag',
     'cachetime',
+    'cachetimehtml',
+    'cachetimeassets',
     'created',
     'version',
     'exclude',
@@ -353,6 +361,22 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
       throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']}`);
     if ((configObject['cachetime'] as number) < 0)
       throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']} (must be non-negative)`);
+  }
+
+  if (configObject['cachetimehtml'] !== undefined) {
+    if (typeof configObject['cachetimehtml'] !== 'number' || Number.isNaN(configObject['cachetimehtml']))
+      throw new TypeError(`Invalid cachetimehtml in RC file: ${configObject['cachetimehtml']}`);
+    if ((configObject['cachetimehtml'] as number) < 0)
+      throw new TypeError(`Invalid cachetimehtml in RC file: ${configObject['cachetimehtml']} (must be non-negative)`);
+  }
+
+  if (configObject['cachetimeassets'] !== undefined) {
+    if (typeof configObject['cachetimeassets'] !== 'number' || Number.isNaN(configObject['cachetimeassets']))
+      throw new TypeError(`Invalid cachetimeassets in RC file: ${configObject['cachetimeassets']}`);
+    if ((configObject['cachetimeassets'] as number) < 0)
+      throw new TypeError(
+        `Invalid cachetimeassets in RC file: ${configObject['cachetimeassets']} (must be non-negative)`
+      );
   }
 
   if (configObject['exclude'] !== undefined) {
@@ -425,6 +449,8 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.etag) result.etag = rcConfig.etag;
   if (rcConfig.gzip) result.gzip = rcConfig.gzip;
   if (rcConfig.cachetime !== undefined) result.cachetime = rcConfig.cachetime;
+  if (rcConfig.cachetimehtml !== undefined) result.cachetimeHtml = rcConfig.cachetimehtml;
+  if (rcConfig.cachetimeassets !== undefined) result.cachetimeAssets = rcConfig.cachetimeassets;
   if (rcConfig.created !== undefined) result.created = rcConfig.created;
   if (rcConfig.version) result.version = rcConfig.version;
   if (rcConfig.espmethod) result.espmethod = rcConfig.espmethod;
@@ -476,6 +502,19 @@ function parseArguments(): ICopyFilesArguments {
         if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${value}`);
         if (result.cachetime < 0) throw new TypeError(`Invalid cachetime: ${value} (must be non-negative)`);
         break;
+      case 'cachetime-html': {
+        result.cachetimeHtml = Number.parseInt(value, 10);
+        if (Number.isNaN(result.cachetimeHtml)) throw new TypeError(`Invalid cachetime-html: ${value}`);
+        if (result.cachetimeHtml < 0) throw new TypeError(`Invalid cachetime-html: ${value} (must be non-negative)`);
+        break;
+      }
+      case 'cachetime-assets': {
+        result.cachetimeAssets = Number.parseInt(value, 10);
+        if (Number.isNaN(result.cachetimeAssets)) throw new TypeError(`Invalid cachetime-assets: ${value}`);
+        if (result.cachetimeAssets < 0)
+          throw new TypeError(`Invalid cachetime-assets: ${value} (must be non-negative)`);
+        break;
+      }
       case 'exclude': {
         const patterns = value
           .split(',')
@@ -604,6 +643,10 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
     `gzip=${cmdLine.gzip}`,
     `cachetime=${cmdLine.cachetime}`
   ];
+
+  if (cmdLine.cachetimeHtml !== undefined) parts.push(`cachetimeHtml=${cmdLine.cachetimeHtml}`);
+
+  if (cmdLine.cachetimeAssets !== undefined) parts.push(`cachetimeAssets=${cmdLine.cachetimeAssets}`);
 
   if (cmdLine.created) parts.push(`created=${cmdLine.created}`);
 

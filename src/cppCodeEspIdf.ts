@@ -179,22 +179,22 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 
 {{#switch ../etag}}
 {{#case "true"}}
-{{#../cacheTime}}
+{{#this.cacheTime}}
     httpd_resp_set_hdr(req, "Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     httpd_resp_set_hdr(req, "ETag", etag_{{this.dataname}});
 {{/case}}
 {{#case "compiler"}}
   #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#../cacheTime}}
+{{#this.cacheTime}}
     httpd_resp_set_hdr(req, "Cache-Control", "max-age={{value}}");
-{{/../cacheTime}}
-{{^../cacheTime}}
+{{/this.cacheTime}}
+{{^this.cacheTime}}
     httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
-{{/../cacheTime}}
+{{/this.cacheTime}}
     httpd_resp_set_hdr(req, "ETag", etag_{{this.dataname}});
   #endif 
 {{/case}}
