@@ -516,6 +516,16 @@ describe('commandLine', () => {
       await expect(import('../../src/commandLine')).rejects.toThrow('basePath must not contain //: /ui//admin');
     });
 
+    it('should reject basePath containing double quotes', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--basepath=/ui"admin'];
+      await expect(import('../../src/commandLine')).rejects.toThrow('basePath must not contain double quotes');
+    });
+
+    it('should reject basePath containing backslashes', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', String.raw`--basepath=/ui\admin`];
+      await expect(import('../../src/commandLine')).rejects.toThrow('basePath must not contain backslashes');
+    });
+
     it('should parse --maxsize with equals format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=400000'];
 

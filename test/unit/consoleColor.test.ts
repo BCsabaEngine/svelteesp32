@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { greenLog, redLog, yellowLog } from '../../src/consoleColor';
+import { cyanLog, greenLog, redLog, yellowLog } from '../../src/consoleColor';
 
 describe('consoleColor', () => {
   describe('greenLog', () => {
@@ -54,21 +54,43 @@ describe('consoleColor', () => {
     });
   });
 
+  describe('cyanLog', () => {
+    it('should wrap text with cyan ANSI codes', () => {
+      const result = cyanLog('info');
+      expect(result).toBe('\u001B[36minfo\u001B[0m');
+    });
+
+    it('should handle empty strings', () => {
+      const result = cyanLog('');
+      expect(result).toBe('\u001B[36m\u001B[0m');
+    });
+
+    it('should handle strings with special characters', () => {
+      const result = cyanLog('Path: /foo/bar');
+      expect(result).toBe('\u001B[36mPath: /foo/bar\u001B[0m');
+    });
+  });
+
   describe('all color functions', () => {
     it('should produce different color codes for each function', () => {
       const green = greenLog('test');
       const yellow = yellowLog('test');
       const red = redLog('test');
+      const cyan = cyanLog('test');
 
       expect(green).not.toBe(yellow);
       expect(yellow).not.toBe(red);
       expect(red).not.toBe(green);
+      expect(cyan).not.toBe(green);
+      expect(cyan).not.toBe(yellow);
+      expect(cyan).not.toBe(red);
     });
 
     it('should all end with reset code', () => {
       expect(greenLog('test')).toContain('\u001B[0m');
       expect(yellowLog('test')).toContain('\u001B[0m');
       expect(redLog('test')).toContain('\u001B[0m');
+      expect(cyanLog('test')).toContain('\u001B[0m');
     });
   });
 });
