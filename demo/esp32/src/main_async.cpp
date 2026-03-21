@@ -21,6 +21,7 @@ String getStatusJson()
 
 void setup()
 {
+  Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
@@ -29,6 +30,8 @@ void setup()
   if (WiFi.waitForConnectResult() != WL_CONNECTED)
     while (true)
       ;
+
+  Serial.println(WiFi.localIP());
 
   initSvelteStaticFiles(&server);
 

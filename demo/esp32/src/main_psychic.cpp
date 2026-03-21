@@ -21,6 +21,7 @@ String getStatusJson()
 
 void setup()
 {
+  Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
@@ -30,7 +31,9 @@ void setup()
     while (true)
       ;
 
-  server.config.max_uri_handlers = 20;
+  Serial.println(WiFi.localIP());
+
+  server.config.max_uri_handlers = SVELTEESP32_MAX_URI_HANDLERS + 2;
   server.begin();
   initSvelteStaticFiles(&server);
 

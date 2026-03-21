@@ -1,3 +1,6 @@
+#!/bin/bash
+set -e
+
 npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/_/svelteesp32async.h --etag=false --gzip=false --cachetime=86400
 npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/g/svelteesp32async.h --etag=false --gzip=true --cachetime=86400
 npx tsx src/index.ts -e async -s ./demo/svelte/dist -o ./demo/esp32/include/gc/svelteesp32async.h --etag=false --gzip=compiler --cachetime=86400

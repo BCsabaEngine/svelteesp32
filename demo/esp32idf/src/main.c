@@ -59,6 +59,8 @@ static const httpd_uri_t uri_api_toggle = {
   .handler = api_toggle_handler,
 };
 
+static httpd_handle_t start_http_server(void);
+
 static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
@@ -74,6 +76,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
   {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
+    start_http_server();
   }
 }
 
@@ -128,10 +131,6 @@ void app_main(void)
   gpio_set_level(LED_PIN, 0);
 
   wifi_init();
-
-  vTaskDelay(3000 / portTICK_PERIOD_MS);
-
-  start_http_server();
 
   while (1)
   {
