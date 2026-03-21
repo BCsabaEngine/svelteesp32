@@ -75,6 +75,15 @@ void setup() {
 
 **That's it.** Your entire web app is now embedded and ready to serve.
 
+> **Just want production-safe defaults?**
+>
+> ```bash
+> npx svelteesp32 -e psychic -s ./dist -o ./esp32/svelteesp32.h \
+>   --etag=true --gzip=true --cachetime-html=0 --cachetime-assets=31536000
+> ```
+>
+> ETags for instant 304s, gzip for smaller transfers, `no-cache` for HTML so updates are always picked up, and 1-year caching for content-hashed JS/CSS assets.
+
 ---
 
 ## What's New
@@ -314,6 +323,8 @@ Reduce bandwidth dramatically with HTTP 304 "Not Modified" responses. When a bro
 
 All four engines support full ETag validation.
 
+> **Browser compatibility note:** ETags and `Cache-Control: max-age` are universally supported in all modern browsers. Very old clients (IE6/7, early Android 2.x WebViews) may ignore `must-revalidate` or mishandle 304 responses. If you target these environments, set `--etag=false` and `--cachetime=0` to force full downloads on every request.
+
 ### Browser Cache Control
 
 Fine-tune how browsers cache your content:
@@ -537,6 +548,132 @@ npx svelteesp32 --config=.svelteesp32rc.prod.json
 ```
 
 CLI arguments always override RC file values.
+
+---
+
+## Common Recipes
+
+### Recipe A — Arduino IDE + Built-in WebServer
+
+No PlatformIO required. Build your frontend, run svelteesp32 manually, then compile in Arduino IDE.
+
+```bash
+# 1. Build your frontend
+npm run build
+
+# 2. Generate the header
+npx svelteesp32 -e webserver -s ./dist -o ./MyProject/svelteesp32.h \
+  --gzip=true --etag=false
+```
+
+> **Note:** The Arduino `WebServer` library does not support ETag validation, so `--etag=false` is the correct setting here. Remember to call `server.handleClient()` in your `loop()`.
+
+```c
+#include <WebServer.h>
+#include "svelteesp32.h"
+
+WebServer server(80);
+
+void setup() {
+    WiFi.begin("ssid", "password");
+    while (WiFi.status() != WL_CONNECTED) delay(500);
+    initSvelteStaticFiles(&server);
+    server.begin();
+}
+
+void loop() {
+    server.handleClient();
+}
+```
+
+---
+
+### Recipe B — PlatformIO + Vite/SvelteKit, Auto-Generated Header on `pio run`
+
+Run svelteesp32 automatically as a PlatformIO pre-build step so your header is always up to date.
+
+**`platformio.ini`**
+
+```ini
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+lib_deps =
+    ESP Async WebServer
+extra_scripts = pre:scripts/build_frontend.py
+```
+
+**`scripts/build_frontend.py`**
+
+```python
+Import("env")
+import subprocess
+
+def build_frontend(source, target, env):
+    print("Building frontend...")
+    subprocess.run(["npm", "run", "build"], cwd="frontend", check=True)
+    subprocess.run([
+        "npx", "svelteesp32",
+        "-e", "async",
+        "-s", "frontend/dist",
+        "-o", "src/svelteesp32.h",
+        "--etag=true", "--gzip=true",
+        "--cachetime-html=0", "--cachetime-assets=31536000"
+    ], check=True)
+
+env.AddPreAction("buildprog", build_frontend)
+```
+
+This ensures the C++ header is regenerated from the latest frontend build every time you run `pio run`.
+
+---
+
+### Recipe C — ESP-IDF CMake, 1-Year Cached Content-Hashed Assets
+
+Integrate svelteesp32 into a CMake build so the header is regenerated automatically.
+
+**`CMakeLists.txt` (component or top-level)**
+
+```cmake
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/main/svelteesp32.h
+    COMMAND npm run build
+    COMMAND npx svelteesp32
+        -e espidf
+        -s ${CMAKE_CURRENT_SOURCE_DIR}/frontend/dist
+        -o ${CMAKE_CURRENT_SOURCE_DIR}/main/svelteesp32.h
+        --etag=true --gzip=true
+        --cachetime-html=0 --cachetime-assets=31536000
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating svelteesp32.h from frontend build"
+    VERBATIM
+)
+
+add_custom_target(frontend_header
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/main/svelteesp32.h
+)
+
+# Make your main component depend on the generated header
+add_dependencies(${COMPONENT_LIB} frontend_header)
+```
+
+**`main/app_main.c`**
+
+```c
+#include <esp_http_server.h>
+#include "svelteesp32.h"
+
+void app_main(void) {
+    // ... WiFi init ...
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    httpd_handle_t server = NULL;
+    httpd_start(&server, &config);
+    initSvelteStaticFiles(server);
+}
+```
+
+The `--cachetime-html=0 --cachetime-assets=31536000` combination gives you `no-cache` for `index.html` (so browser always checks for updates) and a 1-year `max-age` for content-hashed JS/CSS bundles.
 
 ---
 
