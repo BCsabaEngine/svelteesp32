@@ -31,7 +31,7 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 
 - `src/index.ts` — Main pipeline (`main()`), compression, MIME types, `--dryrun` mode
 - `src/commandLine.ts` — CLI parsing (native `process.argv`), RC files, npm variable interpolation, C++ identifier validation
-- `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists.
+- `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists. Symlinks are not followed (`followSymbolicLinks: false`). Files over 50 MB are rejected before read/compress.
 - `src/cppCode.ts` — Handlebars templates for psychic/async engines (data arrays, etag arrays, manifest, hook sections)
 - `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation
 - `src/errorMessages.ts` — Framework-specific error messages
@@ -51,7 +51,7 @@ File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → H
 
 `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--spa` (catch-all for SPA client-side routing), `--cachetime`, `--cachetime-html` (HTML-only max-age, overrides `--cachetime`), `--cachetime-assets` (non-HTML max-age, overrides `--cachetime`), `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
 
-RC files: `.svelteesp32rc.json` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation.
+RC files: `.svelteesp32rc.json` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation. Prints a warning when loaded from cwd. `outputfile` in RC files must be a relative path (absolute paths throw).
 
 ## Generated C++ Details
 
