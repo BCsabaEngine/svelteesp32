@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.2] - 2026-03-29
+
+### Security
+
+- **Symlink traversal blocked**: `tinyglobby` now runs with `followSymbolicLinks: false` — symlinks inside the source directory are no longer followed, preventing accidental (or malicious) inclusion of files outside the intended directory
+- **RC file CWD warning**: A yellow warning is printed when a config file is auto-loaded from the current working directory (as opposed to `--config` or the home directory), making it visible when a cloned project supplies its own RC file
+- **Absolute `outputfile` rejected in RC files**: Setting `"outputfile"` to an absolute path in `.svelteesp32rc.json` now throws an error — output paths in RC files must be relative. Absolute paths remain valid via the `--output` CLI flag where the user is explicitly in control
+- **Per-file 50 MB size limit**: Files larger than 50 MB are rejected before `readFileSync` / `gzipSync`, preventing OOM when the source directory contains unexpectedly large files (the existing `--maxsize`/`--maxgzipsize` budget checks run after all files are processed and do not protect against this)
+
 ## [2.3.1] - 2026-03-15
 
 ### Fixed
@@ -632,6 +641,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[2.3.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.3.1...v2.3.2
+[2.3.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.2.2...v2.3.0
 [2.2.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.2.0...v2.2.1

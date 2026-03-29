@@ -407,6 +407,11 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (configObject['spa'] !== undefined && typeof configObject['spa'] !== 'boolean')
     throw new TypeError(`Invalid spa in RC file: ${configObject['spa']} (must be boolean)`);
 
+  if (configObject['outputfile'] !== undefined && path.isAbsolute(configObject['outputfile'] as string))
+    throw new Error(
+      `'outputfile' in RC file must be a relative path (use --output CLI flag for absolute paths): ${configObject['outputfile']}`
+    );
+
   return configObject as IRcFileConfig;
 }
 
@@ -433,7 +438,13 @@ function parseArguments(): ICopyFilesArguments {
   const rcPath = findRcFile(customConfigPath);
   const rcConfig = rcPath ? loadRcFile(rcPath) : {};
 
-  if (rcPath) console.log(cyanLog(`[SvelteESP32] Using config from: ${rcPath}`));
+  if (rcPath) {
+    console.log(cyanLog(`[SvelteESP32] Using config from: ${rcPath}`));
+    if (!customConfigPath && path.dirname(rcPath) === process.cwd())
+      console.warn(
+        yellowLog(`Warning: Loading config from current directory — verify this file is trusted before proceeding.`)
+      );
+  }
 
   // STEP 3: Initialize with defaults
   const result: Partial<ICopyFilesArguments> = {

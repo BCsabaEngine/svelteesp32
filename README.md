@@ -549,6 +549,8 @@ npx svelteesp32 --config=.svelteesp32rc.prod.json
 
 CLI arguments always override RC file values.
 
+> **Security note:** When svelteesp32 auto-loads an RC file from the current directory it prints a warning. If you cloned a project that includes `.svelteesp32rc.json`, review it before running. `outputfile` in RC files must be a relative path — use `--output` on the CLI for absolute paths.
+
 ---
 
 ## Common Recipes

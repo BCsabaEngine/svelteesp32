@@ -29,6 +29,7 @@ describe('file', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.mocked(fs.statSync).mockReturnValue({ size: 100 } as fs.Stats);
   });
 
   afterEach(() => {
@@ -154,7 +155,19 @@ describe('file', () => {
 
       getFiles();
 
-      expect(tinyglobby.globSync).toHaveBeenCalledWith('**/*', { cwd: '/test/path', onlyFiles: true, dot: false });
+      expect(tinyglobby.globSync).toHaveBeenCalledWith('**/*', {
+        cwd: '/test/path',
+        onlyFiles: true,
+        dot: false,
+        followSymbolicLinks: false
+      });
+    });
+
+    it('should throw when a file exceeds the 50MB size limit', () => {
+      vi.mocked(tinyglobby.globSync).mockReturnValue(['large.bin']);
+      vi.mocked(fs.statSync).mockReturnValue({ size: 51 * 1024 * 1024 } as fs.Stats);
+
+      expect(() => getFiles()).toThrow('File too large');
     });
   });
 

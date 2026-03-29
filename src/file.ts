@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 import picomatch from 'picomatch';
@@ -76,7 +76,12 @@ const isExcluded = (filename: string, excludePatterns: string[]): boolean => {
  * @returns Map of filename to file data (content + SHA256 hash)
  */
 export const getFiles = (): Map<string, FileData> => {
-  const allFilenames = globSync('**/*', { cwd: cmdLine.sourcepath, onlyFiles: true, dot: false });
+  const allFilenames = globSync('**/*', {
+    cwd: cmdLine.sourcepath,
+    onlyFiles: true,
+    dot: false,
+    followSymbolicLinks: false
+  });
 
   // Filter pre-compressed files
   const withoutCompressed = allFilenames.filter((filename) => !shouldSkipFile(filename, allFilenames));
@@ -106,9 +111,16 @@ export const getFiles = (): Map<string, FileData> => {
   } else if (excludePatterns.length > 0)
     console.log(yellowLog(`Warning: --exclude patterns matched no files: ${excludePatterns.join(', ')}`));
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB hard limit per file
+
   const result: Map<string, FileData> = new Map();
   for (const filename of filenames) {
     const filePath = path.join(cmdLine.sourcepath, filename);
+    const fileSize = statSync(filePath).size;
+    if (fileSize > MAX_FILE_SIZE)
+      throw new Error(
+        `File too large (${Math.round(fileSize / 1024)}kB): ${filename}. Maximum single-file size is 50MB.`
+      );
     const content = readFileSync(filePath, { flag: 'r' });
     const hash = createHash('sha256').update(content).digest('hex');
     result.set(filename, { content, hash });
