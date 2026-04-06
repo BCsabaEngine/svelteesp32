@@ -271,8 +271,7 @@ function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRc
     // Match $npm_package_ followed by field name (stops at _ + uppercase)
     // This allows: version, repository_type, but stops at _STATIC
     const regex = /\$npm_package_[\dA-Za-z]+(?:_[a-z][\dA-Za-z]*)*/g;
-    // eslint-disable-next-line unicorn/prefer-string-replace-all -- replaceAll not available in ES2020
-    return value.replace(regex, (match: string) => getNpmPackageVariable(packageJson, match) ?? match);
+    return value.replaceAll(regex, (match: string) => getNpmPackageVariable(packageJson, match) ?? match);
   };
 
   // Create new config with interpolated values
