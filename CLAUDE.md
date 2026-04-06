@@ -79,8 +79,7 @@ Test files in `test/unit/`. Fixtures in `test/fixtures/sample-files/`.
 
 ## Build Config
 
-- **TypeScript**: Target ES2020, CommonJS, strict mode
+- **TypeScript**: Target ES2023, module/moduleResolution Node16, strict mode
 - **ESLint**: TypeScript + Prettier + Unicorn (all rules) + simple-import-sort
 - **Prettier**: 120 char width, single quotes, no trailing commas
 - **ESLint `curly` rule**: `"multi"` — braces required only for multi-statement blocks. Single-statement `if`/`else`/`for` must NOT have braces.
-- **ES2020 constraint**: No `replaceAll` with regex — use `.replace(/regex/g, ...)` with `// eslint-disable-next-line unicorn/prefer-string-replace-all`

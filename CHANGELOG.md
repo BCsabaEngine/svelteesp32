@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.3] - 2026-04-06
+
+### Changed
+
+- **TypeScript 6**: Upgraded compiler to TypeScript 6; `module` and `moduleResolution` updated to `Node16`, target raised to `ES2023`
+- **`replaceAll` now used directly**: ES2023 target makes `String.prototype.replaceAll` available — removed the `eslint-disable` workarounds that previously suppressed the `unicorn/prefer-string-replace-all` rule
+
 ## [2.3.2] - 2026-03-29
 
 ### Security

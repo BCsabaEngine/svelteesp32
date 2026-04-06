@@ -1,3 +1,4 @@
 {
-  "typescript.tsserver.experimental.enableProjectDiagnostics": true
+  "js/ts.tsserver.experimental.enableProjectDiagnostics": true,
+  "cmake.sourceDirectory": "/Users/balazscsaba/development/svelteesp32/demo/esp32idf"
 }

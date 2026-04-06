@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["ES2020", "ES2022.Error"],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "node16",
+    "moduleResolution": "node16",
     "sourceMap": false,
     "removeComments": true,
     "importHelpers": false,
@@ -26,7 +26,7 @@
     "incremental": false,
     "allowJs": false,
     "typeRoots": ["./node_modules/@types"],
-    "rootDirs": ["./"],
+    "rootDir": "./src",
     "outDir": "dist"
   },
   "include": ["./src"],

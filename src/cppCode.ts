@@ -1042,8 +1042,7 @@ const postProcessCppCode = (code: string): string =>
     .filter(Boolean)
     .map((line) => (line === '//' ? '' : line))
     .join('\n')
-    // eslint-disable-next-line unicorn/prefer-string-replace-all -- replaceAll not available in ES2020
-    .replace(/\n{2,}/g, '\n');
+    .replaceAll(/\n{2,}/g, '\n');
 
 /**
  * Create Handlebars helpers with switch/case support
