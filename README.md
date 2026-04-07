@@ -88,6 +88,9 @@ void setup() {
 
 ## What's New
 
+- **v2.3.3** — TypeScript 6 upgrade; `module`/`moduleResolution` updated to `Node16`, target raised to `ES2023`
+- **v2.3.2** — Security hardening: symlink traversal blocked, RC file CWD warning, absolute `outputfile` rejected in RC files, per-file 50 MB size limit
+- **v2.3.1** — Fixes: `--version` and `--basepath` input validation, `formatConfiguration` newline safety
 - **v2.3.0** — `--cachetime-html` and `--cachetime-assets` for per-type cache control (e.g. `no-cache` for HTML, 1-year for content-hashed JS/CSS)
 - **v2.2.0** — SPA routing catch-all (`--spa`) for client-side routers on all four engines
 - **v2.1.0** — New Arduino WebServer engine (`-e webserver`), dependency updates
@@ -241,10 +244,10 @@ The generated header file includes everything your ESP needs:
 #include <PsychicHttp.h>
 #include <PsychicHttpsServer.h>
 
-const uint8_t datagzip_assets_index_KwubEIf__js[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
-const uint8_t datagzip_assets_index_Soe6cpLA_css[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
-const char * etag_assets_index_KwubEIf__js = "387b88e345cc56ef9091...";
-const char * etag_assets_index_Soe6cpLA_css = "d4f23bc45ef67890ab12...";
+static const uint8_t datagzip_assets_index_KwubEIf__js[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
+static const uint8_t datagzip_assets_index_Soe6cpLA_css[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
+static const char etag_assets_index_KwubEIf__js[] = "387b88e345cc56ef9091...";
+static const char etag_assets_index_Soe6cpLA_css[] = "d4f23bc45ef67890ab12...";
 
 // File manifest for runtime introspection
 struct SVELTEESP32_FileInfo {
@@ -480,6 +483,7 @@ Called for every response (200 = content served, 304 = cache hit).
 | `-o`                 | Output header file path                              | `svelteesp32.h`         |
 | `--etag`             | ETag caching (true/false/compiler)                   | `false`                 |
 | `--gzip`             | Gzip compression (true/false/compiler)               | `true`                  |
+| `--created`          | Include creation timestamp in header                 | `false`                 |
 | `--exclude`          | Exclude files by glob pattern                        | (none)                  |
 | `--basepath`         | URL prefix for all routes                            | (none)                  |
 | `--maxsize`          | Max total uncompressed size (e.g., `400k`, `1m`)     | (none)                  |
