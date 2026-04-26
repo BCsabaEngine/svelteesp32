@@ -8,8 +8,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "engines": {
-    "node": ">=20",
-    "npm": ">=9"
+    "node": ">=22",
+    "npm": ">=10"
   },
   "files": [
     "bin/*.js",
@@ -28,9 +28,9 @@
   },
   "homepage": "https://github.com/BCsabaEngine/svelteesp32",
   "scripts": {
-    "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --cachetime=86400 --version=v$npm_package_version",
-    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
-    "dev:webserver": "nodemon src/index.ts -- -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --cachetime=86400 --version=v$npm_package_version",
+    "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=always --gzip=always --cachetime=86400 --version=v$npm_package_version",
+    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=never --gzip=never --version=v$npm_package_version",
+    "dev:webserver": "nodemon src/index.ts -- -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=always --gzip=always --cachetime=86400 --version=v$npm_package_version",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -49,10 +49,11 @@
   },
   "keywords": [
     "svelte",
+    "svelte5",
     "angular",
     "react",
     "vue",
-    "eps32",
+    "esp32",
     "esp8266",
     "webserver",
     "psychichttpserver",
