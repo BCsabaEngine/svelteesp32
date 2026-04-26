@@ -7,12 +7,12 @@ export const espidfTemplate = `
 //
 
 {{#switch etag}}
-{{#case "true"}}
+{{#case "always"}}
 #ifdef {{definePrefix}}_ENABLE_ETAG
 #warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched ON
 #endif
 {{/case}}
-{{#case "false"}}
+{{#case "never"}}
 #ifdef {{definePrefix}}_ENABLE_ETAG
 #warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched OFF
 #endif
@@ -20,12 +20,12 @@ export const espidfTemplate = `
 {{/switch}}
 
 {{#switch gzip}}
-{{#case "true"}}
+{{#case "always"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
 #warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched ON
 #endif
 {{/case}}
-{{#case "false"}}
+{{#case "never"}}
 #ifdef {{definePrefix}}_ENABLE_GZIP
 #warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched OFF
 #endif
@@ -58,12 +58,12 @@ export const espidfTemplate = `
 
 //
 {{#switch gzip}}
-{{#case "true"}}
+{{#case "always"}}
   {{#each sources}}
 static const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
   {{/each}}
 {{/case}}
-{{#case "false"}}
+{{#case "never"}}
   {{#each sources}}
 static const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
   {{/each}}
@@ -83,12 +83,12 @@ static const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.by
 
 //
 {{#switch etag}}
-{{#case "true"}}
+{{#case "always"}}
   {{#each sources}}
 static const char etag_{{this.dataname}}[] = "{{this.sha256}}";
   {{/each}}
 {{/case}}
-{{#case "false"}}
+{{#case "never"}}
 {{/case}}
 {{#case "compiler"}}
 #ifdef {{definePrefix}}_ENABLE_ETAG
@@ -124,7 +124,7 @@ __attribute__((weak)) void {{definePrefix}}_onFileServed(const char* path, int s
 static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 {
 {{#switch ../etag}}
-{{#case "true"}}
+{{#case "always"}}
     size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");
     if (hdr_len > 0) {
         char* hdr_value = malloc(hdr_len + 1);
@@ -163,7 +163,7 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 {{/switch}}
     httpd_resp_set_type(req, "{{this.mime}}");
 {{#switch ../gzip}}
-{{#case "true"}}
+{{#case "always"}}
 {{#if this.isGzip}}
     httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
 {{/if}}
@@ -178,7 +178,7 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 {{/switch}}
 
 {{#switch ../etag}}
-{{#case "true"}}
+{{#case "always"}}
 {{#this.cacheTime}}
     httpd_resp_set_hdr(req, "Cache-Control", "max-age={{value}}");
 {{/this.cacheTime}}
@@ -201,11 +201,11 @@ static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
 {{/switch}}
 
 {{#switch ../gzip}}
-{{#case "true"}}
+{{#case "always"}}
     {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
     httpd_resp_send(req, (const char *)datagzip_{{this.dataname}}, {{this.lengthGzip}});
 {{/case}}
-{{#case "false"}}
+{{#case "never"}}
     {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
     httpd_resp_send(req, (const char *)data_{{this.dataname}}, {{this.length}});
 {{/case}}

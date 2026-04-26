@@ -11,8 +11,8 @@ interface ICopyFilesArguments {
   outputfile: string;
   espmethod: string;
   define: string;
-  gzip: 'true' | 'false' | 'compiler';
-  etag: 'true' | 'false' | 'compiler';
+  gzip: 'always' | 'never' | 'compiler';
+  etag: 'always' | 'never' | 'compiler';
   cachetime: number;
   cachetimeHtml?: number;
   cachetimeAssets?: number;
@@ -36,8 +36,8 @@ interface IRcFileConfig {
   outputfile?: string;
   espmethod?: string;
   define?: string;
-  gzip?: 'true' | 'false' | 'compiler';
-  etag?: 'true' | 'false' | 'compiler';
+  gzip?: 'always' | 'never' | 'compiler';
+  etag?: 'always' | 'never' | 'compiler';
   cachetime?: number;
   cachetimehtml?: number;
   cachetimeassets?: number;
@@ -66,8 +66,8 @@ Options:
                              (psychic|async|espidf|webserver) (default: "psychic")
   -s, --sourcepath <path>    Source dist folder with compiled web files (required)
   -o, --outputfile <path>    Generated output file with path (default: "svelteesp32.h")
-  --etag <value>             Use ETAG header for cache (true|false|compiler) (default: "false")
-  --gzip <value>             Compress content with gzip (true|false|compiler) (default: "true")
+  --etag <value>             Use ETAG header for cache (always|never|compiler) (default: "never")
+  --gzip <value>             Compress content with gzip (always|never|compiler) (default: "always")
   --created                  Include creation time in the output file (default: false)
   --version <value>          Include version info in the output file (default: "")
   --espmethod <name>         Name of generated method (default: "initSvelteStaticFiles")
@@ -96,8 +96,8 @@ RC File:
       "engine": "psychic",
       "sourcepath": "./dist",
       "outputfile": "./output.h",
-      "etag": "true",
-      "gzip": "true",
+      "etag": "always",
+      "gzip": "always",
       "exclude": ["*.map", "*.md"],
       "basepath": "/ui",
       "maxsize": "400k",
@@ -118,8 +118,8 @@ function validateEngine(value: string): 'psychic' | 'async' | 'espidf' | 'webser
   process.exit(1);
 }
 
-function validateTriState(value: string, name: string): 'true' | 'false' | 'compiler' {
-  if (value === 'true' || value === 'false' || value === 'compiler') return value;
+function validateTriState(value: string, name: string): 'always' | 'never' | 'compiler' {
+  if (value === 'always' || value === 'never' || value === 'compiler') return value;
 
   throw new Error(`Invalid ${name}: ${value}`);
 }
@@ -496,8 +496,8 @@ function parseArguments(): ICopyFilesArguments {
   const result: Partial<ICopyFilesArguments> = {
     engine: 'psychic',
     outputfile: 'svelteesp32.h',
-    etag: 'false',
-    gzip: 'true',
+    etag: 'never',
+    gzip: 'always',
     created: false,
     version: '',
     espmethod: 'initSvelteStaticFiles',
