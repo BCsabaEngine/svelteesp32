@@ -24,6 +24,7 @@ interface ICopyFilesArguments {
   maxGzipSize?: number;
   noIndexCheck?: boolean;
   dryRun?: boolean;
+  analyze?: boolean;
   spa?: boolean;
   help?: boolean;
 }
@@ -47,6 +48,7 @@ interface IRcFileConfig {
   maxgzipsize?: number | string;
   noindexcheck?: boolean;
   dryrun?: boolean;
+  analyze?: boolean;
   spa?: boolean;
 }
 
@@ -77,6 +79,7 @@ Options:
   --maxsize <size>           Maximum total uncompressed size (e.g., 400k, 1.5m, 409600)
   --maxgzipsize <size>       Maximum total gzip size (e.g., 150k, 1m, 153600)
   --dryrun                   Show summary without writing the output file (default: false)
+  --analyze                  Print per-file size table and budget status without writing (default: false)
   --spa                      Serve index.html for unmatched routes (SPA routing) (default: false)
   -h, --help                 Shows this help
 
@@ -343,6 +346,7 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'maxgzipsize',
     'noindexcheck',
     'dryrun',
+    'analyze',
     'spa'
   ]);
 
@@ -402,6 +406,9 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
 
   if (configObject['dryrun'] !== undefined && typeof configObject['dryrun'] !== 'boolean')
     throw new TypeError(`Invalid dryrun in RC file: ${configObject['dryrun']} (must be boolean)`);
+
+  if (configObject['analyze'] !== undefined && typeof configObject['analyze'] !== 'boolean')
+    throw new TypeError(`Invalid analyze in RC file: ${configObject['analyze']} (must be boolean)`);
 
   if (configObject['spa'] !== undefined && typeof configObject['spa'] !== 'boolean')
     throw new TypeError(`Invalid spa in RC file: ${configObject['spa']} (must be boolean)`);
@@ -478,6 +485,7 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.maxgzipsize !== undefined) result.maxGzipSize = rcConfig.maxgzipsize as number;
   if (rcConfig.noindexcheck !== undefined) result.noIndexCheck = rcConfig.noindexcheck;
   if (rcConfig.dryrun !== undefined) result.dryRun = rcConfig.dryrun;
+  if (rcConfig.analyze !== undefined) result.analyze = rcConfig.analyze;
   if (rcConfig.spa !== undefined) result.spa = rcConfig.spa;
 
   // Replace defaults with RC exclude if provided
@@ -591,6 +599,11 @@ function parseArguments(): ICopyFilesArguments {
       continue;
     }
 
+    if (argument === '--analyze') {
+      result.analyze = true;
+      continue;
+    }
+
     if (argument === '--spa') {
       result.spa = true;
       continue;
@@ -646,6 +659,11 @@ function parseArguments(): ICopyFilesArguments {
     showHelp();
   }
 
+  if (result.dryRun && result.analyze)
+    throw new Error(
+      '--analyze and --dryrun are mutually exclusive. Use --analyze for CI budget checks or --dryrun for a developer route preview.'
+    );
+
   return result as ICopyFilesArguments;
 }
 
@@ -681,6 +699,8 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   if (cmdLine.maxGzipSize !== undefined) parts.push(`maxGzipSize=${cmdLine.maxGzipSize}`);
 
   if (cmdLine.spa) parts.push(`spa=${cmdLine.spa}`);
+
+  if (cmdLine.analyze) parts.push(`analyze=${cmdLine.analyze}`);
 
   if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
 
