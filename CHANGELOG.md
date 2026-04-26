@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-04-26
+
+### Added
+
+- **`--analyze` mode**: Prints a formatted per-file size table (original size and gzip size) plus budget pass/fail status without writing any output file. Exits with code 1 if a `--maxsize` or `--maxgzipsize` budget is exceeded — designed for CI budget checks. Mutually exclusive with `--dryrun`. Supported in RC files (`analyze: true`).
+- **`--manifest` option**: After generating the header, writes a companion `.manifest.json` file in the same directory (same base name). The manifest records `engine`, `etag`, `gzip`, total `filecount`/`size`/`gzipSize`, and per-file entries with `path`, `mime`, `size`, `gzipSize`, and `isGzip`. Supported in RC files (`manifest: true`).
+
 ## [2.3.3] - 2026-04-06
 
 ### Changed

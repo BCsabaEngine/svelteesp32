@@ -88,6 +88,7 @@ void setup() {
 
 ## What's New
 
+- **v2.4.0** — `--analyze` for CI size budget checks (per-file table, exits 1 on over-budget); `--manifest` to write a companion JSON manifest alongside the header
 - **v2.3.3** — TypeScript 6 upgrade; `module`/`moduleResolution` updated to `Node16`, target raised to `ES2023`
 - **v2.3.2** — Security hardening: symlink traversal blocked, RC file CWD warning, absolute `outputfile` rejected in RC files, per-file 50 MB size limit
 - **v2.3.1** — Fixes: `--version` and `--basepath` input validation, `formatConfiguration` newline safety
@@ -427,6 +428,63 @@ What gets generated per engine:
 
 **Note:** `--spa` requires `index.html` or `index.htm` in the source directory — a warning is printed if it is missing.
 
+### Analyze Mode (CI Size Budget Checks)
+
+Use `--analyze` in CI to validate firmware size budgets without producing any output file:
+
+```bash
+npx svelteesp32 -e psychic -s ./dist --maxsize=400k --maxgzipsize=150k --analyze
+```
+
+Sample output:
+
+```
+index.html                           Original  Gzip
+──────────────────────────────────── ────────  ────────
+assets/index-KwubEIf-.js             37.9kB    12.3kB
+assets/index-Soe6cpLA.css            31.7kB    5.2kB
+favicon.png                          32.5kB    32.5kB  [no gzip]
+index.html                           0.5kB     0.3kB
+────────────────────────────────────────────────────────
+Total                                102.6kB   50.3kB
+Budget (maxsize)                     400.0kB   -         ✓ PASS
+Budget (maxgzipsize)                 -         150.0kB   ✓ PASS
+```
+
+Exits with code **1** if any budget is exceeded — CI fails automatically. Mutually exclusive with `--dryrun`.
+
+### JSON Manifest
+
+Add `--manifest` to write a companion `.manifest.json` file alongside the header (same directory, same base name):
+
+```bash
+npx svelteesp32 -e psychic -s ./dist -o ./esp32/svelteesp32.h --manifest
+# also writes ./esp32/svelteesp32.manifest.json
+```
+
+The manifest records build metadata and per-file details for tooling and dashboards:
+
+```json
+{
+  "generated": "2026-04-26T12:00:00.000Z",
+  "engine": "psychic",
+  "etag": "false",
+  "gzip": "true",
+  "filecount": 4,
+  "size": 104960,
+  "gzipSize": 51507,
+  "files": [
+    {
+      "path": "/assets/index-KwubEIf-.js",
+      "mime": "text/javascript",
+      "size": 38850,
+      "gzipSize": 12547,
+      "isGzip": true
+    }
+  ]
+}
+```
+
 ### C++ Build-Time Validation
 
 Catch configuration issues at compile time with generated defines:
@@ -476,29 +534,31 @@ Called for every response (200 = content served, 304 = cache hit).
 
 ## CLI Reference
 
-| Option               | Description                                          | Default                 |
-| -------------------- | ---------------------------------------------------- | ----------------------- |
-| `-s`                 | Source folder with compiled web files                | (required)              |
-| `-e`                 | Web server engine (psychic/async/espidf/webserver)   | `psychic`               |
-| `-o`                 | Output header file path                              | `svelteesp32.h`         |
-| `--etag`             | ETag caching (true/false/compiler)                   | `false`                 |
-| `--gzip`             | Gzip compression (true/false/compiler)               | `true`                  |
-| `--created`          | Include creation timestamp in header                 | `false`                 |
-| `--exclude`          | Exclude files by glob pattern                        | (none)                  |
-| `--basepath`         | URL prefix for all routes                            | (none)                  |
-| `--maxsize`          | Max total uncompressed size (e.g., `400k`, `1m`)     | (none)                  |
-| `--maxgzipsize`      | Max total gzip size (e.g., `150k`, `500k`)           | (none)                  |
-| `--cachetime`        | Cache-Control max-age in seconds (all files)         | `0`                     |
-| `--cachetime-html`   | max-age for HTML files (overrides `--cachetime`)     | (unset)                 |
-| `--cachetime-assets` | max-age for non-HTML files (overrides `--cachetime`) | (unset)                 |
-| `--version`          | Version string in header                             | (none)                  |
-| `--define`           | C++ define prefix                                    | `SVELTEESP32`           |
-| `--espmethod`        | Init function name                                   | `initSvelteStaticFiles` |
-| `--config`           | Custom RC file path                                  | `.svelteesp32rc.json`   |
-| `--dryrun`           | Show route table + summary without writing output    | `false`                 |
-| `--spa`              | Serve index.html for unmatched routes (SPA routing)  | `false`                 |
-| `--noindexcheck`     | Skip index.html validation                           | `false`                 |
-| `-h`                 | Show help                                            |                         |
+| Option               | Description                                                                            | Default                 |
+| -------------------- | -------------------------------------------------------------------------------------- | ----------------------- |
+| `-s`                 | Source folder with compiled web files                                                  | (required)              |
+| `-e`                 | Web server engine (psychic/async/espidf/webserver)                                     | `psychic`               |
+| `-o`                 | Output header file path                                                                | `svelteesp32.h`         |
+| `--etag`             | ETag caching (true/false/compiler)                                                     | `false`                 |
+| `--gzip`             | Gzip compression (true/false/compiler)                                                 | `true`                  |
+| `--created`          | Include creation timestamp in header                                                   | `false`                 |
+| `--exclude`          | Exclude files by glob pattern                                                          | (none)                  |
+| `--basepath`         | URL prefix for all routes                                                              | (none)                  |
+| `--maxsize`          | Max total uncompressed size (e.g., `400k`, `1m`)                                       | (none)                  |
+| `--maxgzipsize`      | Max total gzip size (e.g., `150k`, `500k`)                                             | (none)                  |
+| `--cachetime`        | Cache-Control max-age in seconds (all files)                                           | `0`                     |
+| `--cachetime-html`   | max-age for HTML files (overrides `--cachetime`)                                       | (unset)                 |
+| `--cachetime-assets` | max-age for non-HTML files (overrides `--cachetime`)                                   | (unset)                 |
+| `--version`          | Version string in header                                                               | (none)                  |
+| `--define`           | C++ define prefix                                                                      | `SVELTEESP32`           |
+| `--espmethod`        | Init function name                                                                     | `initSvelteStaticFiles` |
+| `--config`           | Custom RC file path                                                                    | `.svelteesp32rc.json`   |
+| `--dryrun`           | Show route table + summary without writing output                                      | `false`                 |
+| `--analyze`          | Print per-file size table and budget status, no output written; exits 1 if over budget | `false`                 |
+| `--manifest`         | Write companion `.manifest.json` alongside the header                                  | `false`                 |
+| `--spa`              | Serve index.html for unmatched routes (SPA routing)                                    | `false`                 |
+| `--noindexcheck`     | Skip index.html validation                                                             | `false`                 |
+| `-h`                 | Show help                                                                              |                         |
 
 ---
 
@@ -522,7 +582,9 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
   "cachetimeassets": 31536000,
   "noindexcheck": false,
   "dryrun": false,
-  "spa": false
+  "analyze": false,
+  "spa": false,
+  "manifest": false
 }
 ```
 
