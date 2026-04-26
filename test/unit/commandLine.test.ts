@@ -141,8 +141,8 @@ describe('commandLine', () => {
         '--engine=async',
         '--sourcepath=/test/dist',
         '--outputfile=/test/output.h',
-        '--etag=true',
-        '--gzip=false'
+        '--etag=always',
+        '--gzip=never'
       ];
 
       const { cmdLine } = await import('../../src/commandLine');
@@ -150,8 +150,8 @@ describe('commandLine', () => {
       expect(cmdLine.engine).toBe('async');
       expect(cmdLine.sourcepath).toBe('/test/dist');
       expect(cmdLine.outputfile).toBe('/test/output.h');
-      expect(cmdLine.etag).toBe('true');
-      expect(cmdLine.gzip).toBe('false');
+      expect(cmdLine.etag).toBe('always');
+      expect(cmdLine.gzip).toBe('never');
     });
 
     it('should parse arguments with -flag value format', async () => {
@@ -184,11 +184,11 @@ describe('commandLine', () => {
     });
 
     it('should parse --etag with space format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--etag', 'true'];
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--etag', 'always'];
 
       const { cmdLine } = await import('../../src/commandLine');
 
-      expect(cmdLine.etag).toBe('true');
+      expect(cmdLine.etag).toBe('always');
     });
 
     it('should parse --gzip with space format', async () => {
@@ -255,8 +255,8 @@ describe('commandLine', () => {
 
       expect(cmdLine.engine).toBe('psychic');
       expect(cmdLine.outputfile).toBe('svelteesp32.h');
-      expect(cmdLine.etag).toBe('false');
-      expect(cmdLine.gzip).toBe('true');
+      expect(cmdLine.etag).toBe('never');
+      expect(cmdLine.gzip).toBe('always');
       expect(cmdLine.created).toBe(false);
       expect(cmdLine.version).toBe('');
       expect(cmdLine.espmethod).toBe('initSvelteStaticFiles');
@@ -459,7 +459,7 @@ describe('commandLine', () => {
     });
 
     it('should accept all valid etag values', async () => {
-      for (const etag of ['true', 'false', 'compiler']) {
+      for (const etag of ['always', 'never', 'compiler']) {
         vi.resetModules();
         process.argv = ['node', 'script.js', '--sourcepath=/test/dist', `--etag=${etag}`];
 
@@ -740,7 +740,7 @@ describe('commandLine', () => {
         const mockRcContent = JSON.stringify({
           engine: 'async',
           sourcepath: '/test/dist',
-          etag: 'true'
+          etag: 'always'
         });
 
         const fsModule = await import('node:fs');
@@ -757,7 +757,7 @@ describe('commandLine', () => {
         const { cmdLine } = await import('../../src/commandLine');
 
         expect(cmdLine.engine).toBe('async');
-        expect(cmdLine.etag).toBe('true');
+        expect(cmdLine.etag).toBe('always');
         expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Using config from:'));
       });
 
@@ -834,7 +834,7 @@ describe('commandLine', () => {
         const mockRcContent = JSON.stringify({
           engine: 'async',
           sourcepath: '/test/dist',
-          etag: 'false',
+          etag: 'never',
           outputfile: 'rc-output.h'
         });
 
@@ -843,13 +843,13 @@ describe('commandLine', () => {
         vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
         vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
 
-        process.argv = ['node', 'script.js', '--etag=true', '--outputfile=cli-output.h'];
+        process.argv = ['node', 'script.js', '--etag=always', '--outputfile=cli-output.h'];
 
         const { cmdLine } = await import('../../src/commandLine');
 
         expect(cmdLine.engine).toBe('async'); // From RC
         expect(cmdLine.sourcepath).toBe('/test/dist'); // From RC
-        expect(cmdLine.etag).toBe('true'); // Overridden by CLI
+        expect(cmdLine.etag).toBe('always'); // Overridden by CLI
         expect(cmdLine.outputfile).toBe('cli-output.h'); // Overridden by CLI
       });
 
@@ -1891,8 +1891,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false
@@ -1915,8 +1915,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false,
@@ -1934,8 +1934,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false
@@ -1952,8 +1952,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false,
@@ -1971,8 +1971,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false
@@ -1989,8 +1989,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false,
@@ -2008,8 +2008,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false,
@@ -2027,8 +2027,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false,
@@ -2046,8 +2046,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false,
@@ -2065,8 +2065,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: ['*.map', '*.md'],
         noindexcheck: false
@@ -2083,8 +2083,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false
@@ -2101,8 +2101,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false,
@@ -2120,8 +2120,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false,
@@ -2139,8 +2139,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false
@@ -2158,8 +2158,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: ['*.map'],
         noindexcheck: false,
@@ -2184,8 +2184,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: [],
         noindexcheck: false
@@ -2206,8 +2206,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 0,
         cachetimeHtml: 0,
         exclude: []
@@ -2224,8 +2224,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 0,
         cachetimeAssets: 31_536_000,
         exclude: []
@@ -2242,8 +2242,8 @@ describe('commandLine', () => {
         engine: 'psychic' as const,
         sourcepath: '/test/dist',
         outputfile: '/test/output.h',
-        etag: 'true' as const,
-        gzip: 'true' as const,
+        etag: 'always' as const,
+        gzip: 'always' as const,
         cachetime: 3600,
         exclude: []
       };

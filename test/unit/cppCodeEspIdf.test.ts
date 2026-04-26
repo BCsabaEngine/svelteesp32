@@ -7,8 +7,8 @@ vi.mock('../../src/commandLine', () => ({
     sourcepath: '/test/path',
     outputfile: '/test/output.h',
     engine: 'espidf',
-    etag: 'true',
-    gzip: 'true',
+    etag: 'always',
+    gzip: 'always',
     cachetime: 86_400,
     created: false,
     version: 'v1.0.0',
@@ -140,13 +140,13 @@ describe('cppCodeEspIdf', () => {
   });
 
   describe('etag/gzip combinations for espidf', () => {
-    it('should handle etag=true gzip=true', async () => {
+    it('should handle etag=always gzip=always', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -170,13 +170,13 @@ describe('cppCodeEspIdf', () => {
       expect(result).toContain('httpd_resp_set_hdr(req, "Content-Encoding", "gzip")');
     });
 
-    it('should handle etag=false gzip=false', async () => {
+    it('should handle etag=never gzip=never', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'false',
-          gzip: 'false',
+          etag: 'never',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -199,13 +199,13 @@ describe('cppCodeEspIdf', () => {
       expect(result).not.toContain('const unsigned char datagzip_');
     });
 
-    it('should handle etag=true gzip=false', async () => {
+    it('should handle etag=always gzip=never', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'false',
+          etag: 'always',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -227,13 +227,13 @@ describe('cppCodeEspIdf', () => {
       expect(result).not.toContain('const unsigned char datagzip_');
     });
 
-    it('should handle etag=false gzip=true', async () => {
+    it('should handle etag=never gzip=always', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'false',
-          gzip: 'true',
+          etag: 'never',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -280,13 +280,13 @@ describe('cppCodeEspIdf', () => {
       expect(result).toContain('#ifdef SVELTEESP32_ENABLE_GZIP');
     });
 
-    it('should handle etag=compiler gzip=true', async () => {
+    it('should handle etag=compiler gzip=always', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
           etag: 'compiler',
-          gzip: 'true',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -306,12 +306,12 @@ describe('cppCodeEspIdf', () => {
       expect(result).toContain('const unsigned char datagzip_index_html');
     });
 
-    it('should handle etag=true gzip=compiler', async () => {
+    it('should handle etag=always gzip=compiler', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
+          etag: 'always',
           gzip: 'compiler',
           cachetime: 0,
           created: false,
@@ -333,13 +333,13 @@ describe('cppCodeEspIdf', () => {
       expect(result).toContain('#ifdef SVELTEESP32_ENABLE_GZIP');
     });
 
-    it('should handle etag=compiler gzip=false', async () => {
+    it('should handle etag=compiler gzip=never', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
           etag: 'compiler',
-          gzip: 'false',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -360,12 +360,12 @@ describe('cppCodeEspIdf', () => {
       expect(result).not.toContain('const unsigned char datagzip_');
     });
 
-    it('should handle etag=false gzip=compiler', async () => {
+    it('should handle etag=never gzip=compiler', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'false',
+          etag: 'never',
           gzip: 'compiler',
           cachetime: 0,
           created: false,
@@ -393,8 +393,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -420,8 +420,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -447,8 +447,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -472,8 +472,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -500,8 +500,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -526,8 +526,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -575,8 +575,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -633,8 +633,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -660,8 +660,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'false',
-          gzip: 'true',
+          etag: 'never',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -699,8 +699,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -749,8 +749,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -783,8 +783,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -813,8 +813,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -840,8 +840,8 @@ describe('cppCodeEspIdf', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
