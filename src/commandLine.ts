@@ -24,7 +24,9 @@ interface ICopyFilesArguments {
   maxGzipSize?: number;
   noIndexCheck?: boolean;
   dryRun?: boolean;
+  analyze?: boolean;
   spa?: boolean;
+  manifest?: boolean;
   help?: boolean;
 }
 
@@ -47,7 +49,9 @@ interface IRcFileConfig {
   maxgzipsize?: number | string;
   noindexcheck?: boolean;
   dryrun?: boolean;
+  analyze?: boolean;
   spa?: boolean;
+  manifest?: boolean;
 }
 
 function showHelp(): never {
@@ -60,7 +64,7 @@ Configuration:
 Options:
   -e, --engine <value>       The engine for which the include file is created
                              (psychic|async|espidf|webserver) (default: "psychic")
-  -s, --sourcepath <path>    Source dist folder contains compiled web files (required)
+  -s, --sourcepath <path>    Source dist folder with compiled web files (required)
   -o, --outputfile <path>    Generated output file with path (default: "svelteesp32.h")
   --etag <value>             Use ETAG header for cache (true|false|compiler) (default: "false")
   --gzip <value>             Compress content with gzip (true|false|compiler) (default: "true")
@@ -77,8 +81,10 @@ Options:
   --maxsize <size>           Maximum total uncompressed size (e.g., 400k, 1.5m, 409600)
   --maxgzipsize <size>       Maximum total gzip size (e.g., 150k, 1m, 153600)
   --dryrun                   Show summary without writing the output file (default: false)
+  --analyze                  Print per-file size table and budget status without writing (default: false)
   --spa                      Serve index.html for unmatched routes (SPA routing) (default: false)
-  -h, --help                 Shows this help
+  --manifest                 Write companion JSON manifest file alongside the header (default: false)
+  -h, --help                 Show this help
 
 RC File:
   The tool searches for .svelteesp32rc.json in:
@@ -343,7 +349,9 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'maxgzipsize',
     'noindexcheck',
     'dryrun',
-    'spa'
+    'analyze',
+    'spa',
+    'manifest'
   ]);
 
   // Warn about unknown keys
@@ -403,8 +411,14 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (configObject['dryrun'] !== undefined && typeof configObject['dryrun'] !== 'boolean')
     throw new TypeError(`Invalid dryrun in RC file: ${configObject['dryrun']} (must be boolean)`);
 
+  if (configObject['analyze'] !== undefined && typeof configObject['analyze'] !== 'boolean')
+    throw new TypeError(`Invalid analyze in RC file: ${configObject['analyze']} (must be boolean)`);
+
   if (configObject['spa'] !== undefined && typeof configObject['spa'] !== 'boolean')
     throw new TypeError(`Invalid spa in RC file: ${configObject['spa']} (must be boolean)`);
+
+  if (configObject['manifest'] !== undefined && typeof configObject['manifest'] !== 'boolean')
+    throw new TypeError(`Invalid manifest in RC file: ${configObject['manifest']} (must be boolean)`);
 
   if (configObject['outputfile'] !== undefined && path.isAbsolute(configObject['outputfile'] as string))
     throw new Error(
@@ -478,7 +492,9 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.maxgzipsize !== undefined) result.maxGzipSize = rcConfig.maxgzipsize as number;
   if (rcConfig.noindexcheck !== undefined) result.noIndexCheck = rcConfig.noindexcheck;
   if (rcConfig.dryrun !== undefined) result.dryRun = rcConfig.dryrun;
+  if (rcConfig.analyze !== undefined) result.analyze = rcConfig.analyze;
   if (rcConfig.spa !== undefined) result.spa = rcConfig.spa;
+  if (rcConfig.manifest !== undefined) result.manifest = rcConfig.manifest;
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
@@ -591,8 +607,18 @@ function parseArguments(): ICopyFilesArguments {
       continue;
     }
 
+    if (argument === '--analyze') {
+      result.analyze = true;
+      continue;
+    }
+
     if (argument === '--spa') {
       result.spa = true;
+      continue;
+    }
+
+    if (argument === '--manifest') {
+      result.manifest = true;
       continue;
     }
 
@@ -646,6 +672,11 @@ function parseArguments(): ICopyFilesArguments {
     showHelp();
   }
 
+  if (result.dryRun && result.analyze)
+    throw new Error(
+      '--analyze and --dryrun are mutually exclusive. Use --analyze for CI budget checks or --dryrun for a developer route preview.'
+    );
+
   return result as ICopyFilesArguments;
 }
 
@@ -681,6 +712,8 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   if (cmdLine.maxGzipSize !== undefined) parts.push(`maxGzipSize=${cmdLine.maxGzipSize}`);
 
   if (cmdLine.spa) parts.push(`spa=${cmdLine.spa}`);
+
+  if (cmdLine.analyze) parts.push(`analyze=${cmdLine.analyze}`);
 
   if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
 

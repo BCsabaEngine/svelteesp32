@@ -409,6 +409,157 @@ describe('formatDryRunRoutes', () => {
   });
 });
 
+describe('formatSizePrecise', () => {
+  let formatSizePrecise: Awaited<ReturnType<typeof import('../../src/index')>>['formatSizePrecise'];
+
+  beforeEach(async () => {
+    const module_ = await import('../../src/index');
+    formatSizePrecise = module_.formatSizePrecise;
+  });
+
+  it('should return bytes for values under 1024', () => {
+    expect(formatSizePrecise(512)).toBe('512B');
+  });
+
+  it('should return one-decimal kB for values >= 1024', () => {
+    expect(formatSizePrecise(1024)).toBe('1.0kB');
+    expect(formatSizePrecise(1536)).toBe('1.5kB');
+    expect(formatSizePrecise(10_240)).toBe('10.0kB');
+  });
+});
+
+const makeAnalyzeSummary = (size: number, gzipsize: number) => ({ filecount: 1, size, gzipsize });
+
+describe('formatAnalyzeTable', () => {
+  let createSourceEntry: Awaited<ReturnType<typeof import('../../src/index')>>['createSourceEntry'];
+  let formatAnalyzeTable: Awaited<ReturnType<typeof import('../../src/index')>>['formatAnalyzeTable'];
+
+  beforeEach(async () => {
+    const module_ = await import('../../src/index');
+    createSourceEntry = module_.createSourceEntry;
+    formatAnalyzeTable = module_.formatAnalyzeTable;
+  });
+
+  it('should include header and separator lines', () => {
+    const source = createSourceEntry(
+      'app.js',
+      'app_js',
+      Buffer.from('x'.repeat(2000)),
+      Buffer.from('gz'),
+      'application/javascript',
+      'abc',
+      true
+    );
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2000, 2));
+    expect(result).toContain('File');
+    expect(result).toContain('Original');
+    expect(result).toContain('Gzip');
+    expect(result).toContain('Total');
+  });
+
+  it('should show [no gzip] tag when isGzip is false', () => {
+    const source = createSourceEntry(
+      'tiny.txt',
+      'tiny_txt',
+      Buffer.from('hi'),
+      Buffer.from('gz'),
+      'text/plain',
+      'abc',
+      false
+    );
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2, 2));
+    expect(result).toContain('[no gzip]');
+  });
+
+  it('should not show [no gzip] tag when isGzip is true', () => {
+    const source = createSourceEntry(
+      'app.js',
+      'app_js',
+      Buffer.from('x'.repeat(2000)),
+      Buffer.from('gz'),
+      'application/javascript',
+      'abc',
+      true
+    );
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2000, 2));
+    expect(result).not.toContain('[no gzip]');
+  });
+
+  it('should show PASS budget row when maxSize is within limit', () => {
+    const source = createSourceEntry(
+      'app.js',
+      'app_js',
+      Buffer.from('x'.repeat(100)),
+      Buffer.from('gz'),
+      'application/javascript',
+      'abc',
+      false
+    );
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100), 200);
+    expect(result).toContain('Budget (maxsize)');
+    expect(result).toContain('✓ PASS');
+  });
+
+  it('should show FAIL budget row when maxSize is exceeded', () => {
+    const source = createSourceEntry(
+      'app.js',
+      'app_js',
+      Buffer.from('x'.repeat(100)),
+      Buffer.from('gz'),
+      'application/javascript',
+      'abc',
+      false
+    );
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100), 50);
+    expect(result).toContain('Budget (maxsize)');
+    expect(result).toContain('✗ FAIL');
+  });
+
+  it('should show PASS gzip budget row when maxGzipSize is within limit', () => {
+    const source = createSourceEntry(
+      'app.js',
+      'app_js',
+      Buffer.from('x'.repeat(2000)),
+      Buffer.from('gz'),
+      'application/javascript',
+      'abc',
+      true
+    );
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2000, 2), undefined, 100);
+    expect(result).toContain('Budget (maxgzipsize)');
+    expect(result).toContain('✓ PASS');
+  });
+
+  it('should show FAIL gzip budget row when maxGzipSize is exceeded', () => {
+    const source = createSourceEntry(
+      'app.js',
+      'app_js',
+      Buffer.from('x'.repeat(2000)),
+      Buffer.from('gz'),
+      'application/javascript',
+      'abc',
+      true
+    );
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2000, 200), undefined, 100);
+    expect(result).toContain('Budget (maxgzipsize)');
+    expect(result).toContain('✗ FAIL');
+  });
+
+  it('should not include budget rows when no budgets are defined', () => {
+    const source = createSourceEntry(
+      'app.js',
+      'app_js',
+      Buffer.from('x'.repeat(100)),
+      Buffer.from('gz'),
+      'application/javascript',
+      'abc',
+      false
+    );
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100));
+    expect(result).not.toContain('Budget');
+  });
+});
+
 describe('index.ts main pipeline integration', () => {
   const originalArgv = process.argv;
   const originalExit = process.exit;
@@ -1090,6 +1241,167 @@ describe('index.ts main pipeline integration', () => {
       await import('../../src/index');
       expect(process.exit).not.toHaveBeenCalledWith(1);
       expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('size budget exceeded'));
+    });
+  });
+
+  describe('analyze mode', () => {
+    beforeEach(() => {
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
+      mockGzipSync.mockReturnValue(Buffer.from('gz'));
+    });
+
+    it('should not write file in analyze mode', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          analyze: true,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+      vi.resetModules();
+      await import('../../src/index');
+      expect(mockWriteFileSync).not.toHaveBeenCalled();
+    });
+
+    it('should not call process.exit(1) when no budget defined', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          analyze: true,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+      vi.resetModules();
+      await import('../../src/index');
+      expect(process.exit).not.toHaveBeenCalledWith(1);
+    });
+
+    it('should not call process.exit(1) when within budget', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          analyze: true,
+          maxSize: 100_000,
+          maxGzipSize: 100_000,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+      vi.resetModules();
+      await import('../../src/index');
+      expect(process.exit).not.toHaveBeenCalledWith(1);
+    });
+
+    it('should exit 1 when maxSize exceeded', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          analyze: true,
+          maxSize: 1,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+      vi.resetModules();
+      await import('../../src/index');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('should exit 1 when maxGzipSize exceeded', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          analyze: true,
+          maxGzipSize: 1,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+      vi.resetModules();
+      await import('../../src/index');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('should output a line containing "Total" in console.log', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          analyze: true,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+      vi.resetModules();
+      await import('../../src/index');
+      const mockLog = vi.mocked(console.log);
+      const allLogs = mockLog.mock.calls.map((call) => call[0]).filter((l): l is string => typeof l === 'string');
+      expect(allLogs.some((l) => l.includes('Total'))).toBe(true);
+    });
+
+    it('should not reach budget validation that calls console.error when over budget', async () => {
+      vi.doMock('../../src/commandLine', () => ({
+        cmdLine: {
+          engine: 'psychic',
+          sourcepath: '/test/dist',
+          outputfile: '/test/output.h',
+          etag: 'true',
+          gzip: 'true',
+          basePath: '',
+          spa: false,
+          analyze: true,
+          maxSize: 1,
+          exclude: [],
+          noindexcheck: false,
+          espmethod: 'initSvelteStaticFiles'
+        }
+      }));
+      vi.resetModules();
+      await import('../../src/index');
+      expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('budget exceeded'));
     });
   });
 });

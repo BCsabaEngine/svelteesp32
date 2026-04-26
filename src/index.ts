@@ -60,6 +60,11 @@ const formatSize = (bytes: number): string => {
   return `${Math.round(bytes / 1024)}kB`;
 };
 
+const formatSizePrecise = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes}B`;
+  return `${(bytes / 1024).toFixed(1)}kB`;
+};
+
 /**
  * Create a source entry for C++ code generation
  */
@@ -146,6 +151,53 @@ const formatDryRunRoutes = (
     .join('\n');
 };
 
+const formatAnalyzeTable = (
+  sources: CppCodeSources,
+  summary: ProcessingSummary,
+  maxSize: number | undefined,
+  maxGzipSize: number | undefined
+): string => {
+  type Row = { file: string; orig: string; gzip: string; tag: string };
+  const rows: Row[] = sources.map((s) => ({
+    file: s.filename,
+    orig: formatSizePrecise(s.content.length),
+    gzip: formatSizePrecise(s.isGzip ? s.contentGzip.length : s.content.length),
+    tag: s.isGzip ? '' : '[no gzip]'
+  }));
+
+  const fileWidth = Math.max(4, ...rows.map((r) => r.file.length), 'Total'.length);
+  const origWidth = Math.max(8, ...rows.map((r) => r.orig.length), formatSizePrecise(summary.size).length);
+  const gzipWidth = Math.max(8, ...rows.map((r) => r.gzip.length), formatSizePrecise(summary.gzipsize).length);
+
+  const separator = `${'─'.repeat(fileWidth)}  ${'─'.repeat(origWidth)}  ${'─'.repeat(gzipWidth)}`;
+  const header = `${'File'.padEnd(fileWidth)}  ${'Original'.padEnd(origWidth)}  ${'Gzip'.padEnd(gzipWidth)}`;
+
+  const dataRows = rows.map((r) => {
+    const tagPart = r.tag ? `  ${r.tag}` : '';
+    return `${r.file.padEnd(fileWidth)}  ${r.orig.padEnd(origWidth)}  ${r.gzip.padEnd(gzipWidth)}${tagPart}`.trimEnd();
+  });
+
+  const totalOrig = formatSizePrecise(summary.size);
+  const totalGzip = formatSizePrecise(summary.gzipsize);
+  const totalRow = `${'Total'.padEnd(fileWidth)}  ${totalOrig.padEnd(origWidth)}  ${totalGzip.padEnd(gzipWidth)}`;
+
+  const lines = [header, separator, ...dataRows, separator, totalRow];
+
+  if (maxSize !== undefined) {
+    const pass = summary.size <= maxSize;
+    const budgetRow = `${'Budget (maxsize)'.padEnd(fileWidth)}  ${formatSizePrecise(maxSize).padEnd(origWidth)}  ${'-'.padEnd(gzipWidth)}  ${pass ? '✓ PASS' : '✗ FAIL'}`;
+    lines.push(budgetRow);
+  }
+
+  if (maxGzipSize !== undefined) {
+    const pass = summary.gzipsize <= maxGzipSize;
+    const budgetRow = `${'Budget (maxgzipsize)'.padEnd(fileWidth)}  ${'-'.padEnd(origWidth)}  ${formatSizePrecise(maxGzipSize).padEnd(gzipWidth)}  ${pass ? '✓ PASS' : '✗ FAIL'}`;
+    lines.push(budgetRow);
+  }
+
+  return lines.join('\n');
+};
+
 /**
  * Main processing pipeline
  */
@@ -218,6 +270,16 @@ export function main(): void {
   console.log('');
   filesByExtension.sort((left, right) => left.extension.localeCompare(right.extension));
 
+  // Analyze mode: show per-file size table and budget status, then exit
+  if (cmdLine.analyze) {
+    console.log(formatAnalyzeTable(sources, summary, cmdLine.maxSize, cmdLine.maxGzipSize));
+    const overBudget =
+      (cmdLine.maxSize !== undefined && summary.size > cmdLine.maxSize) ||
+      (cmdLine.maxGzipSize !== undefined && summary.gzipsize > cmdLine.maxGzipSize);
+    if (overBudget) process.exit(1);
+    return;
+  }
+
   // Size budget validation
   if (cmdLine.maxSize !== undefined && summary.size > cmdLine.maxSize) {
     console.error(getSizeBudgetExceededError('size', cmdLine.maxSize, summary.size));
@@ -255,6 +317,31 @@ export function main(): void {
 
   console.log(`${cmdLine.outputfile} ${formatSize(cppFile.length)} size`);
 
+  if (cmdLine.manifest) {
+    const manifestPath = path.join(
+      path.dirname(cmdLine.outputfile),
+      path.basename(cmdLine.outputfile, path.extname(cmdLine.outputfile)) + '.manifest.json'
+    );
+    const manifest = {
+      generated: new Date().toISOString(),
+      engine: cmdLine.engine,
+      etag: cmdLine.etag,
+      gzip: cmdLine.gzip,
+      filecount: summary.filecount,
+      size: summary.size,
+      gzipSize: summary.gzipsize,
+      files: sources.map((s) => ({
+        path: s.filename,
+        mime: s.mime,
+        size: s.content.length,
+        gzipSize: s.isGzip ? s.contentGzip.length : s.content.length,
+        isGzip: s.isGzip
+      }))
+    };
+    writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2), { encoding: 'utf8' });
+    console.log(`${manifestPath} manifest written`);
+  }
+
   // Show max_uri_handlers hint for applicable engines
   if (cmdLine.engine === 'psychic' || cmdLine.engine === 'espidf')
     console.log('\n' + getMaxUriHandlersHint(cmdLine.engine, sources.length, cmdLine.espmethod));
@@ -267,9 +354,11 @@ main();
 export {
   calculateCompressionRatio,
   createSourceEntry,
+  formatAnalyzeTable,
   formatCompressionLog,
   formatDryRunRoutes,
   formatSize,
+  formatSizePrecise,
   shouldUseGzip,
   updateExtensionGroup
 };

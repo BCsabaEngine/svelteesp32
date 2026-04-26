@@ -15,5 +15,7 @@
   "maxsize": "500k",
   "maxgzipsize": "200k",
   "dryrun": false,
-  "noindexcheck": false
+  "analyze": false,
+  "noindexcheck": false,
+  "manifest": false
 }
