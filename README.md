@@ -89,9 +89,6 @@ void setup() {
 ## What's New
 
 - **v2.4.0** — `--analyze` for CI size budget checks (per-file table, exits 1 on over-budget); `--manifest` to write a companion JSON manifest alongside the header
-- **v2.3.3** — TypeScript 6 upgrade; `module`/`moduleResolution` updated to `Node16`, target raised to `ES2023`
-- **v2.3.2** — Security hardening: symlink traversal blocked, RC file CWD warning, absolute `outputfile` rejected in RC files, per-file 50 MB size limit
-- **v2.3.1** — Fixes: `--version` and `--basepath` input validation, `formatConfiguration` newline safety
 - **v2.3.0** — `--cachetime-html` and `--cachetime-assets` for per-type cache control (e.g. `no-cache` for HTML, 1-year for content-hashed JS/CSS)
 - **v2.2.0** — SPA routing catch-all (`--spa`) for client-side routers on all four engines
 - **v2.1.0** — New Arduino WebServer engine (`-e webserver`), dependency updates
@@ -587,6 +584,8 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
   "manifest": false
 }
 ```
+
+Boolean fields (`noindexcheck`, `dryrun`, `analyze`, `spa`, `manifest`, `created`) accept native JSON booleans (`true`/`false`) or their string equivalents (`"true"`/`"false"`), matching the existing behaviour of `etag` and `gzip`.
 
 Then just run:
 
