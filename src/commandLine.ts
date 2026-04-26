@@ -26,6 +26,7 @@ interface ICopyFilesArguments {
   dryRun?: boolean;
   analyze?: boolean;
   spa?: boolean;
+  manifest?: boolean;
   help?: boolean;
 }
 
@@ -50,6 +51,7 @@ interface IRcFileConfig {
   dryrun?: boolean;
   analyze?: boolean;
   spa?: boolean;
+  manifest?: boolean;
 }
 
 function showHelp(): never {
@@ -81,6 +83,7 @@ Options:
   --dryrun                   Show summary without writing the output file (default: false)
   --analyze                  Print per-file size table and budget status without writing (default: false)
   --spa                      Serve index.html for unmatched routes (SPA routing) (default: false)
+  --manifest                 Write companion JSON manifest file alongside the header (default: false)
   -h, --help                 Show this help
 
 RC File:
@@ -347,7 +350,8 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     'noindexcheck',
     'dryrun',
     'analyze',
-    'spa'
+    'spa',
+    'manifest'
   ]);
 
   // Warn about unknown keys
@@ -412,6 +416,9 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
 
   if (configObject['spa'] !== undefined && typeof configObject['spa'] !== 'boolean')
     throw new TypeError(`Invalid spa in RC file: ${configObject['spa']} (must be boolean)`);
+
+  if (configObject['manifest'] !== undefined && typeof configObject['manifest'] !== 'boolean')
+    throw new TypeError(`Invalid manifest in RC file: ${configObject['manifest']} (must be boolean)`);
 
   if (configObject['outputfile'] !== undefined && path.isAbsolute(configObject['outputfile'] as string))
     throw new Error(
@@ -487,6 +494,7 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.dryrun !== undefined) result.dryRun = rcConfig.dryrun;
   if (rcConfig.analyze !== undefined) result.analyze = rcConfig.analyze;
   if (rcConfig.spa !== undefined) result.spa = rcConfig.spa;
+  if (rcConfig.manifest !== undefined) result.manifest = rcConfig.manifest;
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
@@ -606,6 +614,11 @@ function parseArguments(): ICopyFilesArguments {
 
     if (argument === '--spa') {
       result.spa = true;
+      continue;
+    }
+
+    if (argument === '--manifest') {
+      result.manifest = true;
       continue;
     }
 

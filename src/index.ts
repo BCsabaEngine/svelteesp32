@@ -317,6 +317,31 @@ export function main(): void {
 
   console.log(`${cmdLine.outputfile} ${formatSize(cppFile.length)} size`);
 
+  if (cmdLine.manifest) {
+    const manifestPath = path.join(
+      path.dirname(cmdLine.outputfile),
+      path.basename(cmdLine.outputfile, path.extname(cmdLine.outputfile)) + '.manifest.json'
+    );
+    const manifest = {
+      generated: new Date().toISOString(),
+      engine: cmdLine.engine,
+      etag: cmdLine.etag,
+      gzip: cmdLine.gzip,
+      filecount: summary.filecount,
+      size: summary.size,
+      gzipSize: summary.gzipsize,
+      files: sources.map((s) => ({
+        path: s.filename,
+        mime: s.mime,
+        size: s.content.length,
+        gzipSize: s.isGzip ? s.contentGzip.length : s.content.length,
+        isGzip: s.isGzip
+      }))
+    };
+    writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2), { encoding: 'utf8' });
+    console.log(`${manifestPath} manifest written`);
+  }
+
   // Show max_uri_handlers hint for applicable engines
   if (cmdLine.engine === 'psychic' || cmdLine.engine === 'espidf')
     console.log('\n' + getMaxUriHandlersHint(cmdLine.engine, sources.length, cmdLine.espmethod));
