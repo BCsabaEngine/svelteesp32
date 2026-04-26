@@ -51,7 +51,7 @@ File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → H
 
 `-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--analyze` (per-file size table + budget pass/fail, exits 1 on over-budget, mutually exclusive with `--dryrun`), `--spa` (catch-all for SPA client-side routing), `--manifest` (write companion `.manifest.json` alongside header), `--cachetime`, `--cachetime-html` (HTML-only max-age, overrides `--cachetime`), `--cachetime-assets` (non-HTML max-age, overrides `--cachetime`), `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
 
-RC files: `.svelteesp32rc.json` or `.svelteesp32rc` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation. Prints a warning when loaded from cwd. `outputfile` in RC files must be a relative path (absolute paths throw).
+RC files: `.svelteesp32rc.json` or `.svelteesp32rc` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation. Prints a warning when loaded from cwd. `outputfile` in RC files must be a relative path (absolute paths throw). Boolean fields (`noindexcheck`, `dryrun`, `analyze`, `spa`, `manifest`, `created`) accept native booleans or string `"true"`/`"false"` (matching `etag`/`gzip` string behaviour).
 
 ## Generated C++ Details
 

@@ -41,17 +41,17 @@ interface IRcFileConfig {
   cachetime?: number;
   cachetimehtml?: number;
   cachetimeassets?: number;
-  created?: boolean;
+  created?: boolean | 'true' | 'false';
   version?: string;
   exclude?: string[];
   basepath?: string;
   maxsize?: number | string;
   maxgzipsize?: number | string;
-  noindexcheck?: boolean;
-  dryrun?: boolean;
-  analyze?: boolean;
-  spa?: boolean;
-  manifest?: boolean;
+  noindexcheck?: boolean | 'true' | 'false';
+  dryrun?: boolean | 'true' | 'false';
+  analyze?: boolean | 'true' | 'false';
+  spa?: boolean | 'true' | 'false';
+  manifest?: boolean | 'true' | 'false';
 }
 
 function showHelp(): never {
@@ -405,19 +405,52 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   validateSizeOption(configObject, 'maxsize');
   validateSizeOption(configObject, 'maxgzipsize');
 
-  if (configObject['noindexcheck'] !== undefined && typeof configObject['noindexcheck'] !== 'boolean')
+  if (
+    configObject['created'] !== undefined &&
+    typeof configObject['created'] !== 'boolean' &&
+    configObject['created'] !== 'true' &&
+    configObject['created'] !== 'false'
+  )
+    throw new TypeError(`Invalid created in RC file: ${configObject['created']} (must be boolean)`);
+
+  if (
+    configObject['noindexcheck'] !== undefined &&
+    typeof configObject['noindexcheck'] !== 'boolean' &&
+    configObject['noindexcheck'] !== 'true' &&
+    configObject['noindexcheck'] !== 'false'
+  )
     throw new TypeError(`Invalid noindexcheck in RC file: ${configObject['noindexcheck']} (must be boolean)`);
 
-  if (configObject['dryrun'] !== undefined && typeof configObject['dryrun'] !== 'boolean')
+  if (
+    configObject['dryrun'] !== undefined &&
+    typeof configObject['dryrun'] !== 'boolean' &&
+    configObject['dryrun'] !== 'true' &&
+    configObject['dryrun'] !== 'false'
+  )
     throw new TypeError(`Invalid dryrun in RC file: ${configObject['dryrun']} (must be boolean)`);
 
-  if (configObject['analyze'] !== undefined && typeof configObject['analyze'] !== 'boolean')
+  if (
+    configObject['analyze'] !== undefined &&
+    typeof configObject['analyze'] !== 'boolean' &&
+    configObject['analyze'] !== 'true' &&
+    configObject['analyze'] !== 'false'
+  )
     throw new TypeError(`Invalid analyze in RC file: ${configObject['analyze']} (must be boolean)`);
 
-  if (configObject['spa'] !== undefined && typeof configObject['spa'] !== 'boolean')
+  if (
+    configObject['spa'] !== undefined &&
+    typeof configObject['spa'] !== 'boolean' &&
+    configObject['spa'] !== 'true' &&
+    configObject['spa'] !== 'false'
+  )
     throw new TypeError(`Invalid spa in RC file: ${configObject['spa']} (must be boolean)`);
 
-  if (configObject['manifest'] !== undefined && typeof configObject['manifest'] !== 'boolean')
+  if (
+    configObject['manifest'] !== undefined &&
+    typeof configObject['manifest'] !== 'boolean' &&
+    configObject['manifest'] !== 'true' &&
+    configObject['manifest'] !== 'false'
+  )
     throw new TypeError(`Invalid manifest in RC file: ${configObject['manifest']} (must be boolean)`);
 
   if (configObject['outputfile'] !== undefined && path.isAbsolute(configObject['outputfile'] as string))
@@ -483,18 +516,19 @@ function parseArguments(): ICopyFilesArguments {
   if (rcConfig.cachetime !== undefined) result.cachetime = rcConfig.cachetime;
   if (rcConfig.cachetimehtml !== undefined) result.cachetimeHtml = rcConfig.cachetimehtml;
   if (rcConfig.cachetimeassets !== undefined) result.cachetimeAssets = rcConfig.cachetimeassets;
-  if (rcConfig.created !== undefined) result.created = rcConfig.created;
+  if (rcConfig.created !== undefined) result.created = rcConfig.created === true || rcConfig.created === 'true';
   if (rcConfig.version) result.version = rcConfig.version;
   if (rcConfig.espmethod) result.espmethod = rcConfig.espmethod;
   if (rcConfig.define) result.define = rcConfig.define;
   if (rcConfig.basepath !== undefined) result.basePath = validateBasePath(rcConfig.basepath);
   if (rcConfig.maxsize !== undefined) result.maxSize = rcConfig.maxsize as number;
   if (rcConfig.maxgzipsize !== undefined) result.maxGzipSize = rcConfig.maxgzipsize as number;
-  if (rcConfig.noindexcheck !== undefined) result.noIndexCheck = rcConfig.noindexcheck;
-  if (rcConfig.dryrun !== undefined) result.dryRun = rcConfig.dryrun;
-  if (rcConfig.analyze !== undefined) result.analyze = rcConfig.analyze;
-  if (rcConfig.spa !== undefined) result.spa = rcConfig.spa;
-  if (rcConfig.manifest !== undefined) result.manifest = rcConfig.manifest;
+  if (rcConfig.noindexcheck !== undefined)
+    result.noIndexCheck = rcConfig.noindexcheck === true || rcConfig.noindexcheck === 'true';
+  if (rcConfig.dryrun !== undefined) result.dryRun = rcConfig.dryrun === true || rcConfig.dryrun === 'true';
+  if (rcConfig.analyze !== undefined) result.analyze = rcConfig.analyze === true || rcConfig.analyze === 'true';
+  if (rcConfig.spa !== undefined) result.spa = rcConfig.spa === true || rcConfig.spa === 'true';
+  if (rcConfig.manifest !== undefined) result.manifest = rcConfig.manifest === true || rcConfig.manifest === 'true';
 
   // Replace defaults with RC exclude if provided
   if (rcConfig.exclude && rcConfig.exclude.length > 0) result.exclude = [...rcConfig.exclude];
