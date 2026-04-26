@@ -62,7 +62,7 @@ Configuration:
 Options:
   -e, --engine <value>       The engine for which the include file is created
                              (psychic|async|espidf|webserver) (default: "psychic")
-  -s, --sourcepath <path>    Source dist folder contains compiled web files (required)
+  -s, --sourcepath <path>    Source dist folder with compiled web files (required)
   -o, --outputfile <path>    Generated output file with path (default: "svelteesp32.h")
   --etag <value>             Use ETAG header for cache (true|false|compiler) (default: "false")
   --gzip <value>             Compress content with gzip (true|false|compiler) (default: "true")
@@ -81,7 +81,7 @@ Options:
   --dryrun                   Show summary without writing the output file (default: false)
   --analyze                  Print per-file size table and budget status without writing (default: false)
   --spa                      Serve index.html for unmatched routes (SPA routing) (default: false)
-  -h, --help                 Shows this help
+  -h, --help                 Show this help
 
 RC File:
   The tool searches for .svelteesp32rc.json in:
