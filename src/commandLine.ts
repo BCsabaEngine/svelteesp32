@@ -58,6 +58,9 @@ function showHelp(): never {
   console.log(`
 svelteesp32 - Svelte JS to ESP32 converter
 
+Commands:
+  init                       Create .svelteesp32rc.json interactively
+
 Configuration:
   --config <path>            Use custom RC file (default: search for .svelteesp32rc.json)
 
