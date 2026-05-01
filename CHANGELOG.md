@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-05-01
+
+### BREAKING CHANGES
+
+- **Node.js >= 22 required**: Minimum runtime bumped from Node.js 20 to Node.js 22; npm >= 10 is now required. Node.js 20 is no longer supported.
+
+### Added
+
+- **Vite plugin**: New `svelteESP32(options)` plugin imported from `svelteesp32/vite`. Hook it into `vite.config.ts` and the C++ header is regenerated automatically after every `vite build` — no manual CLI step needed. `sourcepath` defaults to Vite's `build.outDir`; all other options mirror the CLI flags. Vite is an optional peer dependency.
+- **`init` command**: `npx svelteesp32 init` launches an interactive wizard that creates `.svelteesp32rc.json`. Asks for engine, source path, output path, and ETag preference, then offers to run the tool immediately.
+- **Programmatic API**: Core pipeline extracted to `src/pipeline.ts` and exported as `runPipeline(options)` from the package root. Used internally by both the CLI and the Vite plugin.
+- **Enhanced summary when `--manifest` is used**: The final console summary line now also reports the manifest file path when `--manifest` is active.
+
+### Changed
+
+- Updated dependencies: `typescript` 6, `@types/node` 25, `vitest` 4, `eslint` 10, `eslint-plugin-unicorn` 64, and others
+
 ## [2.4.1] - 2026-04-26
 
 ### Fixed
@@ -661,6 +678,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[3.0.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.4.1...v3.0.0
+[2.4.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.4.0...v2.4.1
+[2.4.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.3.3...v2.4.0
+[2.3.3]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.3.2...v2.3.3
 [2.3.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.2.2...v2.3.0
