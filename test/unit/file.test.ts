@@ -6,24 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getFiles } from '../../src/file';
 
-vi.mock('../../src/commandLine', () => ({
-  cmdLine: {
-    sourcepath: '/test/path',
-    outputpath: '/test/output.h',
-    engine: 'psychic',
-    etag: 'true',
-    gzip: 'true',
-    cachetime: 86_400,
-    created: false,
-    version: 'test-version',
-    prefix: 'SVELTEESP32',
-    exclude: [],
-    noIndexCheck: false
-  }
-}));
-
 vi.mock('tinyglobby');
 vi.mock('node:fs');
+
+const defaultOptions = {
+  sourcepath: '/test/path',
+  engine: 'psychic' as const,
+  exclude: [] as string[],
+  noIndexCheck: false
+};
 
 describe('file', () => {
   beforeEach(() => {
@@ -37,12 +28,6 @@ describe('file', () => {
   });
 
   describe('getFiles', () => {
-    beforeEach(async () => {
-      // Set noIndexCheck to true for most tests (index.html validation has its own section)
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).noIndexCheck = true;
-    });
-
     it('should read all files from source directory', () => {
       const mockFiles = ['index.html', 'style.css', 'script.js'];
       const mockContent = Buffer.from('test content');
@@ -50,7 +35,7 @@ describe('file', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(result.size).toBe(3);
       expect(result.get('index.html')?.content).toBe(mockContent);
@@ -68,7 +53,7 @@ describe('file', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(result.size).toBe(2);
       expect(result.has('index.html')).toBe(true);
@@ -84,7 +69,7 @@ describe('file', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(result.size).toBe(2);
       expect(result.has('archive.tar.gz')).toBe(true);
@@ -106,7 +91,7 @@ describe('file', () => {
 
       const consoleLogSpy = vi.spyOn(console, 'log');
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(result.size).toBe(3);
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('file1.txt, file2.txt'));
@@ -116,7 +101,7 @@ describe('file', () => {
     it('should handle empty directory', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue([]);
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(result.size).toBe(0);
     });
@@ -128,7 +113,7 @@ describe('file', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      getFiles();
+      getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(fs.readFileSync).toHaveBeenCalledWith(path.join('/test/path', 'subdir/index.html'), { flag: 'r' });
     });
@@ -140,7 +125,7 @@ describe('file', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(result.size).toBe(2);
       expect(result.has('file.txt')).toBe(true);
@@ -153,7 +138,7 @@ describe('file', () => {
     it('should pass correct options to globSync', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue([]);
 
-      getFiles();
+      getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(tinyglobby.globSync).toHaveBeenCalledWith('**/*', {
         cwd: '/test/path',
@@ -167,30 +152,19 @@ describe('file', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue(['large.bin']);
       vi.mocked(fs.statSync).mockReturnValue({ size: 51 * 1024 * 1024 } as fs.Stats);
 
-      expect(() => getFiles()).toThrow('File too large');
+      expect(() => getFiles({ ...defaultOptions, noIndexCheck: true })).toThrow('File too large');
     });
   });
 
   describe('file exclusion', () => {
-    beforeEach(async () => {
-      // Reset cmdLine mock before each test
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).exclude = [];
-      vi.mocked(commandLineModule.cmdLine).noIndexCheck = true; // Skip index.html validation for these tests
-    });
-
-    it('should exclude files matching simple glob pattern', async () => {
+    it('should exclude files matching simple glob pattern', () => {
       const mockFiles = ['index.html', 'script.js', 'script.js.map', 'style.css'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      // Mock cmdLine to include exclude pattern
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).exclude = ['*.map'];
-
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['*.map'] });
 
       expect(result.size).toBe(3);
       expect(result.has('index.html')).toBe(true);
@@ -199,17 +173,14 @@ describe('file', () => {
       expect(result.has('script.js.map')).toBe(false);
     });
 
-    it('should exclude files matching directory glob pattern', async () => {
+    it('should exclude files matching directory glob pattern', () => {
       const mockFiles = ['index.html', 'src/app.js', 'test/unit.test.js', 'test/integration.test.js'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).exclude = ['test/**/*.js'];
-
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['test/**/*.js'] });
 
       expect(result.size).toBe(2);
       expect(result.has('index.html')).toBe(true);
@@ -218,72 +189,64 @@ describe('file', () => {
       expect(result.has('test/integration.test.js')).toBe(false);
     });
 
-    it('should exclude files matching multiple patterns', async () => {
+    it('should exclude files matching multiple patterns', () => {
       const mockFiles = ['index.html', 'script.js', 'script.js.map', 'README.md', 'docs.txt'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).exclude = ['*.map', '*.md', '*.txt'];
-
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['*.map', '*.md', '*.txt'] });
 
       expect(result.size).toBe(2);
       expect(result.has('index.html')).toBe(true);
       expect(result.has('script.js')).toBe(true);
     });
 
-    it('should exclude default system files', async () => {
+    it('should exclude default system files', () => {
       const mockFiles = ['index.html', '.DS_Store', 'Thumbs.db', '.gitignore'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).exclude = ['.DS_Store', 'Thumbs.db', '.gitignore'];
-
-      const result = getFiles();
+      const result = getFiles({
+        ...defaultOptions,
+        noIndexCheck: true,
+        exclude: ['.DS_Store', 'Thumbs.db', '.gitignore']
+      });
 
       expect(result.size).toBe(1);
       expect(result.has('index.html')).toBe(true);
     });
 
-    it('should not exclude when patterns array is empty', async () => {
+    it('should not exclude when patterns array is empty', () => {
       const mockFiles = ['index.html', 'script.js', 'style.css'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).exclude = [];
-
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: [] });
 
       expect(result.size).toBe(3);
     });
 
-    it('should handle Windows-style paths in exclusion', async () => {
+    it('should handle Windows-style paths in exclusion', () => {
       const mockFiles = [String.raw`src\app.js`, String.raw`test\unit.test.js`];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).exclude = ['test/**/*.js'];
-
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['test/**/*.js'] });
 
       // Should normalize backslashes and match pattern
       expect(result.size).toBe(1);
       expect(result.has(String.raw`src\app.js`)).toBe(true);
     });
 
-    it('should log excluded files with count and list', async () => {
+    it('should log excluded files with count and list', () => {
       const mockFiles = ['index.html', 'script.js.map', 'README.md'];
       const mockContent = Buffer.from('test content');
 
@@ -292,10 +255,7 @@ describe('file', () => {
 
       const consoleLogSpy = vi.spyOn(console, 'log');
 
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).exclude = ['*.map', '*.md'];
-
-      getFiles();
+      getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['*.map', '*.md'] });
 
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Excluded 2 file(s)'));
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('script.js.map'));
@@ -304,100 +264,67 @@ describe('file', () => {
   });
 
   describe('index.html validation', () => {
-    const originalExit = process.exit;
-
-    beforeEach(async () => {
-      process.exit = vi.fn() as never;
-      vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      // Reset noIndexCheck to false
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).noIndexCheck = false;
-    });
-
-    afterEach(() => {
-      process.exit = originalExit;
-    });
-
-    it('should fail if no index.html or index.htm exists', async () => {
+    it('should throw if no index.html or index.htm exists', () => {
       const mockFiles = ['style.css', 'script.js'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      getFiles();
-
-      expect(console.error).toHaveBeenCalled();
-      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
-      expect(errorMessage).toContain('[ERROR]');
-      expect(errorMessage).toContain('No index.html or index.htm found');
-      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(() => getFiles({ ...defaultOptions, noIndexCheck: false })).toThrow('No index.html or index.htm found');
     });
 
-    it('should pass if index.html exists', async () => {
+    it('should pass if index.html exists', () => {
       const mockFiles = ['index.html', 'style.css'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: false });
 
       expect(result.size).toBe(2);
-      expect(console.error).not.toHaveBeenCalled();
-      expect(process.exit).not.toHaveBeenCalled();
     });
 
-    it('should pass if index.htm exists', async () => {
+    it('should pass if index.htm exists', () => {
       const mockFiles = ['index.htm', 'style.css'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: false });
 
       expect(result.size).toBe(2);
-      expect(console.error).not.toHaveBeenCalled();
-      expect(process.exit).not.toHaveBeenCalled();
     });
 
-    it('should skip validation if --noindexcheck is true', async () => {
+    it('should skip validation if noIndexCheck is true', () => {
       const mockFiles = ['style.css', 'script.js'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const commandLineModule = await import('../../src/commandLine');
-      vi.mocked(commandLineModule.cmdLine).noIndexCheck = true;
-
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true });
 
       expect(result.size).toBe(2);
-      expect(console.error).not.toHaveBeenCalled();
-      expect(process.exit).not.toHaveBeenCalled();
     });
 
-    it('should pass if index.html is in subdirectory', async () => {
+    it('should pass if index.html is in subdirectory', () => {
       const mockFiles = ['assets/index.html', 'style.css'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const result = getFiles();
+      const result = getFiles({ ...defaultOptions, noIndexCheck: false });
 
       expect(result.size).toBe(2);
-      expect(console.error).not.toHaveBeenCalled();
-      expect(process.exit).not.toHaveBeenCalled();
     });
   });
 
   describe('excluded files display', () => {
     it('should show "... and X more" message when more than 10 files are excluded', async () => {
-      // Create 15 files that will be excluded (match exclude pattern)
       const mockFiles = [
         'index.html',
         'file1.map',
@@ -420,7 +347,6 @@ describe('file', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      // Mock picomatch to exclude .map files
       vi.doMock('picomatch', () => ({
         default: vi.fn((patterns: string[]) => {
           return (file: string) => {
@@ -432,17 +358,14 @@ describe('file', () => {
         })
       }));
 
-      vi.doMock('../../src/commandLine', () => ({
-        cmdLine: {
-          sourcepath: '/test/path',
-          exclude: ['*.map'],
-          noindexcheck: false
-        }
-      }));
-
       vi.resetModules();
-      const { getFiles } = await import('../../src/file');
-      const result = getFiles();
+      const { getFiles: getFilesReloaded } = await import('../../src/file');
+      const result = getFilesReloaded({
+        sourcepath: '/test/path',
+        engine: 'psychic',
+        exclude: ['*.map'],
+        noIndexCheck: false
+      });
 
       // Should only have index.html (14 .map files excluded)
       expect(result.size).toBe(1);

@@ -605,7 +605,8 @@ describe('index.ts main pipeline integration', () => {
     it('should exit with code 1 when no files found', async () => {
       mockGetFiles.mockReturnValue(new Map());
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).toHaveBeenCalledWith(1);
       expect(console.error).toHaveBeenCalledWith(expect.stringContaining('is empty'));
     });
@@ -615,7 +616,8 @@ describe('index.ts main pipeline integration', () => {
       mockGzipSync.mockReturnValue(Buffer.from('gzipped'));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(mockGetCppCode).toHaveBeenCalled();
       expect(mockWriteFileSync).toHaveBeenCalledWith(expect.any(String), 'mock-cpp-code', {
@@ -635,7 +637,8 @@ describe('index.ts main pipeline integration', () => {
       mockGzipSync.mockReturnValue(Buffer.from('gzipped'));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(mockGetCppCode).toHaveBeenCalled();
       const sources = mockGetCppCode.mock.calls[0][0];
@@ -646,7 +649,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>', 'pre-computed-hash')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(mockGetCppCode).toHaveBeenCalled();
       const sources = mockGetCppCode.mock.calls[0][0];
@@ -658,7 +662,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', { content, hash: 'hash' }]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(mockGzipSync).toHaveBeenCalledWith(content, { level: 9 });
     });
@@ -667,7 +672,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['1app.js', makeFileData('console.log()')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       const sources = mockGetCppCode.mock.calls[0][0];
       expect(sources[0].dataname).toBe('_1app_js');
@@ -677,7 +683,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('console.log()')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       const sources = mockGetCppCode.mock.calls[0][0];
       expect(sources[0].dataname).toBe('app_js');
@@ -689,7 +696,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(mockMkdirSync).toHaveBeenCalled();
       expect(mockMkdirSync.mock.calls[0][1]).toEqual({ recursive: true });
@@ -699,7 +707,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(mockWriteFileSync).toHaveBeenCalledWith(expect.any(String), 'mock-cpp-code', {
         flush: true,
@@ -713,7 +722,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(console.log).toHaveBeenCalledWith('Collecting source files');
     });
@@ -722,7 +732,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(console.log).toHaveBeenCalledWith('Translation to header file');
     });
@@ -731,7 +742,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('files'));
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('original size'));
@@ -741,7 +753,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('/test/output.h'));
     });
@@ -752,7 +765,8 @@ describe('index.ts main pipeline integration', () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('max_uri_handlers'));
     });
@@ -775,7 +789,8 @@ describe('index.ts main pipeline integration', () => {
       }));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('max_uri_handlers'));
     });
@@ -798,7 +813,8 @@ describe('index.ts main pipeline integration', () => {
       }));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       // Get all console.log calls and check none contain max_uri_handlers
       const mockLog = vi.mocked(console.log);
@@ -819,7 +835,8 @@ describe('index.ts main pipeline integration', () => {
       );
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       const filesByExtension = mockGetCppCode.mock.calls[0][1];
       expect(filesByExtension).toContainEqual({ extension: 'HTML', count: 1 });
@@ -837,7 +854,8 @@ describe('index.ts main pipeline integration', () => {
       );
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       const filesByExtension = mockGetCppCode.mock.calls[0][1];
       const extensions = filesByExtension.map((group: ExtensionGroup) => group.extension);
@@ -869,7 +887,8 @@ describe('index.ts main pipeline integration', () => {
       }));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(mockWriteFileSync).not.toHaveBeenCalled();
     });
@@ -892,7 +911,8 @@ describe('index.ts main pipeline integration', () => {
       }));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       const mockLog = vi.mocked(console.log);
       const allLogs = mockLog.mock.calls.map((call) => call[0]).filter((l): l is string => typeof l === 'string');
@@ -923,7 +943,8 @@ describe('index.ts main pipeline integration', () => {
       }));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       expect(console.log).toHaveBeenCalledWith('[DRY RUN] Routes:');
     });
@@ -946,7 +967,8 @@ describe('index.ts main pipeline integration', () => {
       }));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       const mockLog = vi.mocked(console.log);
       const allLogs = mockLog.mock.calls.map((call) => call[0]).filter((l): l is string => typeof l === 'string');
@@ -972,7 +994,8 @@ describe('index.ts main pipeline integration', () => {
       }));
 
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
 
       const mockLog = vi.mocked(console.log);
       const allLogs = mockLog.mock.calls.map((call) => call[0]).filter((l): l is string => typeof l === 'string');
@@ -1000,7 +1023,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(console.warn).toHaveBeenCalledWith(
         expect.stringContaining('--spa is set but no index.html/index.htm found')
       );
@@ -1024,7 +1048,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(console.warn).not.toHaveBeenCalled();
     });
 
@@ -1046,7 +1071,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(console.warn).not.toHaveBeenCalled();
     });
 
@@ -1068,7 +1094,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(console.warn).not.toHaveBeenCalled();
     });
   });
@@ -1093,7 +1120,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).toHaveBeenCalledWith(1);
       expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Uncompressed size budget exceeded'));
     });
@@ -1117,7 +1145,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).not.toHaveBeenCalledWith(1);
       expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('Uncompressed size budget exceeded'));
     });
@@ -1141,7 +1170,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).not.toHaveBeenCalledWith(1);
     });
 
@@ -1164,7 +1194,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).toHaveBeenCalledWith(1);
       expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Gzip size budget exceeded'));
     });
@@ -1188,12 +1219,13 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).not.toHaveBeenCalledWith(1);
       expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('Gzip size budget exceeded'));
     });
 
-    it('should check both budgets independently when both exceeded (process.exit called twice since it is mocked)', async () => {
+    it('should exit with code 1 when maxSize is exceeded (first budget check wins)', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('x'.repeat(100))]]));
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
@@ -1213,11 +1245,11 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).toHaveBeenCalledWith(1);
       expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Uncompressed size budget exceeded'));
-      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Gzip size budget exceeded'));
-      expect(process.exit).toHaveBeenCalledTimes(2);
+      expect(process.exit).toHaveBeenCalledTimes(1);
     });
 
     it('should not check size budget when maxSize is undefined', async () => {
@@ -1238,7 +1270,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).not.toHaveBeenCalledWith(1);
       expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('size budget exceeded'));
     });
@@ -1267,7 +1300,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(mockWriteFileSync).not.toHaveBeenCalled();
     });
 
@@ -1288,7 +1322,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).not.toHaveBeenCalledWith(1);
     });
 
@@ -1311,7 +1346,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).not.toHaveBeenCalledWith(1);
     });
 
@@ -1333,7 +1369,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
@@ -1355,7 +1392,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
@@ -1376,7 +1414,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       const mockLog = vi.mocked(console.log);
       const allLogs = mockLog.mock.calls.map((call) => call[0]).filter((l): l is string => typeof l === 'string');
       expect(allLogs.some((l) => l.includes('Total'))).toBe(true);
@@ -1400,7 +1439,8 @@ describe('index.ts main pipeline integration', () => {
         }
       }));
       vi.resetModules();
-      await import('../../src/index');
+      const { main } = await import('../../src/index');
+      main();
       expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('budget exceeded'));
     });
   });

@@ -4,9 +4,17 @@
   "description": "Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)",
   "author": "BCsabaEngine",
   "license": "ISC",
-  "exports": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vitePlugin.d.ts",
+      "default": "./dist/vitePlugin.js"
+    }
+  },
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "engines": {
     "node": ">=22",
     "npm": ">=10"
@@ -79,6 +87,14 @@
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "vite": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   },
   "dependencies": {
     "handlebars": "^4.7.9",
