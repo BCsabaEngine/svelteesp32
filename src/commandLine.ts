@@ -5,7 +5,7 @@ import path from 'node:path';
 import { cyanLog, yellowLog } from './consoleColor';
 import { getInvalidEngineError, getSourcepathNotFoundError } from './errorMessages';
 
-interface ICopyFilesArguments {
+export interface ICopyFilesArguments {
   engine: 'psychic' | 'async' | 'espidf' | 'webserver';
   sourcepath: string;
   outputfile: string;

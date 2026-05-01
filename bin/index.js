@@ -7,5 +7,5 @@ if (process.argv[2] === 'init') {
       process.exit(1);
     });
 } else {
-  require('../dist/index.js');
+  require('../dist/index.js').main();
 }
