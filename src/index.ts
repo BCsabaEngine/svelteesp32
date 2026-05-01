@@ -1,12 +1,12 @@
 /* eslint-disable unicorn/prefer-string-replace-all */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import { lookup as mimeLookup } from 'mime-types';
 
 import { cmdLine } from './commandLine';
-import { greenLog, yellowLog } from './consoleColor';
+import { greenLog, redLog, yellowLog } from './consoleColor';
 import { CppCodeSource, CppCodeSources, ExtensionGroups, getCppCode } from './cppCode';
 import { getMaxUriHandlersHint, getSizeBudgetExceededError } from './errorMessages';
 import { getFiles } from './file';
@@ -198,6 +198,51 @@ const formatAnalyzeTable = (
   return lines.join('\n');
 };
 
+export type PreviousManifestFile = { path: string; size: number; sha256?: string };
+
+const formatChangeSummary = (sources: CppCodeSources, previousFiles: PreviousManifestFile[]): string => {
+  const previousMap = new Map(previousFiles.map((f) => [f.path, f]));
+  const currentMap = new Map(sources.map((s) => [s.filename, s]));
+
+  const added: CppCodeSource[] = [];
+  const removed: PreviousManifestFile[] = [];
+  const modified: Array<{ source: CppCodeSource; previousSize: number }> = [];
+
+  for (const source of sources) {
+    const previous = previousMap.get(source.filename);
+    if (!previous) added.push(source);
+    else if (previous.sha256 ? previous.sha256 !== source.sha256 : previous.size !== source.content.length)
+      modified.push({ source, previousSize: previous.size });
+  }
+
+  for (const previous of previousFiles) if (!currentMap.has(previous.path)) removed.push(previous);
+
+  if (added.length === 0 && removed.length === 0 && modified.length === 0) return 'Change summary: (no changes)';
+
+  const allNames = [
+    ...added.map((s) => s.filename),
+    ...removed.map((f) => f.path),
+    ...modified.map((m) => m.source.filename)
+  ];
+  const nameWidth = Math.max(...allNames.map((n) => n.length));
+
+  const lines: string[] = ['Change summary:'];
+
+  for (const source of added)
+    lines.push(greenLog(`  + ${source.filename.padEnd(nameWidth)}  ${formatSizePrecise(source.content.length)}`));
+
+  for (const { source, previousSize } of modified)
+    lines.push(
+      yellowLog(
+        `  ~ ${source.filename.padEnd(nameWidth)}  ${formatSizePrecise(previousSize)} → ${formatSizePrecise(source.content.length)}`
+      )
+    );
+
+  for (const previous of removed) lines.push(redLog(`  - ${previous.path}`));
+
+  return lines.join('\n');
+};
+
 /**
  * Main processing pipeline
  */
@@ -322,6 +367,15 @@ export function main(): void {
       path.dirname(cmdLine.outputfile),
       path.basename(cmdLine.outputfile, path.extname(cmdLine.outputfile)) + '.manifest.json'
     );
+
+    let previousManifest: { files: PreviousManifestFile[] } | undefined;
+    if (existsSync(manifestPath))
+      try {
+        previousManifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { files: PreviousManifestFile[] };
+      } catch {
+        // ignore corrupt manifest
+      }
+
     const manifest = {
       generated: new Date().toISOString(),
       engine: cmdLine.engine,
@@ -335,11 +389,14 @@ export function main(): void {
         mime: s.mime,
         size: s.content.length,
         gzipSize: s.isGzip ? s.contentGzip.length : s.content.length,
-        isGzip: s.isGzip
+        isGzip: s.isGzip,
+        sha256: s.sha256
       }))
     };
     writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2), { encoding: 'utf8' });
     console.log(`${manifestPath} manifest written`);
+
+    if (previousManifest) console.log(formatChangeSummary(sources, previousManifest.files));
   }
 
   // Show max_uri_handlers hint for applicable engines
@@ -355,6 +412,7 @@ export {
   calculateCompressionRatio,
   createSourceEntry,
   formatAnalyzeTable,
+  formatChangeSummary,
   formatCompressionLog,
   formatDryRunRoutes,
   formatSize,
