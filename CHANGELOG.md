@@ -463,7 +463,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Solve CVE-2025-64756 glob vulnerability
+- Fix CVE-2025-64756 glob vulnerability
 
 ## [1.9.3] - 2025-11-01
 
@@ -595,7 +595,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--version` option to include version string in generated header
 - Comprehensive test system generating all parameter combinations (2×9 builds)
 - Automatic output directory creation if it doesn't exist
-- Pre-compressed file detection (skips `.gz`, `.br`, `.brottli` if original exists)
+- Pre-compressed file detection (skips `.gz`, `.br`, `.brotli` if original exists)
 - Colored console output for better readability
 - Warning messages when non-effective directives are used
 

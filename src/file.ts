@@ -40,7 +40,7 @@ const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
   if (compressedExtensions.includes(extension)) {
     const original = filename.slice(0, -1 * extension.length);
     if (allFilenames.includes(original)) {
-      console.log(redLog(` ${filename} skipped because is perhaps a compressed version of ${original}`));
+      console.log(redLog(` ${filename} skipped — likely a compressed version of ${original}`));
       return true;
     }
   }
@@ -130,7 +130,7 @@ export const getFiles = (
 
   // Report duplicate files
   const duplicates = findSimilarFiles(result);
-  for (const sameFiles of duplicates) console.log(yellowLog(` ${sameFiles.join(', ')} files look like identical`));
+  for (const sameFiles of duplicates) console.log(yellowLog(` ${sameFiles.join(', ')} files appear identical`));
 
   // Check for index.html or index.htm (in root or subdirectories)
   const hasIndex = [...result.keys()].some(

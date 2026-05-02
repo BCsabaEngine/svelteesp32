@@ -79,7 +79,7 @@ Example RC file (.svelteesp32rc.json):
     "sourcepath": "./dist"
   }
 
-Documentation: https://github.com/hpieroni/svelteesp32#readme`
+Documentation: https://github.com/BCsabaEngine/svelteesp32#readme`
   );
 }
 
