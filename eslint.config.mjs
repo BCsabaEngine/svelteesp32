@@ -1,17 +1,9 @@
-import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
 import typescriptEslint from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
+import prettierConfig from 'eslint-config-prettier';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
-
-const __dirname = import.meta.dirname;
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all
-});
 
 export default [
   {
@@ -30,22 +22,27 @@ export default [
       '**/yarn.lock'
     ]
   },
-  ...compat.extends('eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'),
+  js.configs.recommended,
+  ...typescriptEslint.configs['flat/recommended'],
+  prettierConfig,
   unicorn.configs.all,
   {
+    files: ['test/fixtures/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser }
+    }
+  },
+  {
     plugins: {
-      '@typescript-eslint': typescriptEslint,
       'simple-import-sort': simpleImportSort
     },
 
     languageOptions: {
       globals: {
-        ...globals.browser,
         ...globals.node
       },
 
-      parser: tsParser,
-      ecmaVersion: 2020,
+      ecmaVersion: 2023,
       sourceType: 'module'
     },
 
