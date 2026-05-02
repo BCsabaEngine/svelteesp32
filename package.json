@@ -39,6 +39,7 @@
     "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=always --gzip=always --cachetime=86400 --version=v$npm_package_version",
     "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=never --gzip=never --version=v$npm_package_version",
     "dev:webserver": "nodemon src/index.ts -- -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=always --gzip=always --cachetime=86400 --version=v$npm_package_version",
+    "dev:init": "tsx src/cliInit.mts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
