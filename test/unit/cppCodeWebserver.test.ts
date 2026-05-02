@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { CppCodeSource, CppCodeSources, ExtensionGroups, getCppCode } from '../../src/cppCode';
+import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from '../../src/cppCode';
 
 vi.mock('../../src/commandLine', () => ({
   cmdLine: {
     sourcepath: '/test/path',
     outputfile: '/test/output.h',
     engine: 'webserver',
-    etag: 'true',
-    gzip: 'true',
+    etag: 'always',
+    gzip: 'always',
     cachetime: 86_400,
     created: false,
     version: 'v1.0.0',
@@ -146,13 +146,13 @@ describe('cppCodeWebserver', () => {
   });
 
   describe('etag/gzip combinations for webserver', () => {
-    it('should handle etag=true gzip=true', async () => {
+    it('should handle etag=always gzip=always', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -174,13 +174,13 @@ describe('cppCodeWebserver', () => {
       expect(result).toContain('Content-Encoding');
     });
 
-    it('should handle etag=false gzip=false', async () => {
+    it('should handle etag=never gzip=never', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'false',
-          gzip: 'false',
+          etag: 'never',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -201,13 +201,13 @@ describe('cppCodeWebserver', () => {
       expect(result).not.toContain('datagzip_');
     });
 
-    it('should handle etag=true gzip=false', async () => {
+    it('should handle etag=always gzip=never', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'false',
+          etag: 'always',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -229,13 +229,13 @@ describe('cppCodeWebserver', () => {
       expect(result).not.toContain('datagzip_');
     });
 
-    it('should handle etag=false gzip=true', async () => {
+    it('should handle etag=never gzip=always', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'false',
-          gzip: 'true',
+          etag: 'never',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -282,13 +282,13 @@ describe('cppCodeWebserver', () => {
       expect(result).toContain('#ifdef SVELTEESP32_ENABLE_GZIP');
     });
 
-    it('should handle etag=compiler gzip=true', async () => {
+    it('should handle etag=compiler gzip=always', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
           etag: 'compiler',
-          gzip: 'true',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -308,12 +308,12 @@ describe('cppCodeWebserver', () => {
       expect(result).toContain('datagzip_index_html');
     });
 
-    it('should handle etag=true gzip=compiler', async () => {
+    it('should handle etag=always gzip=compiler', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
+          etag: 'always',
           gzip: 'compiler',
           cachetime: 0,
           created: false,
@@ -335,13 +335,13 @@ describe('cppCodeWebserver', () => {
       expect(result).toContain('#ifdef SVELTEESP32_ENABLE_GZIP');
     });
 
-    it('should handle etag=compiler gzip=false', async () => {
+    it('should handle etag=compiler gzip=never', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
           etag: 'compiler',
-          gzip: 'false',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -367,7 +367,7 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'false',
+          etag: 'never',
           gzip: 'compiler',
           cachetime: 0,
           created: false,
@@ -402,8 +402,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -429,8 +429,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -455,8 +455,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -481,8 +481,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'false',
-          gzip: 'false',
+          etag: 'never',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -506,8 +506,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -533,8 +533,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -563,8 +563,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'false',
-          gzip: 'false',
+          etag: 'never',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -596,8 +596,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'false',
-          gzip: 'false',
+          etag: 'never',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -626,8 +626,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -652,8 +652,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -678,8 +678,8 @@ describe('cppCodeWebserver', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'webserver',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',

@@ -5,7 +5,7 @@ import path from 'node:path';
 import picomatch from 'picomatch';
 import { globSync } from 'tinyglobby';
 
-import { cmdLine } from './commandLine';
+import type { ICopyFilesArguments } from './commandLine';
 import { cyanLog, redLog, yellowLog } from './consoleColor';
 import { getMissingIndexError } from './errorMessages';
 
@@ -40,7 +40,7 @@ const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
   if (compressedExtensions.includes(extension)) {
     const original = filename.slice(0, -1 * extension.length);
     if (allFilenames.includes(original)) {
-      console.log(redLog(` ${filename} skipped because is perhaps a compressed version of ${original}`));
+      console.log(redLog(` ${filename} skipped — likely a compressed version of ${original}`));
       return true;
     }
   }
@@ -75,9 +75,11 @@ const isExcluded = (filename: string, excludePatterns: string[]): boolean => {
  * Get all files from the source directory, excluding pre-compressed variants
  * @returns Map of filename to file data (content + SHA256 hash)
  */
-export const getFiles = (): Map<string, FileData> => {
+export const getFiles = (
+  options: Pick<ICopyFilesArguments, 'sourcepath' | 'exclude' | 'noIndexCheck' | 'engine'>
+): Map<string, FileData> => {
   const allFilenames = globSync('**/*', {
-    cwd: cmdLine.sourcepath,
+    cwd: options.sourcepath,
     onlyFiles: true,
     dot: false,
     followSymbolicLinks: false
@@ -87,7 +89,7 @@ export const getFiles = (): Map<string, FileData> => {
   const withoutCompressed = allFilenames.filter((filename) => !shouldSkipFile(filename, allFilenames));
 
   // Filter excluded files
-  const excludePatterns = cmdLine.exclude || [];
+  const excludePatterns = options.exclude;
   const excludedFiles: string[] = [];
   const filenames = withoutCompressed.filter((filename) => {
     if (isExcluded(filename, excludePatterns)) {
@@ -115,7 +117,7 @@ export const getFiles = (): Map<string, FileData> => {
 
   const result: Map<string, FileData> = new Map();
   for (const filename of filenames) {
-    const filePath = path.join(cmdLine.sourcepath, filename);
+    const filePath = path.join(options.sourcepath, filename);
     const fileSize = statSync(filePath).size;
     if (fileSize > MAX_FILE_SIZE)
       throw new Error(
@@ -128,17 +130,14 @@ export const getFiles = (): Map<string, FileData> => {
 
   // Report duplicate files
   const duplicates = findSimilarFiles(result);
-  for (const sameFiles of duplicates) console.log(yellowLog(` ${sameFiles.join(', ')} files look like identical`));
+  for (const sameFiles of duplicates) console.log(yellowLog(` ${sameFiles.join(', ')} files appear identical`));
 
   // Check for index.html or index.htm (in root or subdirectories)
   const hasIndex = [...result.keys()].some(
     (f) => f === 'index.html' || f === 'index.htm' || f.endsWith('/index.html') || f.endsWith('/index.htm')
   );
 
-  if (!hasIndex && !cmdLine.noIndexCheck) {
-    console.error('\n' + getMissingIndexError(cmdLine.engine));
-    process.exit(1);
-  }
+  if (!hasIndex && !options.noIndexCheck) throw new Error(getMissingIndexError(options.engine));
 
   return result;
 };

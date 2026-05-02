@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TypeScript CLI tool converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines.
+TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines.
 
 ## Commands
 
@@ -17,7 +17,7 @@ npm run test:coverage  # Coverage report
 npm run all            # Fix + build + test (full validation)
 npx vitest run test/unit/file.test.ts              # Run a single test file
 npx vitest run test/unit/file.test.ts -t "test name" # Run a specific test by name
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=true --gzip=true
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=always --gzip=always
 
 # Dev mode (nodemon, watches src/index.ts, targets demo/esp32)
 npm run dev:psychic    # psychic engine, no etag/gzip
@@ -29,8 +29,11 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 
 ### Core Files
 
-- `src/index.ts` — Main pipeline (`main()`), compression, MIME types, `--dryrun` mode, `--analyze` mode (per-file size table + budget exit code), `--manifest` (companion JSON file)
+- `src/index.ts` — CLI entry point; delegates to `commandLine.ts` for argument parsing and `pipeline.ts` for execution
+- `src/pipeline.ts` — Core pipeline (`runPipeline()`): compression, MIME types, `--dryrun` mode, `--analyze` mode (per-file size table + budget exit code), `--manifest` (companion JSON file). Exported for programmatic use.
 - `src/commandLine.ts` — CLI parsing (native `process.argv`), RC files, npm variable interpolation, C++ identifier validation
+- `src/initCommand.ts` — Interactive `npx svelteesp32 init` wizard that creates `.svelteesp32rc.json`
+- `src/vitePlugin.ts` — Vite plugin (`svelteESP32(options)`) that runs `runPipeline()` in `closeBundle()`. Exported via the `./vite` package entry.
 - `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists. Symlinks are not followed (`followSymbolicLinks: false`). Files over 50 MB are rejected before read/compress.
 - `src/cppCode.ts` — Handlebars templates for psychic/async/webserver engines (data arrays, etag arrays, manifest, hook sections)
 - `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation
@@ -49,13 +52,13 @@ File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → H
 
 ### CLI Options
 
-`-s` (source), `-e` (engine), `-o` (output), `--etag` (true/false/compiler), `--gzip` (true/false/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--analyze` (per-file size table + budget pass/fail, exits 1 on over-budget, mutually exclusive with `--dryrun`), `--spa` (catch-all for SPA client-side routing), `--manifest` (write companion `.manifest.json` alongside header), `--cachetime`, `--cachetime-html` (HTML-only max-age, overrides `--cachetime`), `--cachetime-assets` (non-HTML max-age, overrides `--cachetime`), `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
+`init` (interactive RC file wizard), `-s` (source), `-e` (engine), `-o` (output), `--etag` (always/never/compiler), `--gzip` (always/never/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--analyze` (per-file size table + budget pass/fail, exits 1 on over-budget, mutually exclusive with `--dryrun`), `--spa` (catch-all for SPA client-side routing), `--manifest` (write companion `.manifest.json` alongside header), `--cachetime`, `--cachetime-html` (HTML-only max-age, overrides `--cachetime`), `--cachetime-assets` (non-HTML max-age, overrides `--cachetime`), `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
 
 RC files: `.svelteesp32rc.json` or `.svelteesp32rc` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation. Prints a warning when loaded from cwd. `outputfile` in RC files must be a relative path (absolute paths throw). Boolean fields (`noindexcheck`, `dryrun`, `analyze`, `spa`, `manifest`, `created`) accept native booleans or string `"true"`/`"false"` (matching `etag`/`gzip` string behaviour).
 
 ## Generated C++ Details
 
-- Tri-state `etag`/`gzip`: "true", "false", or "compiler" (C++ `#ifdef` directives)
+- Tri-state `etag`/`gzip`: "always", "never", or "compiler" (C++ `#ifdef` directives)
 - ESP-IDF ETag: malloc/free with NULL check (HTTP 500 on failure)
 - File manifest: `{{definePrefix}}_FileInfo` struct, `{{definePrefix}}_FILES[]` array, always generated
 - `onFileServed` hook: weak function `{{definePrefix}}_onFileServed(path, statusCode)`, called on 200 and 304

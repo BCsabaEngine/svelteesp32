@@ -1,15 +1,23 @@
 {
   "name": "svelteesp32",
-  "version": "2.4.1",
+  "version": "3.0.0",
   "description": "Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)",
   "author": "BCsabaEngine",
   "license": "ISC",
-  "exports": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vitePlugin.d.ts",
+      "default": "./dist/vitePlugin.js"
+    }
+  },
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "engines": {
-    "node": ">=20",
-    "npm": ">=9"
+    "node": ">=22",
+    "npm": ">=10"
   },
   "files": [
     "bin/*.js",
@@ -28,9 +36,10 @@
   },
   "homepage": "https://github.com/BCsabaEngine/svelteesp32",
   "scripts": {
-    "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --cachetime=86400 --version=v$npm_package_version",
-    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=false --gzip=false --version=v$npm_package_version",
-    "dev:webserver": "nodemon src/index.ts -- -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=true --gzip=true --cachetime=86400 --version=v$npm_package_version",
+    "dev:async": "nodemon src/index.ts -- -e async -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=always --gzip=always --cachetime=86400 --version=v$npm_package_version",
+    "dev:psychic": "nodemon src/index.ts -- -e psychic -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=never --gzip=never --version=v$npm_package_version",
+    "dev:webserver": "nodemon src/index.ts -- -e webserver -s ./demo/svelte/dist -o ./demo/esp32/include/svelteesp32.h --etag=always --gzip=always --cachetime=86400 --version=v$npm_package_version",
+    "dev:init": "tsx src/cliInit.mts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -49,35 +58,43 @@
   },
   "keywords": [
     "svelte",
+    "svelte5",
     "angular",
     "react",
     "vue",
-    "eps32",
+    "esp32",
     "esp8266",
     "webserver",
     "psychichttpserver",
     "espasyncwebserver"
   ],
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^25.6.0",
     "@types/picomatch": "^4.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.59.0",
-    "@typescript-eslint/parser": "^8.59.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
     "@vitest/coverage-v8": "^4.1.5",
-    "eslint": "^10.2.1",
+    "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^13.0.0",
     "eslint-plugin-unicorn": "^64.0.0",
+    "globals": "^17.6.0",
     "memfs": "^4.57.2",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.3",
-    "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "vite": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   },
   "dependencies": {
     "handlebars": "^4.7.9",

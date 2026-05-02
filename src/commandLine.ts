@@ -5,14 +5,14 @@ import path from 'node:path';
 import { cyanLog, yellowLog } from './consoleColor';
 import { getInvalidEngineError, getSourcepathNotFoundError } from './errorMessages';
 
-interface ICopyFilesArguments {
+export interface ICopyFilesArguments {
   engine: 'psychic' | 'async' | 'espidf' | 'webserver';
   sourcepath: string;
   outputfile: string;
   espmethod: string;
   define: string;
-  gzip: 'true' | 'false' | 'compiler';
-  etag: 'true' | 'false' | 'compiler';
+  gzip: 'always' | 'never' | 'compiler';
+  etag: 'always' | 'never' | 'compiler';
   cachetime: number;
   cachetimeHtml?: number;
   cachetimeAssets?: number;
@@ -36,8 +36,8 @@ interface IRcFileConfig {
   outputfile?: string;
   espmethod?: string;
   define?: string;
-  gzip?: 'true' | 'false' | 'compiler';
-  etag?: 'true' | 'false' | 'compiler';
+  gzip?: 'always' | 'never' | 'compiler';
+  etag?: 'always' | 'never' | 'compiler';
   cachetime?: number;
   cachetimehtml?: number;
   cachetimeassets?: number;
@@ -58,6 +58,9 @@ function showHelp(): never {
   console.log(`
 svelteesp32 - Svelte JS to ESP32 converter
 
+Commands:
+  init                       Create .svelteesp32rc.json interactively
+
 Configuration:
   --config <path>            Use custom RC file (default: search for .svelteesp32rc.json)
 
@@ -66,8 +69,8 @@ Options:
                              (psychic|async|espidf|webserver) (default: "psychic")
   -s, --sourcepath <path>    Source dist folder with compiled web files (required)
   -o, --outputfile <path>    Generated output file with path (default: "svelteesp32.h")
-  --etag <value>             Use ETAG header for cache (true|false|compiler) (default: "false")
-  --gzip <value>             Compress content with gzip (true|false|compiler) (default: "true")
+  --etag <value>             Use ETAG header for cache (always|never|compiler) (default: "never")
+  --gzip <value>             Compress content with gzip (always|never|compiler) (default: "always")
   --created                  Include creation time in the output file (default: false)
   --version <value>          Include version info in the output file (default: "")
   --espmethod <name>         Name of generated method (default: "initSvelteStaticFiles")
@@ -96,8 +99,8 @@ RC File:
       "engine": "psychic",
       "sourcepath": "./dist",
       "outputfile": "./output.h",
-      "etag": "true",
-      "gzip": "true",
+      "etag": "always",
+      "gzip": "always",
       "exclude": ["*.map", "*.md"],
       "basepath": "/ui",
       "maxsize": "400k",
@@ -118,8 +121,8 @@ function validateEngine(value: string): 'psychic' | 'async' | 'espidf' | 'webser
   process.exit(1);
 }
 
-function validateTriState(value: string, name: string): 'true' | 'false' | 'compiler' {
-  if (value === 'true' || value === 'false' || value === 'compiler') return value;
+function validateTriState(value: string, name: string): 'always' | 'never' | 'compiler' {
+  if (value === 'always' || value === 'never' || value === 'compiler') return value;
 
   throw new Error(`Invalid ${name}: ${value}`);
 }
@@ -374,21 +377,21 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (configObject['cachetime'] !== undefined) {
     if (typeof configObject['cachetime'] !== 'number' || Number.isNaN(configObject['cachetime']))
       throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']}`);
-    if ((configObject['cachetime'] as number) < 0)
+    if (configObject['cachetime'] < 0)
       throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']} (must be non-negative)`);
   }
 
   if (configObject['cachetimehtml'] !== undefined) {
     if (typeof configObject['cachetimehtml'] !== 'number' || Number.isNaN(configObject['cachetimehtml']))
       throw new TypeError(`Invalid cachetimehtml in RC file: ${configObject['cachetimehtml']}`);
-    if ((configObject['cachetimehtml'] as number) < 0)
+    if (configObject['cachetimehtml'] < 0)
       throw new TypeError(`Invalid cachetimehtml in RC file: ${configObject['cachetimehtml']} (must be non-negative)`);
   }
 
   if (configObject['cachetimeassets'] !== undefined) {
     if (typeof configObject['cachetimeassets'] !== 'number' || Number.isNaN(configObject['cachetimeassets']))
       throw new TypeError(`Invalid cachetimeassets in RC file: ${configObject['cachetimeassets']}`);
-    if ((configObject['cachetimeassets'] as number) < 0)
+    if (configObject['cachetimeassets'] < 0)
       throw new TypeError(
         `Invalid cachetimeassets in RC file: ${configObject['cachetimeassets']} (must be non-negative)`
       );
@@ -458,7 +461,7 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
       `'outputfile' in RC file must be a relative path (use --output CLI flag for absolute paths): ${configObject['outputfile']}`
     );
 
-  return configObject as IRcFileConfig;
+  return configObject;
 }
 
 function parseArguments(): ICopyFilesArguments {
@@ -496,8 +499,8 @@ function parseArguments(): ICopyFilesArguments {
   const result: Partial<ICopyFilesArguments> = {
     engine: 'psychic',
     outputfile: 'svelteesp32.h',
-    etag: 'false',
-    gzip: 'true',
+    etag: 'never',
+    gzip: 'always',
     created: false,
     version: '',
     espmethod: 'initSvelteStaticFiles',

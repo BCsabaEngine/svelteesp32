@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { CppCodeSource, CppCodeSources, ExtensionGroups, getCppCode } from '../../src/cppCode';
+import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from '../../src/cppCode';
 
 vi.mock('../../src/commandLine', () => ({
   cmdLine: {
     sourcepath: '/test/path',
     outputfile: '/test/output.h',
     engine: 'psychic',
-    etag: 'true',
-    gzip: 'true',
+    etag: 'always',
+    gzip: 'always',
     cachetime: 86_400,
     created: false,
     version: 'v1.0.0',
@@ -93,8 +93,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -253,8 +253,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -278,8 +278,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -304,8 +304,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -326,13 +326,13 @@ describe('cppCode', () => {
   });
 
   describe('etag and gzip combinations', () => {
-    it('should handle etag=false gzip=false', async () => {
+    it('should handle etag=never gzip=never', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'false',
-          gzip: 'false',
+          etag: 'never',
+          gzip: 'never',
           cachetime: 0,
           created: false,
           version: '',
@@ -379,15 +379,15 @@ describe('cppCode', () => {
   });
 
   describe('template switch/case helpers', () => {
-    it('should handle etag=true case in switch', async () => {
+    it('should handle etag=always case in switch', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           sourcepath: '/test/path',
           outputfile: '/test/output.h',
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'false',
+          etag: 'always',
+          gzip: 'never',
           cachetime: 0,
           noindexcheck: false,
           exclude: [],
@@ -405,15 +405,15 @@ describe('cppCode', () => {
       expect(result).toContain('abc123');
     });
 
-    it('should handle etag=false case in switch', async () => {
+    it('should handle etag=never case in switch', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           sourcepath: '/test/path',
           outputfile: '/test/output.h',
           engine: 'psychic',
-          etag: 'false',
-          gzip: 'false',
+          etag: 'never',
+          gzip: 'never',
           cachetime: 0,
           noindexcheck: false,
           exclude: [],
@@ -431,15 +431,15 @@ describe('cppCode', () => {
       expect(result).not.toContain('If-None-Match');
     });
 
-    it('should handle gzip=true case in switch for async engine', async () => {
+    it('should handle gzip=always case in switch for async engine', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           sourcepath: '/test/path',
           outputfile: '/test/output.h',
           engine: 'async',
-          etag: 'false',
-          gzip: 'true',
+          etag: 'never',
+          gzip: 'always',
           cachetime: 0,
           noindexcheck: false,
           exclude: [],
@@ -457,15 +457,15 @@ describe('cppCode', () => {
       expect(result).toContain('gzip');
     });
 
-    it('should handle gzip=false case in switch', async () => {
+    it('should handle gzip=never case in switch', async () => {
       vi.resetModules();
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           sourcepath: '/test/path',
           outputfile: '/test/output.h',
           engine: 'psychic',
-          etag: 'false',
-          gzip: 'false',
+          etag: 'never',
+          gzip: 'never',
           cachetime: 0,
           noindexcheck: false,
           exclude: [],
@@ -516,8 +516,8 @@ describe('cppCode', () => {
           sourcepath: '/test/path',
           outputfile: '/test/output.h',
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           noindexcheck: false,
           exclude: [],
@@ -545,8 +545,8 @@ describe('cppCode', () => {
             sourcepath: '/test/path',
             outputfile: '/test/output.h',
             engine,
-            etag: 'true',
-            gzip: 'true',
+            etag: 'always',
+            gzip: 'always',
             cachetime: 0,
             noindexcheck: false,
             exclude: [],
@@ -640,8 +640,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -684,8 +684,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'false',
-          gzip: 'true',
+          etag: 'never',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -717,8 +717,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -743,8 +743,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -771,8 +771,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -796,8 +796,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -825,7 +825,7 @@ describe('cppCode', () => {
         cmdLine: {
           engine: 'psychic',
           etag: 'compiler',
-          gzip: 'true',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -851,8 +851,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -878,8 +878,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -905,8 +905,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -931,8 +931,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -957,8 +957,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -982,8 +982,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1010,8 +1010,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1037,8 +1037,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1065,8 +1065,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1120,8 +1120,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1148,8 +1148,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1176,8 +1176,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'espidf',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1206,7 +1206,7 @@ describe('cppCode', () => {
         cmdLine: {
           engine: 'psychic',
           etag: 'compiler',
-          gzip: 'true',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1234,8 +1234,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'false',
-          gzip: 'true',
+          etag: 'never',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1263,8 +1263,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1291,8 +1291,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1317,8 +1317,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1343,8 +1343,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1369,8 +1369,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1395,8 +1395,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1421,8 +1421,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'async',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           created: false,
           version: '',
@@ -1450,8 +1450,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 3600,
           cachetimeHtml: 0,
           created: false,
@@ -1479,8 +1479,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 60,
           cachetimeAssets: 86_400,
           created: false,
@@ -1507,8 +1507,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 7200,
           created: false,
           version: '',
@@ -1533,8 +1533,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 3600,
           created: false,
           version: '',
@@ -1559,8 +1559,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 31_536_000,
           cachetimeHtml: 0,
           created: false,
@@ -1587,8 +1587,8 @@ describe('cppCode', () => {
       vi.doMock('../../src/commandLine', () => ({
         cmdLine: {
           engine: 'psychic',
-          etag: 'true',
-          gzip: 'true',
+          etag: 'always',
+          gzip: 'always',
           cachetime: 0,
           cachetimeHtml: 0,
           cachetimeAssets: 31_536_000,
