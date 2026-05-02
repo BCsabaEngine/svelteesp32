@@ -1,4 +1,4 @@
-import { compile as handlebarsCompile, HelperOptions } from 'handlebars';
+import { compile as handlebarsCompile, type HelperOptions } from 'handlebars';
 
 import { cmdLine, formatConfiguration } from './commandLine';
 import { espidfTemplate } from './cppCodeEspIdf';

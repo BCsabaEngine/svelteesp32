@@ -57,7 +57,38 @@ export default [
       'unicorn/prefer-global-this': 'off',
       'unicorn/no-nested-ternary': 'off',
       'no-alert': 'error',
-      'no-debugger': 'error'
+      'no-debugger': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' }
+      ],
+      'no-shadow': 'off',
+      '@typescript-eslint/no-shadow': 'error',
+      '@typescript-eslint/method-signature-style': ['error', 'property']
+    }
+  },
+  {
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-shadow': 'off'
+    }
+  },
+  {
+    files: ['src/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname
+      }
+    },
+    rules: {
+      '@typescript-eslint/switch-exhaustiveness-check': ['error', { considerDefaultExhaustiveForUnions: true }],
+      '@typescript-eslint/no-unnecessary-condition': ['error', { allowConstantLoopConditions: true }],
+      '@typescript-eslint/prefer-readonly': 'error',
+      '@typescript-eslint/require-array-sort-compare': ['error', { ignoreStringArrays: true }],
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/no-redundant-type-constituents': 'error'
     }
   }
 ];

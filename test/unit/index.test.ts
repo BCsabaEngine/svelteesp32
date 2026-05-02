@@ -1,10 +1,11 @@
 import * as fs from 'node:fs';
-import * as zlib from 'node:zlib';
+import type * as zlib from 'node:zlib';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ExtensionGroup, getCppCode } from '../../src/cppCode';
 import type { getFiles } from '../../src/file';
+import type * as IndexModule from '../../src/index';
 
 // Mock modules before importing index
 vi.mock('node:fs', () => ({
@@ -216,8 +217,8 @@ const makeFileData = (content: string, hash = 'mock-sha256-hash') => ({
 });
 
 describe('formatDryRunRoutes', () => {
-  let createSourceEntry: Awaited<ReturnType<typeof import('../../src/index')>>['createSourceEntry'];
-  let formatDryRunRoutes: Awaited<ReturnType<typeof import('../../src/index')>>['formatDryRunRoutes'];
+  let createSourceEntry: IndexModule['createSourceEntry'];
+  let formatDryRunRoutes: IndexModule['formatDryRunRoutes'];
 
   beforeEach(async () => {
     vi.resetModules();
@@ -410,7 +411,7 @@ describe('formatDryRunRoutes', () => {
 });
 
 describe('formatSizePrecise', () => {
-  let formatSizePrecise: Awaited<ReturnType<typeof import('../../src/index')>>['formatSizePrecise'];
+  let formatSizePrecise: IndexModule['formatSizePrecise'];
 
   beforeEach(async () => {
     const module_ = await import('../../src/index');
@@ -431,8 +432,8 @@ describe('formatSizePrecise', () => {
 const makeAnalyzeSummary = (size: number, gzipsize: number) => ({ filecount: 1, size, gzipsize });
 
 describe('formatAnalyzeTable', () => {
-  let createSourceEntry: Awaited<ReturnType<typeof import('../../src/index')>>['createSourceEntry'];
-  let formatAnalyzeTable: Awaited<ReturnType<typeof import('../../src/index')>>['formatAnalyzeTable'];
+  let createSourceEntry: IndexModule['createSourceEntry'];
+  let formatAnalyzeTable: IndexModule['formatAnalyzeTable'];
 
   beforeEach(async () => {
     const module_ = await import('../../src/index');

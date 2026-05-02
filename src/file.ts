@@ -89,7 +89,7 @@ export const getFiles = (
   const withoutCompressed = allFilenames.filter((filename) => !shouldSkipFile(filename, allFilenames));
 
   // Filter excluded files
-  const excludePatterns = options.exclude || [];
+  const excludePatterns = options.exclude;
   const excludedFiles: string[] = [];
   const filenames = withoutCompressed.filter((filename) => {
     if (isExcluded(filename, excludePatterns)) {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { PreviousManifestFile } from '../../src/index';
+import type * as IndexModule from '../../src/index';
 
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => false),
@@ -37,11 +37,15 @@ vi.mock('../../src/commandLine', () => ({
   }
 }));
 
-const previousFile = (path: string, size: number, sha256?: string): PreviousManifestFile => ({ path, size, sha256 });
+const previousFile = (path: string, size: number, sha256?: string): IndexModule['PreviousManifestFile'] => ({
+  path,
+  size,
+  sha256
+});
 
 describe('formatChangeSummary', () => {
-  let createSourceEntry: Awaited<ReturnType<typeof import('../../src/index')>>['createSourceEntry'];
-  let formatChangeSummary: Awaited<ReturnType<typeof import('../../src/index')>>['formatChangeSummary'];
+  let createSourceEntry: IndexModule['createSourceEntry'];
+  let formatChangeSummary: IndexModule['formatChangeSummary'];
 
   beforeEach(async () => {
     vi.resetModules();

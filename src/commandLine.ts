@@ -377,21 +377,21 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (configObject['cachetime'] !== undefined) {
     if (typeof configObject['cachetime'] !== 'number' || Number.isNaN(configObject['cachetime']))
       throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']}`);
-    if ((configObject['cachetime'] as number) < 0)
+    if (configObject['cachetime'] < 0)
       throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']} (must be non-negative)`);
   }
 
   if (configObject['cachetimehtml'] !== undefined) {
     if (typeof configObject['cachetimehtml'] !== 'number' || Number.isNaN(configObject['cachetimehtml']))
       throw new TypeError(`Invalid cachetimehtml in RC file: ${configObject['cachetimehtml']}`);
-    if ((configObject['cachetimehtml'] as number) < 0)
+    if (configObject['cachetimehtml'] < 0)
       throw new TypeError(`Invalid cachetimehtml in RC file: ${configObject['cachetimehtml']} (must be non-negative)`);
   }
 
   if (configObject['cachetimeassets'] !== undefined) {
     if (typeof configObject['cachetimeassets'] !== 'number' || Number.isNaN(configObject['cachetimeassets']))
       throw new TypeError(`Invalid cachetimeassets in RC file: ${configObject['cachetimeassets']}`);
-    if ((configObject['cachetimeassets'] as number) < 0)
+    if (configObject['cachetimeassets'] < 0)
       throw new TypeError(
         `Invalid cachetimeassets in RC file: ${configObject['cachetimeassets']} (must be non-negative)`
       );
@@ -461,7 +461,7 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
       `'outputfile' in RC file must be a relative path (use --output CLI flag for absolute paths): ${configObject['outputfile']}`
     );
 
-  return configObject as IRcFileConfig;
+  return configObject;
 }
 
 function parseArguments(): ICopyFilesArguments {

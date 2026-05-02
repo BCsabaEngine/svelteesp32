@@ -7,7 +7,7 @@ import { lookup as mimeLookup } from 'mime-types';
 
 import type { ICopyFilesArguments } from './commandLine';
 import { greenLog, redLog, yellowLog } from './consoleColor';
-import { CppCodeSource, CppCodeSources, ExtensionGroups, getCppCode } from './cppCode';
+import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from './cppCode';
 import { getMaxUriHandlersHint, getSizeBudgetExceededError } from './errorMessages';
 import { getFiles } from './file';
 
@@ -180,7 +180,7 @@ const formatAnalyzeTable = (
 export type PreviousManifestFile = { path: string; size: number; sha256?: string };
 
 export class OverBudgetError extends Error {
-  override name = 'OverBudgetError';
+  override readonly name = 'OverBudgetError';
 
   constructor() {
     super('Over budget in analyze mode');

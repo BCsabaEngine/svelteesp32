@@ -12,8 +12,8 @@ interface ResolvedViteConfig {
 
 interface VitePlugin {
   name: string;
-  configResolved(config: ResolvedViteConfig): void;
-  closeBundle(): void;
+  configResolved: (config: ResolvedViteConfig) => void;
+  closeBundle: () => void;
 }
 
 export interface SvelteESP32PluginOptions {

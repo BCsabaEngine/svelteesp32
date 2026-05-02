@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { CppCodeSource, CppCodeSources, ExtensionGroups, getCppCode } from '../../src/cppCode';
+import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from '../../src/cppCode';
 
 vi.mock('../../src/commandLine', () => ({
   cmdLine: {
