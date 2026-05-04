@@ -332,7 +332,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
     return;
   }
 
-  const cppFile = getCppCode(sources, filesByExtension);
+  const cppFile = getCppCode(sources, filesByExtension, options);
   mkdirSync(path.normalize(path.dirname(options.outputfile)), { recursive: true });
   writeFileSync(options.outputfile, cppFile, { flush: true, encoding: 'utf8' });
 

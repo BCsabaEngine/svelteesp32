@@ -1,9 +1,9 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
 import { cyanLog, yellowLog } from './consoleColor';
-import { getInvalidEngineError, getSourcepathNotFoundError } from './errorMessages';
+import { getInvalidEngineError } from './errorMessages';
 
 export interface ICopyFilesArguments {
   engine: 'psychic' | 'async' | 'espidf' | 'webserver';
@@ -30,7 +30,7 @@ export interface ICopyFilesArguments {
   help?: boolean;
 }
 
-interface IRcFileConfig {
+export interface IRcFileConfig {
   engine?: 'psychic' | 'async' | 'espidf' | 'webserver';
   sourcepath?: string;
   outputfile?: string;
@@ -54,7 +54,7 @@ interface IRcFileConfig {
   manifest?: boolean | 'true' | 'false';
 }
 
-function showHelp(): never {
+function showHelp(): void {
   console.log(`
 svelteesp32 - Svelte JS to ESP32 converter
 
@@ -135,7 +135,7 @@ function validateCppIdentifier(value: string, name: string): string {
   return value;
 }
 
-function validateBasePath(value: string): string {
+export function validateBasePath(value: string): string {
   if (value === '') return value;
   if (!value.startsWith('/')) throw new Error(`basePath must start with /: ${value}`);
   if (value.endsWith('/')) throw new Error(`basePath must not end with /: ${value}`);
@@ -314,6 +314,12 @@ function loadRcFile(rcPath: string): IRcFileConfig {
   }
 }
 
+export function loadRcFileConfig(configPath?: string): Partial<IRcFileConfig> {
+  const rcPath = findRcFile(configPath);
+  if (!rcPath) return {};
+  return loadRcFile(rcPath);
+}
+
 function validateSizeOption(configObject: Record<string, unknown>, key: string): void {
   const value = configObject[key];
   if (value === undefined) return;
@@ -464,7 +470,7 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   return configObject;
 }
 
-function parseArguments(): ICopyFilesArguments {
+export function parseArguments(): ICopyFilesArguments {
   const arguments_ = process.argv.slice(2);
 
   // STEP 1: Check for --config flag first
@@ -614,7 +620,10 @@ function parseArguments(): ICopyFilesArguments {
     if (!argument) continue;
 
     // Handle --help or -h
-    if (argument === '--help' || argument === '-h') showHelp();
+    if (argument === '--help' || argument === '-h') {
+      showHelp();
+      return result as ICopyFilesArguments; // process.exit(0) in showHelp() means this is unreachable in production
+    }
 
     // Handle --flag=value format
     if (argument.startsWith('--') && argument.includes('=')) {
@@ -757,17 +766,3 @@ export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
   // eslint-disable-next-line unicorn/prefer-string-replace-all
   return parts.join(' ').replace(/[\n\r]/g, ' ');
 }
-
-export const cmdLine = parseArguments();
-
-if (!existsSync(cmdLine.sourcepath)) {
-  console.error(getSourcepathNotFoundError(cmdLine.sourcepath, 'not_found'));
-  process.exit(1);
-}
-
-if (!statSync(cmdLine.sourcepath).isDirectory()) {
-  console.error(getSourcepathNotFoundError(cmdLine.sourcepath, 'not_directory'));
-  process.exit(1);
-}
-
-console.log(`[SvelteESP32] Generate code for ${cmdLine.engine} engine`);
