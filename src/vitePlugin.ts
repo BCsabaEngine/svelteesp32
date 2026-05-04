@@ -1,6 +1,7 @@
 import path from 'node:path';
 
-import type { ICopyFilesArguments } from './commandLine';
+import type { ICopyFilesArguments, IRcFileConfig } from './commandLine';
+import { loadRcFileConfig, validateBasePath } from './commandLine';
 import { runPipeline } from './pipeline';
 
 // Minimal Vite Plugin interface subset — avoids a hard vite devDependency
@@ -17,8 +18,8 @@ interface VitePlugin {
 }
 
 export interface SvelteESP32PluginOptions {
-  /** Output .h file path (required) */
-  output: string;
+  /** Output .h file path (can be provided via RC file outputfile) */
+  output?: string;
   /** Source directory — defaults to Vite's build.outDir */
   sourcepath?: string;
   /** Target engine (default: 'psychic') */
@@ -30,9 +31,9 @@ export interface SvelteESP32PluginOptions {
   /** Cache-Control max-age in seconds (default: 0) */
   cachetime?: number;
   /** Cache-Control max-age for HTML files (overrides cachetime) */
-  cachetimeHtml?: number;
+  cachetimehtml?: number;
   /** Cache-Control max-age for non-HTML assets (overrides cachetime) */
-  cachetimeAssets?: number;
+  cachetimeassets?: number;
   /** Files to exclude (glob patterns) */
   exclude?: string[];
   /** URL base path prefix (e.g. '/ui') */
@@ -50,11 +51,18 @@ export interface SvelteESP32PluginOptions {
   /** Write companion JSON manifest alongside the header */
   manifest?: boolean;
   /** Skip index.html validation */
-  noIndexCheck?: boolean;
+  noindexcheck?: boolean;
   /** Maximum total uncompressed size in bytes */
-  maxSize?: number;
+  maxsize?: number;
   /** Maximum total gzip size in bytes */
-  maxGzipSize?: number;
+  maxgzipsize?: number;
+  /** Path to a custom RC file (default: auto-discover .svelteesp32rc.json) */
+  config?: string;
+}
+
+function coerceBool(value: boolean | 'true' | 'false' | undefined): boolean | undefined {
+  if (value === undefined) return undefined;
+  return value === true || value === 'true';
 }
 
 export function svelteESP32(options: SvelteESP32PluginOptions): VitePlugin {
@@ -68,38 +76,38 @@ export function svelteESP32(options: SvelteESP32PluginOptions): VitePlugin {
     },
 
     closeBundle(): void {
-      const sourcepath = options.sourcepath ?? outDirectory;
-      const outputfile = path.resolve(options.output);
+      const rcConfig: Partial<IRcFileConfig> = loadRcFileConfig(options.config);
 
-      if (options.basepath !== undefined) {
-        const bp = options.basepath;
-        if (bp !== '' && !bp.startsWith('/')) throw new Error(`basePath must start with /: ${bp}`);
-        if (bp.endsWith('/')) throw new Error(`basePath must not end with /: ${bp}`);
-        if (bp.includes('//')) throw new Error(`basePath must not contain //: ${bp}`);
-        if (bp.includes('"')) throw new Error(`basePath must not contain double quotes: ${bp}`);
-        if (bp.includes('\\')) throw new Error(`basePath must not contain backslashes: ${bp}`);
-      }
+      const rawOutput = options.output ?? rcConfig.outputfile;
+      if (!rawOutput)
+        throw new Error('output is required — specify it as a plugin option or in the RC file (outputfile)');
+      const outputfile = path.resolve(rawOutput);
+
+      const sourcepath = options.sourcepath ?? rcConfig.sourcepath ?? outDirectory;
+
+      const rawBasepath = options.basepath ?? rcConfig.basepath ?? '';
+      const basePath = validateBasePath(rawBasepath);
 
       const options_: ICopyFilesArguments = {
-        engine: options.engine ?? 'psychic',
+        engine: options.engine ?? rcConfig.engine ?? 'psychic',
         sourcepath,
         outputfile,
-        etag: options.etag ?? 'never',
-        gzip: options.gzip ?? 'always',
-        cachetime: options.cachetime ?? 0,
-        cachetimeHtml: options.cachetimeHtml,
-        cachetimeAssets: options.cachetimeAssets,
-        created: options.created ?? false,
-        version: options.version ?? '',
-        espmethod: options.espmethod ?? 'initSvelteStaticFiles',
-        define: options.define ?? 'SVELTEESP32',
-        exclude: options.exclude ?? [],
-        basePath: options.basepath ?? '',
-        noIndexCheck: options.noIndexCheck,
-        spa: options.spa,
-        manifest: options.manifest,
-        maxSize: options.maxSize,
-        maxGzipSize: options.maxGzipSize
+        etag: options.etag ?? rcConfig.etag ?? 'never',
+        gzip: options.gzip ?? rcConfig.gzip ?? 'always',
+        cachetime: options.cachetime ?? rcConfig.cachetime ?? 0,
+        cachetimeHtml: options.cachetimehtml ?? rcConfig.cachetimehtml,
+        cachetimeAssets: options.cachetimeassets ?? rcConfig.cachetimeassets,
+        created: options.created ?? coerceBool(rcConfig.created) ?? false,
+        version: options.version ?? rcConfig.version ?? '',
+        espmethod: options.espmethod ?? rcConfig.espmethod ?? 'initSvelteStaticFiles',
+        define: options.define ?? rcConfig.define ?? 'SVELTEESP32',
+        exclude: options.exclude ?? rcConfig.exclude ?? [],
+        basePath,
+        noIndexCheck: options.noindexcheck ?? coerceBool(rcConfig.noindexcheck),
+        spa: options.spa ?? coerceBool(rcConfig.spa),
+        manifest: options.manifest ?? coerceBool(rcConfig.manifest),
+        maxSize: options.maxsize ?? (rcConfig.maxsize as number | undefined),
+        maxGzipSize: options.maxgzipsize ?? (rcConfig.maxgzipsize as number | undefined)
       };
 
       runPipeline(options_);

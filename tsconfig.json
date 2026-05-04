@@ -8,7 +8,7 @@
     "removeComments": true,
     "importHelpers": false,
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "strict": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

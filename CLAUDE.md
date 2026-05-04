@@ -31,9 +31,9 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 
 - `src/index.ts` — CLI entry point; delegates to `commandLine.ts` for argument parsing and `pipeline.ts` for execution
 - `src/pipeline.ts` — Core pipeline (`runPipeline()`): compression, MIME types, `--dryrun` mode, `--analyze` mode (per-file size table + budget exit code), `--manifest` (companion JSON file). Exported for programmatic use.
-- `src/commandLine.ts` — CLI parsing (native `process.argv`), RC files, npm variable interpolation, C++ identifier validation
+- `src/commandLine.ts` — CLI parsing (native `process.argv`), RC files, npm variable interpolation, C++ identifier validation. Exports `IRcFileConfig`, `validateBasePath()`, `loadRcFileConfig()`, and `parseArguments()` for use by the Vite plugin and tests.
 - `src/initCommand.ts` — Interactive `npx svelteesp32 init` wizard that creates `.svelteesp32rc.json`
-- `src/vitePlugin.ts` — Vite plugin (`svelteESP32(options)`) that runs `runPipeline()` in `closeBundle()`. Exported via the `./vite` package entry.
+- `src/vitePlugin.ts` — Vite plugin (`svelteESP32(options)`) that runs `runPipeline()` in `closeBundle()`. Exported via the `./vite` package entry. Loads RC file via `loadRcFileConfig()` and merges with plugin options (plugin options take precedence). `output` is optional when `outputfile` is set in the RC file.
 - `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists. Symlinks are not followed (`followSymbolicLinks: false`). Files over 50 MB are rejected before read/compress.
 - `src/cppCode.ts` — Handlebars templates for psychic/async/webserver engines (data arrays, etag arrays, manifest, hook sections)
 - `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation

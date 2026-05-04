@@ -88,6 +88,7 @@ void setup() {
 
 ## What's New
 
+- **v3.0.1** — Vite plugin now reads RC file automatically; `output` is optional when `outputfile` is in the RC file; option names aligned to lowercase to match RC file keys (`cachetimehtml`, `cachetimeassets`, `noindexcheck`, `maxsize`, `maxgzipsize`); new `config` option to point at a custom RC file
 - **v3.0.0** — **Vite plugin** (`import { svelteESP32 } from 'svelteesp32/vite'`) generates the header automatically after every build; `npx svelteesp32 init` interactive RC file wizard; Node.js >= 22 required
 - **v2.4.0** — `--analyze` for CI size budget checks (per-file table, exits 1 on over-budget); `--manifest` to write a companion JSON manifest alongside the header
 - **v2.3.0** — `--cachetime-html` and `--cachetime-assets` for per-type cache control (e.g. `no-cache` for HTML, 1-year for content-hashed JS/CSS)
@@ -147,27 +148,27 @@ export default defineConfig({
       engine: 'psychic',
       etag: 'always',
       gzip: 'always',
-      cachetimeHtml: 0,
-      cachetimeAssets: 31536000
+      cachetimehtml: 0,
+      cachetimeassets: 31536000
     })
   ]
 });
 ```
 
-The `output` path is required; all other options mirror the CLI flags and have the same defaults. `sourcepath` defaults to Vite's `build.outDir` when omitted.
+`output` can be omitted when `outputfile` is set in an RC file. `sourcepath` defaults to Vite's `build.outDir`. All other options mirror CLI flags and fall back to the RC file before applying built-in defaults.
 
 **Plugin options**
 
 | Option            | Type                                        | Default                   | Description                                        |
 | ----------------- | ------------------------------------------- | ------------------------- | -------------------------------------------------- |
-| `output`          | `string`                                    | (required)                | Output `.h` file path                              |
+| `output`          | `string`                                    | RC `outputfile`           | Output `.h` file path                              |
 | `sourcepath`      | `string`                                    | Vite's `build.outDir`     | Source directory (compiled web files)              |
 | `engine`          | `'psychic'\|'async'\|'espidf'\|'webserver'` | `'psychic'`               | Target web server engine                           |
 | `etag`            | `'always'\|'never'\|'compiler'`             | `'never'`                 | ETag generation mode                               |
 | `gzip`            | `'always'\|'never'\|'compiler'`             | `'always'`                | Gzip compression mode                              |
 | `cachetime`       | `number`                                    | `0`                       | `Cache-Control: max-age` in seconds (all files)    |
-| `cachetimeHtml`   | `number`                                    | (unset)                   | max-age for HTML files (overrides `cachetime`)     |
-| `cachetimeAssets` | `number`                                    | (unset)                   | max-age for non-HTML files (overrides `cachetime`) |
+| `cachetimehtml`   | `number`                                    | (unset)                   | max-age for HTML files (overrides `cachetime`)     |
+| `cachetimeassets` | `number`                                    | (unset)                   | max-age for non-HTML files (overrides `cachetime`) |
 | `exclude`         | `string[]`                                  | `[]`                      | Glob patterns to exclude                           |
 | `basepath`        | `string`                                    | (none)                    | URL prefix for all routes                          |
 | `espmethod`       | `string`                                    | `'initSvelteStaticFiles'` | Generated init function name                       |
@@ -176,9 +177,10 @@ The `output` path is required; all other options mirror the CLI flags and have t
 | `created`         | `boolean`                                   | `false`                   | Include creation timestamp                         |
 | `spa`             | `boolean`                                   | `false`                   | Serve `index.html` for unmatched routes            |
 | `manifest`        | `boolean`                                   | `false`                   | Write companion `.manifest.json`                   |
-| `noIndexCheck`    | `boolean`                                   | `false`                   | Skip `index.html` validation                       |
-| `maxSize`         | `number`                                    | (none)                    | Max total uncompressed size in bytes               |
-| `maxGzipSize`     | `number`                                    | (none)                    | Max total gzip size in bytes                       |
+| `noindexcheck`    | `boolean`                                   | `false`                   | Skip `index.html` validation                       |
+| `maxsize`         | `number`                                    | (none)                    | Max total uncompressed size in bytes               |
+| `maxgzipsize`     | `number`                                    | (none)                    | Max total gzip size in bytes                       |
+| `config`          | `string`                                    | auto-discover             | Path to a custom RC file                           |
 
 ### Generate Header File (CLI)
 

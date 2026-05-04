@@ -1,6 +1,7 @@
 import { compile as handlebarsCompile, type HelperOptions } from 'handlebars';
 
-import { cmdLine, formatConfiguration } from './commandLine';
+import type { ICopyFilesArguments } from './commandLine';
+import { formatConfiguration } from './commandLine';
 import { espidfTemplate } from './cppCodeEspIdf';
 
 export type CppCodeSource = {
@@ -1068,18 +1069,22 @@ const createHandlebarsHelpers = () => {
 /**
  * Generate C++ header file code from sources and file extension groups
  */
-export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionGroups): string => {
-  const template = handlebarsCompile(getTemplate(cmdLine.engine));
+export const getCppCode = (
+  sources: CppCodeSources,
+  filesByExtension: ExtensionGroups,
+  options: ICopyFilesArguments
+): string => {
+  const template = handlebarsCompile(getTemplate(options.engine));
   const transformedSources = sources.map((s) => {
     const effectiveCacheTime =
       s.mime === 'text/html'
-        ? (cmdLine.cachetimeHtml ?? cmdLine.cachetime)
-        : (cmdLine.cachetimeAssets ?? cmdLine.cachetime);
-    return transformSourceToTemplateData(s, cmdLine.etag, effectiveCacheTime);
+        ? (options.cachetimeHtml ?? options.cachetime)
+        : (options.cachetimeAssets ?? options.cachetime);
+    return transformSourceToTemplateData(s, options.etag, effectiveCacheTime);
   });
-  const spaSource = cmdLine.spa ? transformedSources.find((s) => s.isDefault) : undefined;
+  const spaSource = options.spa ? transformedSources.find((s) => s.isDefault) : undefined;
   const templateData = {
-    config: formatConfiguration(cmdLine),
+    config: formatConfiguration(options),
     now: (() => {
       const d = new Date();
       return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
@@ -1089,16 +1094,16 @@ export const getCppCode = (sources: CppCodeSources, filesByExtension: ExtensionG
     fileGzipSize: sources.reduce((previous, current) => previous + current.contentGzip.length, 0).toString(),
     sources: transformedSources,
     filesByExtension,
-    etag: cmdLine.etag,
-    gzip: cmdLine.gzip,
-    created: cmdLine.created,
-    version: cmdLine.version,
-    methodName: cmdLine.espmethod,
-    definePrefix: cmdLine.define,
-    basePath: cmdLine.basePath,
-    spa: !!cmdLine.spa,
+    etag: options.etag,
+    gzip: options.gzip,
+    created: options.created,
+    version: options.version,
+    methodName: options.espmethod,
+    definePrefix: options.define,
+    basePath: options.basePath,
+    spa: !!options.spa,
     spaSource,
-    isPsychic: cmdLine.engine === 'psychic',
+    isPsychic: options.engine === 'psychic',
     maxUriHandlers: (sources.length + 5).toString()
   };
 
