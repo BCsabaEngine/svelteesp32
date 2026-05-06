@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2026-05-06
+
+### Changed
+
+- **Vite plugin two-mode API**: `svelteESP32()` now has two exclusive modes — pass no argument (or a string path) for RC file mode, or pass an options object for plugin options mode. The two modes no longer merge:
+  - **RC file mode** — `svelteESP32()` or `svelteESP32('/path/to/.svelteesp32rc.json')`: all settings come from the RC file; `outputfile` in the RC file is required.
+  - **Plugin options mode** — `svelteESP32({ output: '...', ... })`: all settings come from the options object; the RC file is completely ignored. `output` is required.
+- **`config` option removed**: The `config` property on `SvelteESP32PluginOptions` has been removed. To point at a custom RC file, pass the path as the first argument: `svelteESP32('/path/to/custom.rc.json')`.
+
 ## [3.0.1] - 2026-05-04
 
 ### Fixed
@@ -684,6 +693,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[3.0.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.0.1...v3.0.2
+[3.0.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.4.1...v3.0.0
 [2.4.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.3.3...v2.4.0

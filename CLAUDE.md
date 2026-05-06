@@ -33,7 +33,7 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 - `src/pipeline.ts` — Core pipeline (`runPipeline()`): compression, MIME types, `--dryrun` mode, `--analyze` mode (per-file size table + budget exit code), `--manifest` (companion JSON file). Exported for programmatic use.
 - `src/commandLine.ts` — CLI parsing (native `process.argv`), RC files, npm variable interpolation, C++ identifier validation. Exports `IRcFileConfig`, `validateBasePath()`, `loadRcFileConfig()`, and `parseArguments()` for use by the Vite plugin and tests.
 - `src/initCommand.ts` — Interactive `npx svelteesp32 init` wizard that creates `.svelteesp32rc.json`
-- `src/vitePlugin.ts` — Vite plugin (`svelteESP32(options)`) that runs `runPipeline()` in `closeBundle()`. Exported via the `./vite` package entry. Loads RC file via `loadRcFileConfig()` and merges with plugin options (plugin options take precedence). `output` is optional when `outputfile` is set in the RC file.
+- `src/vitePlugin.ts` — Vite plugin with two exclusive modes. Exported via the `./vite` package entry. Runs `runPipeline()` in `closeBundle()`. **RC file mode**: `svelteESP32()` or `svelteESP32('/path/to/rc.json')` — loads all settings from the RC file; `outputfile` in RC file is required. **Plugin options mode**: `svelteESP32({ output, ... })` — uses the options object exclusively; RC file is completely ignored; `output` is required. The two modes do not merge.
 - `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists. Symlinks are not followed (`followSymbolicLinks: false`). Files over 50 MB are rejected before read/compress.
 - `src/cppCode.ts` — Handlebars templates for psychic/async/webserver engines (data arrays, etag arrays, manifest, hook sections)
 - `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation
@@ -79,6 +79,10 @@ Test files in `test/unit/`. Fixtures in `test/fixtures/sample-files/`.
 - Mock fs with `vi.mock('node:fs')` and memfs
 - Dynamic imports for commandLine tests (side effects)
 - `test/unit/index.test.ts` uses `makeFileData()` helper at outer scope
+
+## Documentation Conventions
+
+- **README.md "What's New" section**: List only minor and major versions (e.g., v3.0.0, v2.4.0). Patch versions (e.g., v3.0.1, v3.0.2) must not appear — fold their content into the parent minor version entry or omit it.
 
 ## Build Config
 
