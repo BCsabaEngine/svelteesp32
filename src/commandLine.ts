@@ -28,6 +28,7 @@ export interface ICopyFilesArguments {
   spa?: boolean;
   manifest?: boolean;
   help?: boolean;
+  configSource: 'cli' | 'rcfile' | 'vite';
 }
 
 export interface IRcFileConfig {
@@ -513,7 +514,8 @@ export function parseArguments(): ICopyFilesArguments {
     define: 'SVELTEESP32',
     cachetime: 0,
     exclude: [],
-    basePath: ''
+    basePath: '',
+    configSource: 'cli'
   };
 
   // STEP 4: Merge RC file values
@@ -730,10 +732,12 @@ export function parseArguments(): ICopyFilesArguments {
 export { getNpmPackageVariable, hasNpmVariables, interpolateNpmVariables, parseSize, validateCppIdentifier };
 
 export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
+  const relativeOutput = path.relative(process.cwd(), cmdLine.outputfile);
   const parts: string[] = [
+    `source=${cmdLine.configSource}`,
     `engine=${cmdLine.engine}`,
     `sourcepath=${cmdLine.sourcepath}`,
-    `outputfile=${cmdLine.outputfile}`,
+    `outputfile=${relativeOutput}`,
     `etag=${cmdLine.etag}`,
     `gzip=${cmdLine.gzip}`,
     `cachetime=${cmdLine.cachetime}`
