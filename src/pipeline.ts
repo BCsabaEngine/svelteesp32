@@ -243,6 +243,8 @@ export function runPipeline(options: ICopyFilesArguments): void {
   const sources: CppCodeSources = [];
   const filesByExtension: ExtensionGroups = [];
 
+  const sourceLabels = { cli: 'command line', rcfile: 'RC file', vite: 'vite plugin' } as const;
+  console.log(`Config source: ${sourceLabels[options.configSource]}`);
   console.log('Collecting source files');
   const files = getFiles(options);
   if (files.size === 0) throw new Error(`Directory ${options.sourcepath} is empty`);
