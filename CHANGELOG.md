@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Node.js 26 support**: CI now tests against Node.js 22, 24, and 26.
 - **Vite plugin two-mode API**: `svelteESP32()` now has two exclusive modes — pass no argument (or a string path) for RC file mode, or pass an options object for plugin options mode. The two modes no longer merge:
   - **RC file mode** — `svelteESP32()` or `svelteESP32('/path/to/.svelteesp32rc.json')`: all settings come from the RC file; `outputfile` in the RC file is required.
   - **Plugin options mode** — `svelteESP32({ output: '...', ... })`: all settings come from the options object; the RC file is completely ignored. `output` is required.
