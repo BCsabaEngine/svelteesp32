@@ -1,10 +1,5 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-
-const sw = (value: string, cases: Partial<Record<'always' | 'never' | 'compiler', string>>): string =>
-  cases[value as 'always' | 'never' | 'compiler'] ?? '';
-
-const cacheCtrl = (source: TransformedSource): string =>
-  source.cacheTime ? `max-age=${source.cacheTime.value}` : 'no-cache';
+import { cacheCtrl, sw } from './cppCode';
 
 const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): string => {
   const path = `${d.basePath}/${source.filename}`;

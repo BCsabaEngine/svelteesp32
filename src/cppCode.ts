@@ -1,6 +1,9 @@
 import type { ICopyFilesArguments } from './commandLine';
 import { formatConfiguration } from './commandLine';
+import { genAsyncCpp } from './cppCodeAsync';
 import { genEspIdfCpp } from './cppCodeEspIdf';
+import { genPsychicCpp } from './cppCodePsychic';
+import { genWebserverCpp } from './cppCodeWebserver';
 
 export type CppCodeSource = {
   filename: string;
@@ -20,7 +23,7 @@ export type ExtensionGroup = {
 };
 export type ExtensionGroups = ExtensionGroup[];
 
-const sw = (value: string, cases: Partial<Record<'always' | 'never' | 'compiler', string>>): string =>
+export const sw = (value: string, cases: Partial<Record<'always' | 'never' | 'compiler', string>>): string =>
   cases[value as 'always' | 'never' | 'compiler'] ?? '';
 
 const bufferToByteString = (buffer: Buffer): string => {
@@ -65,10 +68,10 @@ export type TemplateData = {
   maxUriHandlers: string;
 };
 
-const cacheCtrl = (source: TransformedSource): string =>
+export const cacheCtrl = (source: TransformedSource): string =>
   source.cacheTime ? `max-age=${source.cacheTime.value}` : 'no-cache';
 
-const genCommonHeader = (d: TemplateData): string => {
+export const genCommonHeader = (d: TemplateData): string => {
   const lines: string[] = [];
   const etagWarn = sw(d.etag, {
     always: [
@@ -111,7 +114,7 @@ const genCommonHeader = (d: TemplateData): string => {
   return lines.join('\n');
 };
 
-const genDataArrays = (d: TemplateData, progmem: boolean): string => {
+export const genDataArrays = (d: TemplateData, progmem: boolean): string => {
   const mem = progmem ? ' PROGMEM' : '';
   const gzipArrays = d.sources
     .map((s) => `static const uint8_t datagzip_${s.dataname}[${s.lengthGzip}]${mem} = { ${s.bytesGzip} };`)
@@ -126,7 +129,7 @@ const genDataArrays = (d: TemplateData, progmem: boolean): string => {
   });
 };
 
-const genEtagArrays = (d: TemplateData): string => {
+export const genEtagArrays = (d: TemplateData): string => {
   const items = d.sources.map((s) => `static const char etag_${s.dataname}[] = "${s.sha256}";`).join('\n');
   return sw(d.etag, {
     always: items,
@@ -134,7 +137,7 @@ const genEtagArrays = (d: TemplateData): string => {
   });
 };
 
-const genManifest = (d: TemplateData): string =>
+export const genManifest = (d: TemplateData): string =>
   [
     `// File manifest struct`,
     `struct ${d.definePrefix}_FileInfo {`,
@@ -154,383 +157,8 @@ const genManifest = (d: TemplateData): string =>
     `static const size_t ${d.definePrefix}_FILE_COUNT = sizeof(${d.definePrefix}_FILES) / sizeof(${d.definePrefix}_FILES[0]);`
   ].join('\n');
 
-const genHook = (d: TemplateData): string =>
+export const genHook = (d: TemplateData): string =>
   `// File served hook - override with your own implementation\nextern "C" void __attribute__((weak)) ${d.definePrefix}_onFileServed(const char* path, int statusCode) {}`;
-
-// Psychic engine
-
-const genPsychicHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
-  const lines: string[] = [];
-  const etagCheck = sw(d.etag, {
-    always: [
-      `    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_${source.dataname})) {`,
-      `      response->setCode(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return response->send();`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_${source.dataname})) {`,
-      `      response->setCode(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return response->send();`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (etagCheck) lines.push(etagCheck);
-  lines.push(`    response->setContentType("${source.mime}");`);
-  const gzipEncoding = sw(d.gzip, {
-    always: source.isGzip ? `    response->addHeader("Content-Encoding", "gzip");` : '',
-    compiler: source.isGzip
-      ? [
-          `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-          `    response->addHeader("Content-Encoding", "gzip");`,
-          `  #endif`
-        ].join('\n')
-      : ''
-  });
-  if (gzipEncoding) lines.push(gzipEncoding);
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
-  lines.push(
-    sw(d.gzip, {
-      always: `    response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
-      never: `    response->setContent(data_${source.dataname}, ${source.length});`,
-      compiler: [
-        `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-        `    response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
-        `  #else`,
-        `    response->setContent(data_${source.dataname}, ${source.length});`,
-        `  #endif`
-      ].join('\n')
-    }),
-    `    ${d.definePrefix}_onFileServed("${path}", 200);`,
-    `    return response->send();`
-  );
-  return lines.join('\n');
-};
-
-const genPsychicCpp = (d: TemplateData): string => {
-  const lines: string[] = [
-    `//engine:   PsychicHttpServer`,
-    `//config:   ${d.config}`,
-    ...(d.created ? [`//created:  ${d.now}`] : []),
-    '//',
-    genCommonHeader(d),
-    '//',
-    '#include <Arduino.h>',
-    '#include <PsychicHttp.h>',
-    '#include <PsychicHttpsServer.h>',
-    '//',
-    genDataArrays(d, false),
-    '//',
-    genEtagArrays(d),
-    '//',
-    genManifest(d),
-    '//',
-    genHook(d),
-    '//',
-    '// Http Handlers',
-    `void ${d.methodName}(PsychicHttpServer * server) {`
-  ];
-  for (const source of d.sources) {
-    const path = `${d.basePath}/${source.filename}`;
-    const serverPrefix = source.isDefault && !d.basePath ? 'server->defaultEndpoint = ' : '';
-    lines.push(
-      '//',
-      `// ${source.filename}`,
-      `  ${serverPrefix}server->on("${path}", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {`,
-      genPsychicHandlerBody(d, source, path),
-      `  });`
-    );
-    if (source.isDefault && d.basePath)
-      lines.push(
-        '//',
-        `// ${source.filename} (base path route)`,
-        `  server->on("${d.basePath}", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {`,
-        genPsychicHandlerBody(d, source, d.basePath),
-        `  });`
-      );
-  }
-  if (d.spa && d.spaSource && d.basePath) {
-    const source = d.spaSource;
-    const path = `${d.basePath}/${source.filename}`;
-    lines.push(
-      '//',
-      `// SPA catch-all: unmatched routes serve ${source.filename}`,
-      `  server->on("${d.basePath}/*", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {`,
-      genPsychicHandlerBody(d, source, path),
-      `  });`
-    );
-  }
-  lines.push('}');
-  return lines.join('\n');
-};
-
-// Async engine
-
-const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
-  const lines: string[] = [];
-  const etagCheck = sw(d.etag, {
-    always: [
-      `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
-      `    if (h && h->value().equals(etag_${source.dataname})) {`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      request->send(304);`,
-      `      return;`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
-      `    if (h && h->value().equals(etag_${source.dataname})) {`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      request->send(304);`,
-      `      return;`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (etagCheck) lines.push(etagCheck);
-  lines.push(
-    sw(d.gzip, {
-      always: [
-        `    AsyncWebServerResponse *response = request->beginResponse(200, "${source.mime}", datagzip_${source.dataname}, ${source.lengthGzip});`,
-        ...(source.isGzip ? [`    response->addHeader("Content-Encoding", "gzip");`] : [])
-      ].join('\n'),
-      never: `    AsyncWebServerResponse *response = request->beginResponse(200, "${source.mime}", data_${source.dataname}, ${source.length});`,
-      compiler: [
-        `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-        `    AsyncWebServerResponse *response = request->beginResponse(200, "${source.mime}", datagzip_${source.dataname}, ${source.lengthGzip});`,
-        ...(source.isGzip ? [`    response->addHeader("Content-Encoding", "gzip");`] : []),
-        `  #else`,
-        `    AsyncWebServerResponse *response = request->beginResponse(200, "${source.mime}", data_${source.dataname}, ${source.length});`,
-        `  #endif`
-      ].join('\n')
-    })
-  );
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
-  lines.push(`    ${d.definePrefix}_onFileServed("${path}", 200);`, `    request->send(response);`);
-  return lines.join('\n');
-};
-
-const genAsyncCpp = (d: TemplateData): string => {
-  const lines: string[] = [
-    `//engine:   ESPAsyncWebServer`,
-    `//config:   ${d.config}`,
-    ...(d.created ? [`//created:  ${d.now}`] : []),
-    '//',
-    genCommonHeader(d),
-    '//',
-    '#include <Arduino.h>',
-    '#include <ESPAsyncWebServer.h>',
-    '//',
-    genDataArrays(d, true),
-    '//',
-    genEtagArrays(d),
-    '//',
-    genManifest(d),
-    '//',
-    genHook(d),
-    '//',
-    '// Http Handlers',
-    `void ${d.methodName}(AsyncWebServer * server) {`
-  ];
-  for (const source of d.sources) {
-    const path = `${d.basePath}/${source.filename}`;
-    const defaultPath = d.basePath || '/';
-    lines.push(
-      '//',
-      `// ${source.filename}`,
-      `  server->on("${path}", HTTP_GET, [](AsyncWebServerRequest * request) {`,
-      genAsyncHandlerBody(d, source, path),
-      `  });`
-    );
-    if (source.isDefault)
-      lines.push(
-        `  server->on("${defaultPath}", HTTP_GET, [](AsyncWebServerRequest * request) {`,
-        genAsyncHandlerBody(d, source, defaultPath),
-        `  });`
-      );
-  }
-  if (d.spa && d.spaSource) {
-    const source = d.spaSource;
-    const path = `${d.basePath}/${source.filename}`;
-    lines.push(
-      '//',
-      `// SPA catch-all: unmatched routes serve ${source.filename}`,
-      `  server->onNotFound([](AsyncWebServerRequest * request) {`,
-      `    if (request->method() != HTTP_GET) { request->send(404); return; }`
-    );
-    if (d.basePath)
-      lines.push(
-        `    if (!request->url().startsWith("${d.basePath}/") && request->url() != "${d.basePath}") { request->send(404); return; }`
-      );
-    lines.push(genAsyncHandlerBody(d, source, path), `  });`);
-  }
-  lines.push('}');
-  return lines.join('\n');
-};
-
-// WebServer engine
-
-const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
-  const lines: string[] = [];
-  const etagCheck = sw(d.etag, {
-    always: [
-      `    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_${source.dataname})) {`,
-      `      server->send(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return;`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_${source.dataname})) {`,
-      `      server->send(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return;`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (etagCheck) lines.push(etagCheck);
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    server->sendHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    server->sendHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    server->sendHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    server->sendHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
-  lines.push(
-    sw(d.gzip, {
-      always: [
-        ...(source.isGzip ? [`    server->sendHeader("Content-Encoding", "gzip");`] : []),
-        `    server->setContentLength(${source.lengthGzip});`,
-        `    server->send(200, "${source.mime}", "");`,
-        `    ${d.definePrefix}_sendChunked(server, datagzip_${source.dataname}, ${source.lengthGzip});`
-      ].join('\n'),
-      never: [
-        `    server->setContentLength(${source.length});`,
-        `    server->send(200, "${source.mime}", "");`,
-        `    ${d.definePrefix}_sendChunked(server, data_${source.dataname}, ${source.length});`
-      ].join('\n'),
-      compiler: [
-        `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-        ...(source.isGzip ? [`    server->sendHeader("Content-Encoding", "gzip");`] : []),
-        `    server->setContentLength(${source.lengthGzip});`,
-        `    server->send(200, "${source.mime}", "");`,
-        `    ${d.definePrefix}_sendChunked(server, datagzip_${source.dataname}, ${source.lengthGzip});`,
-        `  #else`,
-        `    server->setContentLength(${source.length});`,
-        `    server->send(200, "${source.mime}", "");`,
-        `    ${d.definePrefix}_sendChunked(server, data_${source.dataname}, ${source.length});`,
-        `  #endif`
-      ].join('\n')
-    }),
-    `    ${d.definePrefix}_onFileServed("${path}", 200);`
-  );
-  return lines.join('\n');
-};
-
-const genWebserverCpp = (d: TemplateData): string => {
-  const lines: string[] = [
-    `//engine:   Arduino WebServer`,
-    `//config:   ${d.config}`,
-    ...(d.created ? [`//created:  ${d.now}`] : []),
-    '//',
-    genCommonHeader(d),
-    '//',
-    '#include <Arduino.h>',
-    '#include <WebServer.h>',
-    '//',
-    genDataArrays(d, true),
-    '//',
-    genEtagArrays(d),
-    '//',
-    genManifest(d),
-    '//',
-    genHook(d),
-    '//',
-    `// Chunked send helper for PROGMEM data`,
-    `static inline void ${d.definePrefix}_sendChunked(WebServer * server, const uint8_t * data, size_t len) {`,
-    `  const size_t chunkSize = 4096;`,
-    `  for (size_t offset = 0; offset < len; offset += chunkSize) {`,
-    `    size_t remaining = len - offset;`,
-    `    size_t toSend = remaining < chunkSize ? remaining : chunkSize;`,
-    `    server->sendContent_P((const char *)(data + offset), toSend);`,
-    `  }`,
-    `}`,
-    '//',
-    '// Http Handlers',
-    `void ${d.methodName}(WebServer * server) {`
-  ];
-  for (const source of d.sources) {
-    const path = `${d.basePath}/${source.filename}`;
-    const defaultPath = d.basePath || '/';
-    lines.push(
-      '//',
-      `// ${source.filename}`,
-      `  server->on("${path}", HTTP_GET, [server]() {`,
-      genWebserverHandlerBody(d, source, path),
-      `  });`
-    );
-    if (source.isDefault)
-      lines.push(
-        `  server->on("${defaultPath}", HTTP_GET, [server]() {`,
-        genWebserverHandlerBody(d, source, defaultPath),
-        `  });`
-      );
-  }
-  if (d.spa && d.spaSource) {
-    const source = d.spaSource;
-    const path = `${d.basePath}/${source.filename}`;
-    lines.push(
-      '//',
-      `// SPA catch-all: unmatched routes serve ${source.filename}`,
-      `  server->onNotFound([server]() {`,
-      `    if (server->method() != HTTP_GET) { server->send(404, "text/plain", "Not found"); return; }`
-    );
-    if (d.basePath)
-      lines.push(
-        `    if (!server->uri().startsWith("${d.basePath}/") && server->uri() != "${d.basePath}") { server->send(404, "text/plain", "Not found"); return; }`
-      );
-    lines.push(genWebserverHandlerBody(d, source, path), `  });`);
-  }
-  lines.push('}');
-  return lines.join('\n');
-};
 
 const getGenerator = (engine: ICopyFilesArguments['engine']): ((d: TemplateData) => string) => {
   switch (engine) {
