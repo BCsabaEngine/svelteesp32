@@ -77,8 +77,8 @@ Options:
   --espmethod <name>         Name of generated method (default: "initSvelteStaticFiles")
   --define <prefix>          Prefix of c++ defines (default: "SVELTEESP32")
   --cachetime <seconds>      max-age cache time in seconds (default: 0)
-  --cachetime-html <sec>     Cache-Control max-age for HTML files (overrides --cachetime)
-  --cachetime-assets <sec>   Cache-Control max-age for non-HTML assets (overrides --cachetime)
+  --cachetimehtml <sec>      Cache-Control max-age for HTML files (overrides --cachetime)
+  --cachetimeassets <sec>    Cache-Control max-age for non-HTML assets (overrides --cachetime)
   --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
                              Examples: --exclude="*.map" --exclude="test/**/*.ts"
   --basepath <path>          URL prefix for all routes (e.g., "/ui") (default: "")
@@ -581,17 +581,16 @@ export function parseArguments(): ICopyFilesArguments {
         if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${value}`);
         if (result.cachetime < 0) throw new TypeError(`Invalid cachetime: ${value} (must be non-negative)`);
         break;
-      case 'cachetime-html': {
+      case 'cachetimehtml': {
         result.cachetimeHtml = Number.parseInt(value, 10);
-        if (Number.isNaN(result.cachetimeHtml)) throw new TypeError(`Invalid cachetime-html: ${value}`);
-        if (result.cachetimeHtml < 0) throw new TypeError(`Invalid cachetime-html: ${value} (must be non-negative)`);
+        if (Number.isNaN(result.cachetimeHtml)) throw new TypeError(`Invalid cachetimehtml: ${value}`);
+        if (result.cachetimeHtml < 0) throw new TypeError(`Invalid cachetimehtml: ${value} (must be non-negative)`);
         break;
       }
-      case 'cachetime-assets': {
+      case 'cachetimeassets': {
         result.cachetimeAssets = Number.parseInt(value, 10);
-        if (Number.isNaN(result.cachetimeAssets)) throw new TypeError(`Invalid cachetime-assets: ${value}`);
-        if (result.cachetimeAssets < 0)
-          throw new TypeError(`Invalid cachetime-assets: ${value} (must be non-negative)`);
+        if (Number.isNaN(result.cachetimeAssets)) throw new TypeError(`Invalid cachetimeassets: ${value}`);
+        if (result.cachetimeAssets < 0) throw new TypeError(`Invalid cachetimeassets: ${value} (must be non-negative)`);
         break;
       }
       case 'exclude': {
@@ -650,7 +649,7 @@ export function parseArguments(): ICopyFilesArguments {
       continue;
     }
 
-    if (argument === '--dryrun' || argument === '--dry-run') {
+    if (argument === '--dryrun') {
       result.dryRun = true;
       continue;
     }
