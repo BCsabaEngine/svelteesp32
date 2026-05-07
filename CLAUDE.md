@@ -35,8 +35,11 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 - `src/initCommand.ts` — Interactive `npx svelteesp32 init` wizard that creates `.svelteesp32rc.json`
 - `src/vitePlugin.ts` — Vite plugin with two exclusive modes. Exported via the `./vite` package entry. Runs `runPipeline()` in `closeBundle()`. **RC file mode**: `svelteESP32()` or `svelteESP32('/path/to/rc.json')` — loads all settings from the RC file; `outputfile` in RC file is required. **Plugin options mode**: `svelteESP32({ output, ... })` — uses the options object exclusively; RC file is completely ignored; `output` is required. The two modes do not merge.
 - `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists. Symlinks are not followed (`followSymbolicLinks: false`). Files over 50 MB are rejected before read/compress.
-- `src/cppCode.ts` — Handlebars templates for psychic/async/webserver engines (data arrays, etag arrays, manifest, hook sections)
-- `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation
+- `src/cppCode.ts` — Shared C++ code generation utilities: common header, data arrays, ETag arrays, manifest, hook section, `sw()` switch helper; used by all engine modules
+- `src/cppCodePsychic.ts` — PsychicHttpServer engine code generation (`genPsychicCpp`)
+- `src/cppCodeAsync.ts` — ESPAsyncWebServer engine code generation (`genAsyncCpp`)
+- `src/cppCodeWebserver.ts` — Arduino WebServer engine code generation (`genWebserverCpp`)
+- `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation (`genEspIdfCpp`)
 - `src/errorMessages.ts` — Framework-specific error messages
 
 ### Engines
@@ -48,7 +51,7 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 
 ### Pipeline
 
-File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → Handlebars templates → C++ header
+File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → TypeScript code generation (per-engine modules) → C++ header
 
 ### CLI Options
 
