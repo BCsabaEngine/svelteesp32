@@ -2340,9 +2340,9 @@ describe('commandLine', () => {
     });
   });
 
-  describe('cachetime-html and cachetime-assets', () => {
-    it('should parse --cachetime-html with equals format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html=3600'];
+  describe('cachetimehtml and cachetimeassets', () => {
+    it('should parse --cachetimehtml with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimehtml=3600'];
 
       const { parseArguments } = await import('../../src/commandLine');
       const cmdLine = parseArguments();
@@ -2350,8 +2350,8 @@ describe('commandLine', () => {
       expect(cmdLine.cachetimeHtml).toBe(3600);
     });
 
-    it('should parse --cachetime-html with space format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html', '7200'];
+    it('should parse --cachetimehtml with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimehtml', '7200'];
 
       const { parseArguments } = await import('../../src/commandLine');
       const cmdLine = parseArguments();
@@ -2359,8 +2359,8 @@ describe('commandLine', () => {
       expect(cmdLine.cachetimeHtml).toBe(7200);
     });
 
-    it('should parse --cachetime-assets with equals format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets=86400'];
+    it('should parse --cachetimeassets with equals format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimeassets=86400'];
 
       const { parseArguments } = await import('../../src/commandLine');
       const cmdLine = parseArguments();
@@ -2368,8 +2368,8 @@ describe('commandLine', () => {
       expect(cmdLine.cachetimeAssets).toBe(86_400);
     });
 
-    it('should parse --cachetime-assets with space format', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets', '31536000'];
+    it('should parse --cachetimeassets with space format', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimeassets', '31536000'];
 
       const { parseArguments } = await import('../../src/commandLine');
       const cmdLine = parseArguments();
@@ -2395,8 +2395,8 @@ describe('commandLine', () => {
       expect(cmdLine.cachetimeAssets).toBeUndefined();
     });
 
-    it('should accept --cachetime-html=0', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html=0'];
+    it('should accept --cachetimehtml=0', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimehtml=0'];
 
       const { parseArguments } = await import('../../src/commandLine');
       const cmdLine = parseArguments();
@@ -2404,8 +2404,8 @@ describe('commandLine', () => {
       expect(cmdLine.cachetimeHtml).toBe(0);
     });
 
-    it('should accept --cachetime-assets=0', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets=0'];
+    it('should accept --cachetimeassets=0', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimeassets=0'];
 
       const { parseArguments } = await import('../../src/commandLine');
       const cmdLine = parseArguments();
@@ -2413,32 +2413,32 @@ describe('commandLine', () => {
       expect(cmdLine.cachetimeAssets).toBe(0);
     });
 
-    it('should reject non-numeric --cachetime-html', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html=abc'];
+    it('should reject non-numeric --cachetimehtml', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimehtml=abc'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      expect(() => parseArguments()).toThrow('Invalid cachetime-html: abc');
+      expect(() => parseArguments()).toThrow('Invalid cachetimehtml: abc');
     });
 
-    it('should reject negative --cachetime-html', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-html=-1'];
+    it('should reject negative --cachetimehtml', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimehtml=-1'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      expect(() => parseArguments()).toThrow('Invalid cachetime-html: -1 (must be non-negative)');
+      expect(() => parseArguments()).toThrow('Invalid cachetimehtml: -1 (must be non-negative)');
     });
 
-    it('should reject non-numeric --cachetime-assets', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets=abc'];
+    it('should reject non-numeric --cachetimeassets', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimeassets=abc'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      expect(() => parseArguments()).toThrow('Invalid cachetime-assets: abc');
+      expect(() => parseArguments()).toThrow('Invalid cachetimeassets: abc');
     });
 
-    it('should reject negative --cachetime-assets', async () => {
-      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime-assets=-1'];
+    it('should reject negative --cachetimeassets', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimeassets=-1'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      expect(() => parseArguments()).toThrow('Invalid cachetime-assets: -1 (must be non-negative)');
+      expect(() => parseArguments()).toThrow('Invalid cachetimeassets: -1 (must be non-negative)');
     });
 
     it('should load cachetimehtml from RC file', async () => {
@@ -2525,7 +2525,7 @@ describe('commandLine', () => {
       expect(() => parseArguments()).toThrow('Invalid cachetimeassets in RC file');
     });
 
-    it('should allow CLI --cachetime-html to override RC cachetimehtml', async () => {
+    it('should allow CLI --cachetimehtml to override RC cachetimehtml', async () => {
       const mockRcContent = JSON.stringify({ sourcepath: '/test/dist', cachetimehtml: 1800 });
 
       const fsModule = await import('node:fs');
@@ -2533,7 +2533,7 @@ describe('commandLine', () => {
       vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
       vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
 
-      process.argv = ['node', 'script.js', '--cachetime-html=3600'];
+      process.argv = ['node', 'script.js', '--cachetimehtml=3600'];
 
       const { parseArguments } = await import('../../src/commandLine');
       const cmdLine = parseArguments();

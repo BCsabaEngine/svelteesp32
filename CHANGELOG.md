@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-05-11
+
+### BREAKING CHANGES
+
+- **`--cachetime-html` renamed to `--cachetimehtml`**: The CLI flag no longer accepts the hyphenated form. RC file key (`cachetimehtml`) and Vite plugin option were already using the no-dash form since v2.3.0 — now the CLI matches.
+- **`--cachetime-assets` renamed to `--cachetimeassets`**: Same alignment as above.
+- **`--dry-run` alias removed**: Only `--dryrun` is accepted. `--dry-run` now produces an unknown flag error.
+
+### Changed
+
+- **Removed `handlebars` dependency**: C++ code generation is now pure TypeScript string building — no template engine. Eliminates the `handlebars` runtime dependency, reducing install size and startup overhead.
+- **Engine code generation split into dedicated modules**: `cppCode.ts` is now shared utilities only; each engine has its own file — `cppCodePsychic.ts` (`genPsychicCpp`), `cppCodeAsync.ts` (`genAsyncCpp`), `cppCodeWebserver.ts` (`genWebserverCpp`), `cppCodeEspIdf.ts` (`genEspIdfCpp`).
+- Updated dependencies
+
 ## [3.0.2] - 2026-05-06
 
 ### Changed
@@ -694,6 +708,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[3.1.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.0.2...v3.1.0
 [3.0.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v2.4.1...v3.0.0

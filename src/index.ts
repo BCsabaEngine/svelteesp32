@@ -43,3 +43,5 @@ export {
   shouldUseGzip,
   updateExtensionGroup
 } from './pipeline';
+
+if (require.main === module) main();

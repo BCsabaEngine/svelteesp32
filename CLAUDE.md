@@ -35,8 +35,11 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 - `src/initCommand.ts` — Interactive `npx svelteesp32 init` wizard that creates `.svelteesp32rc.json`
 - `src/vitePlugin.ts` — Vite plugin with two exclusive modes. Exported via the `./vite` package entry. Runs `runPipeline()` in `closeBundle()`. **RC file mode**: `svelteESP32()` or `svelteESP32('/path/to/rc.json')` — loads all settings from the RC file; `outputfile` in RC file is required. **Plugin options mode**: `svelteESP32({ output, ... })` — uses the options object exclusively; RC file is completely ignored; `output` is required. The two modes do not merge.
 - `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists. Symlinks are not followed (`followSymbolicLinks: false`). Files over 50 MB are rejected before read/compress.
-- `src/cppCode.ts` — Handlebars templates for psychic/async/webserver engines (data arrays, etag arrays, manifest, hook sections)
-- `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation
+- `src/cppCode.ts` — Shared C++ code generation utilities: common header, data arrays, ETag arrays, manifest, hook section, `sw()` switch helper; used by all engine modules
+- `src/cppCodePsychic.ts` — PsychicHttpServer engine code generation (`genPsychicCpp`)
+- `src/cppCodeAsync.ts` — ESPAsyncWebServer engine code generation (`genAsyncCpp`)
+- `src/cppCodeWebserver.ts` — Arduino WebServer engine code generation (`genWebserverCpp`)
+- `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation (`genEspIdfCpp`)
 - `src/errorMessages.ts` — Framework-specific error messages
 
 ### Engines
@@ -48,11 +51,11 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 
 ### Pipeline
 
-File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → Handlebars templates → C++ header
+File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → TypeScript code generation (per-engine modules) → C++ header
 
 ### CLI Options
 
-`init` (interactive RC file wizard), `-s` (source), `-e` (engine), `-o` (output), `--etag` (always/never/compiler), `--gzip` (always/never/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--analyze` (per-file size table + budget pass/fail, exits 1 on over-budget, mutually exclusive with `--dryrun`), `--spa` (catch-all for SPA client-side routing), `--manifest` (write companion `.manifest.json` alongside header), `--cachetime`, `--cachetime-html` (HTML-only max-age, overrides `--cachetime`), `--cachetime-assets` (non-HTML max-age, overrides `--cachetime`), `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
+`init` (interactive RC file wizard), `-s` (source), `-e` (engine), `-o` (output), `--etag` (always/never/compiler), `--gzip` (always/never/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--analyze` (per-file size table + budget pass/fail, exits 1 on over-budget, mutually exclusive with `--dryrun`), `--spa` (catch-all for SPA client-side routing), `--manifest` (write companion `.manifest.json` alongside header), `--cachetime`, `--cachetimehtml` (HTML-only max-age, overrides `--cachetime`), `--cachetimeassets` (non-HTML max-age, overrides `--cachetime`), `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
 
 RC files: `.svelteesp32rc.json` or `.svelteesp32rc` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation. Prints a warning when loaded from cwd. `outputfile` in RC files must be a relative path (absolute paths throw). Boolean fields (`noindexcheck`, `dryrun`, `analyze`, `spa`, `manifest`, `created`) accept native booleans or string `"true"`/`"false"` (matching `etag`/`gzip` string behaviour).
 
@@ -68,7 +71,7 @@ RC files: `.svelteesp32rc.json` or `.svelteesp32rc` in cwd, home, or `--config=p
 - Data arrays: `static const uint8_t data_*[]` / `static const uint8_t datagzip_*[]` — `static` prevents multiple-definition linker errors when included in more than one TU
 - ETag variables: `static const char etag_*[]` (char array, not pointer) — avoids pointer indirection and keeps `static` linkage
 - `{{definePrefix}}_MAX_URI_HANDLERS`: psychic engine only; `#define` set to `sources.length + 5` for use in `server.config.max_uri_handlers`
-- Per-source cache time: `cacheTime` is computed per file in `transformSourceToTemplateData` — HTML files use `cachetimeHtml ?? cachetime`, non-HTML use `cachetimeAssets ?? cachetime`; templates reference `{{#this.cacheTime}}` (not `{{#../cacheTime}}`)
+- Per-source cache time: `cacheTime` is computed per file in `transformSourceToTemplateData` — HTML files use `cachetimeHtml ?? cachetime`, non-HTML use `cachetimeAssets ?? cachetime`
 
 ## Testing (Vitest)
 

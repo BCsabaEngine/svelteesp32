@@ -56,6 +56,7 @@ export default [
       'unicorn/no-array-reduce': 'off',
       'unicorn/prefer-global-this': 'off',
       'unicorn/no-nested-ternary': 'off',
+      'unicorn/prefer-module': 'off',
       'no-alert': 'error',
       'no-debugger': 'error',
       '@typescript-eslint/consistent-type-imports': [

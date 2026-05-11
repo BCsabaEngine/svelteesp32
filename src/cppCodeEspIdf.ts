@@ -1,269 +1,229 @@
-export const espidfTemplate = `
-//engine:   espidf
-//config:   {{{config}}}
-{{#if created }}
-//created:  {{now}}
-{{/if}}
-//
+import type { TemplateData, TransformedSource } from './cppCode';
+import { cacheCtrl, sw } from './cppCode';
 
-{{#switch etag}}
-{{#case "always"}}
-#ifdef {{definePrefix}}_ENABLE_ETAG
-#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched ON
-#endif
-{{/case}}
-{{#case "never"}}
-#ifdef {{definePrefix}}_ENABLE_ETAG
-#warning {{definePrefix}}_ENABLE_ETAG has no effect because it is permanently switched OFF
-#endif
-{{/case}}
-{{/switch}}
-
-{{#switch gzip}}
-{{#case "always"}}
-#ifdef {{definePrefix}}_ENABLE_GZIP
-#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched ON
-#endif
-{{/case}}
-{{#case "never"}}
-#ifdef {{definePrefix}}_ENABLE_GZIP
-#warning {{definePrefix}}_ENABLE_GZIP has no effect because it is permanently switched OFF
-#endif
-{{/case}}
-{{/switch}}
-
-//
-{{#if version }}
-#define {{definePrefix}}_VERSION "{{version}}"
-{{/if}}
-#define {{definePrefix}}_COUNT {{fileCount}}
-#define {{definePrefix}}_SIZE {{fileSize}}
-#define {{definePrefix}}_SIZE_GZIP {{fileGzipSize}}
-
-//
-{{#each sources}}
-#define {{../definePrefix}}_FILE_{{this.datanameUpperCase}}
-{{/each}}
-
-//
-{{#each filesByExtension}}
-#define {{../definePrefix}}_{{this.extension}}_FILES {{this.count}}
-{{/each}}
-
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <esp_err.h>
-#include <esp_http_server.h>
-
-//
-{{#switch gzip}}
-{{#case "always"}}
-  {{#each sources}}
-static const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
-  {{/each}}
-{{/case}}
-{{#case "never"}}
-  {{#each sources}}
-static const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
-  {{/each}}
-{{/case}}
-{{#case "compiler"}}
-#ifdef {{definePrefix}}_ENABLE_GZIP
-  {{#each sources}}
-static const unsigned char datagzip_{{this.dataname}}[{{this.lengthGzip}}] = { {{this.bytesGzip}} };
-  {{/each}}
-#else
-  {{#each sources}}
-static const unsigned char data_{{this.dataname}}[{{this.length}}] = { {{this.bytes}} };
-  {{/each}}
-#endif 
-{{/case}}
-{{/switch}}
-
-//
-{{#switch etag}}
-{{#case "always"}}
-  {{#each sources}}
-static const char etag_{{this.dataname}}[] = "{{this.sha256}}";
-  {{/each}}
-{{/case}}
-{{#case "never"}}
-{{/case}}
-{{#case "compiler"}}
-#ifdef {{definePrefix}}_ENABLE_ETAG
-  {{#each sources}}
-static const char etag_{{this.dataname}}[] = "{{this.sha256}}";
-  {{/each}}
-#endif
-{{/case}}
-{{/switch}}
-
-// File manifest struct (C-compatible typedef)
-typedef struct {
-  const char* path;
-  uint32_t size;
-  uint32_t gzipSize;
-  const char* etag;
-  const char* contentType;
-} {{definePrefix}}_FileInfo;
-
-// File manifest array
-static const {{definePrefix}}_FileInfo {{definePrefix}}_FILES[] = {
-{{#each sources}}
-  { "{{../basePath}}/{{this.filename}}", {{this.length}}, {{this.gzipSizeForManifest}}, {{this.etagForManifest}}, "{{this.mime}}" },
-{{/each}}
-};
-static const size_t {{definePrefix}}_FILE_COUNT = sizeof({{definePrefix}}_FILES) / sizeof({{definePrefix}}_FILES[0]);
-
-// File served hook - override with your own implementation
-__attribute__((weak)) void {{definePrefix}}_onFileServed(const char* path, int statusCode) {}
-
-{{#each sources}}
-
-static esp_err_t file_handler_{{this.datanameUpperCase}} (httpd_req_t *req)
-{
-{{#switch ../etag}}
-{{#case "always"}}
-    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");
-    if (hdr_len > 0) {
-        char* hdr_value = malloc(hdr_len + 1);
-        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }
-        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {
-            if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
-                free(hdr_value);
-                httpd_resp_set_status(req, "304 Not Modified");
-                {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
-                httpd_resp_send(req, NULL, 0);
-                return ESP_OK;
-            }
-        }
-        free(hdr_value);
-    }
-{{/case}}
-{{#case "compiler"}}
-  #ifdef {{../definePrefix}}_ENABLE_ETAG
-    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");
-    if (hdr_len > 0) {
-        char* hdr_value = malloc(hdr_len + 1);
-        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }
-        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {
-            if (strcmp(hdr_value, etag_{{this.dataname}}) == 0) {
-                free(hdr_value);
-                httpd_resp_set_status(req, "304 Not Modified");
-                {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 304);
-                httpd_resp_send(req, NULL, 0);
-                return ESP_OK;
-            }
-        }
-        free(hdr_value);
-    }
-  #endif
-{{/case}}
-{{/switch}}
-    httpd_resp_set_type(req, "{{this.mime}}");
-{{#switch ../gzip}}
-{{#case "always"}}
-{{#if this.isGzip}}
-    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
-{{/if}}
-{{/case}}
-{{#case "compiler"}}
-  {{#if this.isGzip}}
-  #ifdef {{../definePrefix}}_ENABLE_GZIP
-    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
-  #endif 
-  {{/if}}
-{{/case}}
-{{/switch}}
-
-{{#switch ../etag}}
-{{#case "always"}}
-{{#this.cacheTime}}
-    httpd_resp_set_hdr(req, "Cache-Control", "max-age={{value}}");
-{{/this.cacheTime}}
-{{^this.cacheTime}}
-    httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
-{{/this.cacheTime}}
-    httpd_resp_set_hdr(req, "ETag", etag_{{this.dataname}});
-{{/case}}
-{{#case "compiler"}}
-  #ifdef {{../definePrefix}}_ENABLE_ETAG
-{{#this.cacheTime}}
-    httpd_resp_set_hdr(req, "Cache-Control", "max-age={{value}}");
-{{/this.cacheTime}}
-{{^this.cacheTime}}
-    httpd_resp_set_hdr(req, "Cache-Control", "no-cache");
-{{/this.cacheTime}}
-    httpd_resp_set_hdr(req, "ETag", etag_{{this.dataname}});
-  #endif 
-{{/case}}
-{{/switch}}
-
-{{#switch ../gzip}}
-{{#case "always"}}
-    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
-    httpd_resp_send(req, (const char *)datagzip_{{this.dataname}}, {{this.lengthGzip}});
-{{/case}}
-{{#case "never"}}
-    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
-    httpd_resp_send(req, (const char *)data_{{this.dataname}}, {{this.length}});
-{{/case}}
-{{#case "compiler"}}
-    {{../definePrefix}}_onFileServed("{{../basePath}}/{{this.filename}}", 200);
-  #ifdef {{../definePrefix}}_ENABLE_GZIP
-    httpd_resp_send(req, (const char *)datagzip_{{this.dataname}}, {{this.lengthGzip}});
-  #else
-    httpd_resp_send(req, (const char *)data_{{this.dataname}}, {{this.length}});
-  #endif
-{{/case}}
-{{/switch}}
-    return ESP_OK;
-}
-
-{{#if this.isDefault}}
-static const httpd_uri_t route_def_{{this.datanameUpperCase}} = {
-    .uri = "{{#if ../basePath}}{{../basePath}}{{else}}/{{/if}}",
-    .method = HTTP_GET,
-    .handler = file_handler_{{this.datanameUpperCase}},
-};
-{{/if}}
-
-static const httpd_uri_t route_{{this.datanameUpperCase}} = {
-    .uri = "{{../basePath}}/{{this.filename}}",
-    .method = HTTP_GET,
-    .handler = file_handler_{{this.datanameUpperCase}},
+const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): string => {
+  const path = `${d.basePath}/${source.filename}`;
+  const lines: string[] = [`static esp_err_t file_handler_${source.datanameUpperCase} (httpd_req_t *req)`, '{'];
+  const etagCheck = sw(d.etag, {
+    always: [
+      `    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");`,
+      `    if (hdr_len > 0) {`,
+      `        char* hdr_value = malloc(hdr_len + 1);`,
+      `        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }`,
+      `        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {`,
+      `            if (strcmp(hdr_value, etag_${source.dataname}) == 0) {`,
+      `                free(hdr_value);`,
+      `                httpd_resp_set_status(req, "304 Not Modified");`,
+      `                ${d.definePrefix}_onFileServed("${path}", 304);`,
+      `                httpd_resp_send(req, NULL, 0);`,
+      `                return ESP_OK;`,
+      `            }`,
+      `        }`,
+      `        free(hdr_value);`,
+      `    }`
+    ].join('\n'),
+    compiler: [
+      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
+      `    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");`,
+      `    if (hdr_len > 0) {`,
+      `        char* hdr_value = malloc(hdr_len + 1);`,
+      `        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }`,
+      `        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {`,
+      `            if (strcmp(hdr_value, etag_${source.dataname}) == 0) {`,
+      `                free(hdr_value);`,
+      `                httpd_resp_set_status(req, "304 Not Modified");`,
+      `                ${d.definePrefix}_onFileServed("${path}", 304);`,
+      `                httpd_resp_send(req, NULL, 0);`,
+      `                return ESP_OK;`,
+      `            }`,
+      `        }`,
+      `        free(hdr_value);`,
+      `    }`,
+      `  #endif`
+    ].join('\n')
+  });
+  if (etagCheck) lines.push(etagCheck);
+  lines.push(`    httpd_resp_set_type(req, "${source.mime}");`);
+  const gzipEncoding = sw(d.gzip, {
+    always: source.isGzip ? `    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");` : '',
+    compiler: source.isGzip
+      ? [
+          `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
+          `    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");`,
+          `  #endif`
+        ].join('\n')
+      : ''
+  });
+  if (gzipEncoding) lines.push(gzipEncoding);
+  const cacheHeaders = sw(d.etag, {
+    always: [
+      `    httpd_resp_set_hdr(req, "Cache-Control", "${cacheCtrl(source)}");`,
+      `    httpd_resp_set_hdr(req, "ETag", etag_${source.dataname});`
+    ].join('\n'),
+    compiler: [
+      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
+      `    httpd_resp_set_hdr(req, "Cache-Control", "${cacheCtrl(source)}");`,
+      `    httpd_resp_set_hdr(req, "ETag", etag_${source.dataname});`,
+      `  #endif`
+    ].join('\n')
+  });
+  if (cacheHeaders) lines.push(cacheHeaders);
+  lines.push(
+    sw(d.gzip, {
+      always: [
+        `    ${d.definePrefix}_onFileServed("${path}", 200);`,
+        `    httpd_resp_send(req, (const char *)datagzip_${source.dataname}, ${source.lengthGzip});`
+      ].join('\n'),
+      never: [
+        `    ${d.definePrefix}_onFileServed("${path}", 200);`,
+        `    httpd_resp_send(req, (const char *)data_${source.dataname}, ${source.length});`
+      ].join('\n'),
+      compiler: [
+        `    ${d.definePrefix}_onFileServed("${path}", 200);`,
+        `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
+        `    httpd_resp_send(req, (const char *)datagzip_${source.dataname}, ${source.lengthGzip});`,
+        `  #else`,
+        `    httpd_resp_send(req, (const char *)data_${source.dataname}, ${source.length});`,
+        `  #endif`
+      ].join('\n')
+    }),
+    `    return ESP_OK;`,
+    `}`
+  );
+  if (source.isDefault) {
+    const defaultUri = d.basePath || '/';
+    lines.push(
+      `static const httpd_uri_t route_def_${source.datanameUpperCase} = {`,
+      `    .uri = "${defaultUri}",`,
+      `    .method = HTTP_GET,`,
+      `    .handler = file_handler_${source.datanameUpperCase},`,
+      `};`
+    );
+  }
+  lines.push(
+    `static const httpd_uri_t route_${source.datanameUpperCase} = {`,
+    `    .uri = "${path}",`,
+    `    .method = HTTP_GET,`,
+    `    .handler = file_handler_${source.datanameUpperCase},`,
+    `};`
+  );
+  return lines.join('\n');
 };
 
-{{/each}}
+export const genEspIdfCpp = (d: TemplateData): string => {
+  const lines: string[] = [
+    `//engine:   espidf`,
+    `//config:   ${d.config}`,
+    ...(d.created ? [`//created:  ${d.now}`] : []),
+    '//'
+  ];
+  const etagWarn = sw(d.etag, {
+    always: [
+      `#ifdef ${d.definePrefix}_ENABLE_ETAG`,
+      `#warning ${d.definePrefix}_ENABLE_ETAG has no effect because it is permanently switched ON`,
+      `#endif`
+    ].join('\n'),
+    never: [
+      `#ifdef ${d.definePrefix}_ENABLE_ETAG`,
+      `#warning ${d.definePrefix}_ENABLE_ETAG has no effect because it is permanently switched OFF`,
+      `#endif`
+    ].join('\n')
+  });
+  if (etagWarn) lines.push(etagWarn);
+  const gzipWarn = sw(d.gzip, {
+    always: [
+      `#ifdef ${d.definePrefix}_ENABLE_GZIP`,
+      `#warning ${d.definePrefix}_ENABLE_GZIP has no effect because it is permanently switched ON`,
+      `#endif`
+    ].join('\n'),
+    never: [
+      `#ifdef ${d.definePrefix}_ENABLE_GZIP`,
+      `#warning ${d.definePrefix}_ENABLE_GZIP has no effect because it is permanently switched OFF`,
+      `#endif`
+    ].join('\n')
+  });
+  if (gzipWarn) lines.push(gzipWarn);
+  lines.push('//');
+  if (d.version) lines.push(`#define ${d.definePrefix}_VERSION "${d.version}"`);
+  lines.push(
+    `#define ${d.definePrefix}_COUNT ${d.fileCount}`,
+    `#define ${d.definePrefix}_SIZE ${d.fileSize}`,
+    `#define ${d.definePrefix}_SIZE_GZIP ${d.fileGzipSize}`,
+    '//',
+    ...d.sources.map((s) => `#define ${d.definePrefix}_FILE_${s.datanameUpperCase}`),
+    '//',
+    ...d.filesByExtension.map((g) => `#define ${d.definePrefix}_${g.extension}_FILES ${g.count}`),
+    '#include <stdint.h>',
+    '#include <string.h>',
+    '#include <stdlib.h>',
+    '#include <esp_err.h>',
+    '#include <esp_http_server.h>',
+    '//'
+  );
+  const gzipArrays = d.sources
+    .map((s) => `static const unsigned char datagzip_${s.dataname}[${s.lengthGzip}] = { ${s.bytesGzip} };`)
+    .join('\n');
+  const plainArrays = d.sources
+    .map((s) => `static const unsigned char data_${s.dataname}[${s.length}] = { ${s.bytes} };`)
+    .join('\n');
+  lines.push(
+    sw(d.gzip, {
+      always: gzipArrays,
+      never: plainArrays,
+      compiler: [`#ifdef ${d.definePrefix}_ENABLE_GZIP`, gzipArrays, '#else', plainArrays, '#endif'].join('\n')
+    }),
+    '//'
+  );
+  const etagItems = d.sources.map((s) => `static const char etag_${s.dataname}[] = "${s.sha256}";`).join('\n');
+  const etagBlock = sw(d.etag, {
+    always: etagItems,
+    compiler: [`#ifdef ${d.definePrefix}_ENABLE_ETAG`, etagItems, '#endif'].join('\n')
+  });
+  if (etagBlock) lines.push(etagBlock);
+  lines.push(
+    `// File manifest struct (C-compatible typedef)`,
+    `typedef struct {`,
+    `  const char* path;`,
+    `  uint32_t size;`,
+    `  uint32_t gzipSize;`,
+    `  const char* etag;`,
+    `  const char* contentType;`,
+    `} ${d.definePrefix}_FileInfo;`,
+    `// File manifest array`,
+    `static const ${d.definePrefix}_FileInfo ${d.definePrefix}_FILES[] = {`,
+    ...d.sources.map(
+      (s) =>
+        `  { "${d.basePath}/${s.filename}", ${s.length}, ${s.gzipSizeForManifest}, ${s.etagForManifest}, "${s.mime}" },`
+    ),
+    `};`,
+    `static const size_t ${d.definePrefix}_FILE_COUNT = sizeof(${d.definePrefix}_FILES) / sizeof(${d.definePrefix}_FILES[0]);`,
+    `// File served hook - override with your own implementation`,
+    `__attribute__((weak)) void ${d.definePrefix}_onFileServed(const char* path, int statusCode) {}`
+  );
+  for (const source of d.sources) lines.push(genEspIdfFileHandler(d, source));
+  if (d.spa && d.spaSource) {
+    const source = d.spaSource;
+    lines.push(`static esp_err_t spa_handler_${source.datanameUpperCase}(httpd_req_t *req, httpd_err_code_t err) {`);
+    if (d.basePath)
+      lines.push(
+        `    const char* prefix = "${d.basePath}/";`,
+        `    if (strncmp(req->uri, prefix, strlen(prefix)) != 0 && strcmp(req->uri, "${d.basePath}") != 0) {`,
+        `        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Not found");`,
+        `        return ESP_FAIL;`,
+        `    }`
+      );
 
-{{#if spa}}
-{{#with spaSource}}
-static esp_err_t spa_handler_{{this.datanameUpperCase}}(httpd_req_t *req, httpd_err_code_t err) {
-{{#if ../basePath}}
-    const char* prefix = "{{../basePath}}/";
-    if (strncmp(req->uri, prefix, strlen(prefix)) != 0 && strcmp(req->uri, "{{../basePath}}") != 0) {
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Not found");
-        return ESP_FAIL;
-    }
-{{/if}}
-    return file_handler_{{this.datanameUpperCase}}(req);
-}
-{{/with}}
-{{/if}}
-
-
-static inline void {{methodName}}(httpd_handle_t server) {
-{{#each sources}}
-{{#if this.isDefault}}
-    httpd_register_uri_handler(server, &route_def_{{this.datanameUpperCase}});
-{{/if}}
-    httpd_register_uri_handler(server, &route_{{this.datanameUpperCase}});
-{{/each}}
-{{#if spa}}
-{{#with spaSource}}
-    httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, spa_handler_{{this.datanameUpperCase}});
-{{/with}}
-{{/if}}
-
-}`;
+    lines.push(`    return file_handler_${source.datanameUpperCase}(req);`, `}`);
+  }
+  lines.push(`static inline void ${d.methodName}(httpd_handle_t server) {`);
+  for (const source of d.sources) {
+    if (source.isDefault) lines.push(`    httpd_register_uri_handler(server, &route_def_${source.datanameUpperCase});`);
+    lines.push(`    httpd_register_uri_handler(server, &route_${source.datanameUpperCase});`);
+  }
+  if (d.spa && d.spaSource)
+    lines.push(
+      `    httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, spa_handler_${d.spaSource.datanameUpperCase});`
+    );
+  lines.push('}');
+  return lines.join('\n');
+};
