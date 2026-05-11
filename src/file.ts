@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
-import picomatch from 'picomatch';
 import { globSync } from 'tinyglobby';
 
 import type { ICopyFilesArguments } from './commandLine';
@@ -49,29 +48,6 @@ const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
 };
 
 /**
- * Check if a file matches any of the exclude patterns
- * @param filename - Relative file path to check
- * @param excludePatterns - Array of glob patterns to match against
- * @returns true if file should be excluded
- */
-const isExcluded = (filename: string, excludePatterns: string[]): boolean => {
-  if (excludePatterns.length === 0) return false;
-
-  // Normalize path separators for consistent matching (Windows compatibility)
-  // eslint-disable-next-line unicorn/prefer-string-replace-all
-  const normalizedFilename = filename.replace(/\\/g, '/');
-
-  // Create matcher function for all patterns
-  const isMatch = picomatch(excludePatterns, {
-    dot: true, // Match dotfiles
-    noglobstar: false, // Enable ** for directory recursion
-    matchBase: false // Don't match basename only (require full path)
-  });
-
-  return isMatch(normalizedFilename);
-};
-
-/**
  * Get all files from the source directory, excluding pre-compressed variants
  * @returns Map of filename to file data (content + SHA256 hash)
  */
@@ -91,13 +67,23 @@ export const getFiles = (
   // Filter excluded files
   const excludePatterns = options.exclude;
   const excludedFiles: string[] = [];
-  const filenames = withoutCompressed.filter((filename) => {
-    if (isExcluded(filename, excludePatterns)) {
-      excludedFiles.push(filename);
-      return false;
-    }
-    return true;
-  });
+  let filenames = withoutCompressed;
+
+  if (excludePatterns.length > 0) {
+    const allowedSet = new Set(
+      globSync('**/*', {
+        cwd: options.sourcepath,
+        onlyFiles: true,
+        dot: false,
+        followSymbolicLinks: false,
+        ignore: excludePatterns
+      })
+    );
+    filenames = [];
+    for (const filename of withoutCompressed)
+      if (allowedSet.has(filename)) filenames.push(filename);
+      else excludedFiles.push(filename);
+  }
 
   // Report excluded files
   if (excludedFiles.length > 0) {
