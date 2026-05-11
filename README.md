@@ -88,6 +88,7 @@ void setup() {
 
 ## What's New
 
+- **v3.1.0** — Removed `handlebars` dependency; C++ generation is now pure TypeScript. `--cachetime-html` → `--cachetimehtml`, `--cachetime-assets` → `--cachetimeassets` (CLI now matches RC file keys); `--dry-run` alias removed — use `--dryrun`
 - **v3.0.0** — **Vite plugin** (`import { svelteESP32 } from 'svelteesp32/vite'`) generates the header automatically after every build — call with no argument for RC file mode or pass an options object for plugin-options mode; `npx svelteesp32 init` interactive RC file wizard; Node.js >= 22 required
 - **v2.4.0** — `--analyze` for CI size budget checks (per-file table, exits 1 on over-budget); `--manifest` to write a companion JSON manifest alongside the header
 - **v2.3.0** — `--cachetimehtml` and `--cachetimeassets` for per-type cache control (e.g. `no-cache` for HTML, 1-year for content-hashed JS/CSS)
