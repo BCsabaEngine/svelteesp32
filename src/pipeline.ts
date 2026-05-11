@@ -3,13 +3,46 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-import { lookup as mimeLookup } from 'mime-types';
-
 import type { ICopyFilesArguments } from './commandLine';
 import { greenLog, redLog, yellowLog } from './consoleColor';
 import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from './cppCode';
 import { getMaxUriHandlersHint, getSizeBudgetExceededError } from './errorMessages';
 import { getFiles } from './file';
+
+const MIME_TYPES: Record<string, string> = {
+  html: 'text/html',
+  htm: 'text/html',
+  css: 'text/css',
+  js: 'text/javascript',
+  mjs: 'text/javascript',
+  json: 'application/json',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+  ico: 'image/x-icon',
+  webp: 'image/webp',
+  woff: 'font/woff',
+  woff2: 'font/woff2',
+  ttf: 'font/ttf',
+  otf: 'font/otf',
+  eot: 'application/vnd.ms-fontobject',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  ogg: 'audio/ogg',
+  txt: 'text/plain',
+  xml: 'application/xml',
+  pdf: 'application/pdf',
+  map: 'application/json'
+};
+
+const mimeLookup = (filename: string): string | false => {
+  const extension = path.extname(filename).slice(1).toLowerCase();
+  return MIME_TYPES[extension] ?? false;
+};
 
 // Compression thresholds
 const GZIP_MIN_SIZE = 1024;

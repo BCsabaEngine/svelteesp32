@@ -13,10 +13,6 @@ vi.mock('node:zlib', () => ({
   gzipSync: vi.fn(() => Buffer.from('gzipped'))
 }));
 
-vi.mock('mime-types', () => ({
-  lookup: vi.fn(() => 'text/html')
-}));
-
 vi.mock('../../src/file', () => ({
   getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'abc123' }]]))
 }));
