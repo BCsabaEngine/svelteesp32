@@ -73,6 +73,7 @@
     "@eslint/js": "^10.0.1",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^25.6.2",
+    "@types/picomatch": "^4.0.3",
     "@typescript-eslint/eslint-plugin": "^8.59.3",
     "@typescript-eslint/parser": "^8.59.3",
     "@vitest/coverage-v8": "^4.1.6",
