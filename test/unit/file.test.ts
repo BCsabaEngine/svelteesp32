@@ -161,7 +161,9 @@ describe('file', () => {
       const mockFiles = ['index.html', 'script.js', 'script.js.map', 'style.css'];
       const mockContent = Buffer.from('test content');
 
-      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(tinyglobby.globSync)
+        .mockReturnValueOnce(mockFiles)
+        .mockReturnValueOnce(['index.html', 'script.js', 'style.css']);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
       const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['*.map'] });
@@ -177,7 +179,7 @@ describe('file', () => {
       const mockFiles = ['index.html', 'src/app.js', 'test/unit.test.js', 'test/integration.test.js'];
       const mockContent = Buffer.from('test content');
 
-      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(tinyglobby.globSync).mockReturnValueOnce(mockFiles).mockReturnValueOnce(['index.html', 'src/app.js']);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
       const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['test/**/*.js'] });
@@ -193,7 +195,7 @@ describe('file', () => {
       const mockFiles = ['index.html', 'script.js', 'script.js.map', 'README.md', 'docs.txt'];
       const mockContent = Buffer.from('test content');
 
-      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(tinyglobby.globSync).mockReturnValueOnce(mockFiles).mockReturnValueOnce(['index.html', 'script.js']);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
       const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['*.map', '*.md', '*.txt'] });
@@ -207,7 +209,7 @@ describe('file', () => {
       const mockFiles = ['index.html', '.DS_Store', 'Thumbs.db', '.gitignore'];
       const mockContent = Buffer.from('test content');
 
-      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(tinyglobby.globSync).mockReturnValueOnce(mockFiles).mockReturnValueOnce(['index.html']);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
       const result = getFiles({
@@ -236,7 +238,9 @@ describe('file', () => {
       const mockFiles = [String.raw`src\app.js`, String.raw`test\unit.test.js`];
       const mockContent = Buffer.from('test content');
 
-      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(tinyglobby.globSync)
+        .mockReturnValueOnce(mockFiles)
+        .mockReturnValueOnce([String.raw`src\app.js`]);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
       const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['test/**/*.js'] });
@@ -250,7 +254,7 @@ describe('file', () => {
       const mockFiles = ['index.html', 'script.js.map', 'README.md'];
       const mockContent = Buffer.from('test content');
 
-      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(tinyglobby.globSync).mockReturnValueOnce(mockFiles).mockReturnValueOnce(['index.html']);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
       const consoleLogSpy = vi.spyOn(console, 'log');
@@ -324,7 +328,7 @@ describe('file', () => {
   });
 
   describe('excluded files display', () => {
-    it('should show "... and X more" message when more than 10 files are excluded', async () => {
+    it('should show "... and X more" message when more than 10 files are excluded', () => {
       const mockFiles = [
         'index.html',
         'file1.map',
@@ -342,30 +346,11 @@ describe('file', () => {
         'file13.map',
         'file14.map'
       ];
-      const mockContent = Buffer.from('test content');
 
-      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
-      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+      vi.mocked(tinyglobby.globSync).mockReturnValueOnce(mockFiles).mockReturnValueOnce(['index.html']);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('test content'));
 
-      vi.doMock('picomatch', () => ({
-        default: vi.fn((patterns: string[]) => {
-          return (file: string) => {
-            return patterns.some((pattern) => {
-              if (pattern === '*.map') return file.endsWith('.map');
-              return false;
-            });
-          };
-        })
-      }));
-
-      vi.resetModules();
-      const { getFiles: getFilesReloaded } = await import('../../src/file');
-      const result = getFilesReloaded({
-        sourcepath: '/test/path',
-        engine: 'psychic',
-        exclude: ['*.map'],
-        noIndexCheck: false
-      });
+      const result = getFiles({ ...defaultOptions, noIndexCheck: false, exclude: ['*.map'] });
 
       // Should only have index.html (14 .map files excluded)
       expect(result.size).toBe(1);

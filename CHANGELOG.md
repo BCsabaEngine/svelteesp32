@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-05-12
+
+### Changed
+
+- **Removed `picomatch` dependency**: `--exclude` glob patterns are now passed directly to `tinyglobby`'s `ignore` option. No separate `picomatch` call is made, removing the dependency entirely.
+- **Removed `mime-types` dependency**: MIME type lookup is now handled by a built-in static map in `pipeline.ts`, eliminating the `mime-types` runtime dependency and its `@types/mime-types` dev dependency.
+- Updated dependencies
+
 ## [3.1.0] - 2026-05-11
 
 ### BREAKING CHANGES
