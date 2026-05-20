@@ -23,13 +23,19 @@ npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=alway
 npm run dev:psychic    # psychic engine, no etag/gzip
 npm run dev:async      # async engine, etag+gzip+cachetime
 npm run dev:webserver  # webserver engine, etag+gzip+cachetime
+npm run dev:init       # run the init wizard via tsx (dev mode)
+
+# PlatformIO integration tests (requires PlatformIO installed)
+npm run test:esp32     # build demo/esp32 with PlatformIO
+npm run test:esp32idf  # build demo/esp32idf with PlatformIO
+npm run test:all       # run both PlatformIO integration tests
 ```
 
 ## Architecture
 
 ### Core Files
 
-- `src/index.ts` — CLI entry point; delegates to `commandLine.ts` for argument parsing and `pipeline.ts` for execution
+- `src/index.ts` — CLI entry point; delegates to `commandLine.ts` for argument parsing and `pipeline.ts` for execution. Also re-exports pipeline utilities (`createSourceEntry`, `formatChangeSummary`, `formatAnalyzeTable`, `formatDryRunRoutes`, `formatSize`, `formatSizePrecise`, `shouldUseGzip`, `calculateCompressionRatio`, `updateExtensionGroup`, `PreviousManifestFile`) as the programmatic/test API.
 - `src/pipeline.ts` — Core pipeline (`runPipeline()`): compression, MIME types, `--dryrun` mode, `--analyze` mode (per-file size table + budget exit code), `--manifest` (companion JSON file). Exported for programmatic use.
 - `src/commandLine.ts` — CLI parsing (native `process.argv`), RC files, npm variable interpolation, C++ identifier validation. Exports `IRcFileConfig`, `validateBasePath()`, `loadRcFileConfig()`, and `parseArguments()` for use by the Vite plugin and tests.
 - `src/initCommand.ts` — Interactive `npx svelteesp32 init` wizard that creates `.svelteesp32rc.json`
@@ -41,6 +47,8 @@ npm run dev:webserver  # webserver engine, etag+gzip+cachetime
 - `src/cppCodeWebserver.ts` — Arduino WebServer engine code generation (`genWebserverCpp`)
 - `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation (`genEspIdfCpp`)
 - `src/errorMessages.ts` — Framework-specific error messages
+- `src/consoleColor.ts` — ANSI terminal color helpers (`greenLog`, `yellowLog`, `redLog`, `cyanLog`) used by pipeline output
+- `src/cliInit.mts` — Thin ESM entry point for `npm run dev:init`; calls `runInit()` from `initCommand.ts`
 
 ### Engines
 
@@ -82,6 +90,7 @@ Test files in `test/unit/`. Fixtures in `test/fixtures/sample-files/`.
 - Mock fs with `vi.mock('node:fs')` and memfs
 - Dynamic imports for commandLine tests (side effects)
 - `test/unit/index.test.ts` uses `makeFileData()` helper at outer scope
+- `test/unit/changesummary.test.ts` tests `formatChangeSummary` and `createSourceEntry` via dynamic import of `src/index.ts` (uses `vi.resetModules()` in `beforeEach`)
 
 ## Documentation Conventions
 
