@@ -282,7 +282,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
   const files = getFiles(options);
   if (files.size === 0) throw new Error(`Directory ${options.sourcepath} is empty`);
 
-  if (options.spa && [...files.keys()].every((f) => !(f === 'index.html' || f === 'index.htm')))
+  if (options.spa && files.keys().every((f) => !(f === 'index.html' || f === 'index.htm')))
     console.warn(
       yellowLog(
         '[SvelteESP32] Warning: --spa is set but no index.html/index.htm found; catch-all will not be generated.'
@@ -291,7 +291,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
 
   console.log();
   console.log('Translation to header file');
-  const longestFilename = [...files.keys()].reduce((p, c) => Math.max(c.length, p), 0);
+  const longestFilename = files.keys().reduce((p, c) => Math.max(c.length, p), 0);
 
   for (const [originalFilename, fileData] of files) {
     const { content, hash: sha256 } = fileData;
@@ -391,8 +391,9 @@ export function runPipeline(options: ICopyFilesArguments): void {
         // ignore corrupt manifest
       }
 
+    const now = new Date();
     const manifest = {
-      generated: new Date().toISOString(),
+      generated: now.toISOString(),
       engine: options.engine,
       etag: options.etag,
       gzip: options.gzip,

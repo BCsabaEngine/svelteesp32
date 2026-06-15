@@ -119,9 +119,9 @@ export const getFiles = (
   for (const sameFiles of duplicates) console.log(yellowLog(` ${sameFiles.join(', ')} files appear identical`));
 
   // Check for index.html or index.htm (in root or subdirectories)
-  const hasIndex = [...result.keys()].some(
-    (f) => f === 'index.html' || f === 'index.htm' || f.endsWith('/index.html') || f.endsWith('/index.htm')
-  );
+  const hasIndex = result
+    .keys()
+    .some((f) => f === 'index.html' || f === 'index.htm' || f.endsWith('/index.html') || f.endsWith('/index.htm'));
 
   if (!hasIndex && !options.noIndexCheck) throw new Error(getMissingIndexError(options.engine));
 
