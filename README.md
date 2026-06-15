@@ -370,12 +370,12 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 ## Supported Web Server Engines
 
-| Engine                   | Flag           | Best For                     | Platform        |
-| ------------------------ | -------------- | ---------------------------- | --------------- |
-| **PsychicHttpServer V2** | `-e psychic`   | Maximum performance          | ESP32 only      |
-| **ESPAsyncWebServer**    | `-e async`     | Cross-platform compatibility | ESP32 + ESP8266 |
-| **Arduino WebServer**    | `-e webserver` | No dependencies, simplicity  | ESP32 only      |
-| **Native ESP-IDF**       | `-e espidf`    | Pure ESP-IDF projects        | ESP32 only      |
+| Engine                   | Flag           | Best For                     | Platform        | Library                                                                      |
+| ------------------------ | -------------- | ---------------------------- | --------------- | ---------------------------------------------------------------------------- |
+| **PsychicHttpServer V2** | `-e psychic`   | Maximum performance          | ESP32 only      | [PsychicHttp 2.2.0, 3.1.1](https://github.com/hoeken/PsychicHttp)            |
+| **ESPAsyncWebServer**    | `-e async`     | Cross-platform compatibility | ESP32 + ESP8266 | [ESPAsyncWebServer v3.11.1](https://github.com/ESP32Async/ESPAsyncWebServer) |
+| **Arduino WebServer**    | `-e webserver` | No dependencies, simplicity  | ESP32 only      | (built-in)                                                                   |
+| **Native ESP-IDF**       | `-e espidf`    | Pure ESP-IDF projects        | ESP32 only      | (built-in)                                                                   |
 
 **Recommendation:** For ESP32-only projects, use PsychicHttpServer V2 (`-e psychic`) for the fastest, most stable experience.
 
@@ -745,7 +745,7 @@ platform = espressif32
 board = esp32dev
 framework = arduino
 lib_deps =
-    ESP Async WebServer
+    https://github.com/ESP32Async/ESPAsyncWebServer#v3.11.1
 extra_scripts = pre:scripts/build_frontend.py
 ```
 
