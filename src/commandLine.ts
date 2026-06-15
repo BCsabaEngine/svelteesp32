@@ -116,14 +116,15 @@ RC File:
 }
 
 function validateEngine(value: string): 'psychic' | 'async' | 'espidf' | 'webserver' {
-  if (value === 'psychic' || value === 'async' || value === 'espidf' || value === 'webserver') return value;
+  if (['psychic', 'async', 'espidf', 'webserver'].includes(value))
+    return value as 'psychic' | 'async' | 'espidf' | 'webserver';
 
   console.error(getInvalidEngineError(value));
   process.exit(1);
 }
 
 function validateTriState(value: string, name: string): 'always' | 'never' | 'compiler' {
-  if (value === 'always' || value === 'never' || value === 'compiler') return value;
+  if (['always', 'never', 'compiler'].includes(value)) return value as 'always' | 'never' | 'compiler';
 
   throw new Error(`Invalid ${name}: ${value}`);
 }
@@ -159,7 +160,7 @@ function parseSize(value: string, name: string): number {
   if (!match || !match[1])
     throw new Error(`${name} must be a positive number with optional k/K (×1024) or m/M (×1024²) suffix: ${value}`);
 
-  const numericPart = Number.parseFloat(match[1]);
+  const numericPart = Number(match[1]);
   const suffix = match[2]?.toLowerCase();
 
   let bytes: number;
@@ -480,7 +481,7 @@ export function parseArguments(): ICopyFilesArguments {
     const argument = arguments_[index];
     if (!argument) continue;
 
-    if (argument === '--config' && arguments_[index + 1]) {
+    if (argument === '--config' && arguments_[index + 1] !== undefined) {
       customConfigPath = arguments_[index + 1];
       break;
     }
@@ -492,7 +493,6 @@ export function parseArguments(): ICopyFilesArguments {
 
   // STEP 2: Find and load RC file
   const rcPath = findRcFile(customConfigPath);
-  const rcConfig = rcPath ? loadRcFile(rcPath) : {};
 
   if (rcPath) {
     console.log(cyanLog(`[SvelteESP32] Using config from: ${rcPath}`));
@@ -501,6 +501,8 @@ export function parseArguments(): ICopyFilesArguments {
         yellowLog(`Warning: Loading config from current directory — verify this file is trusted before proceeding.`)
       );
   }
+
+  const rcConfig = rcPath ? loadRcFile(rcPath) : {};
 
   // STEP 3: Initialize with defaults
   const result: Partial<ICopyFilesArguments> = {
@@ -577,18 +579,18 @@ export function parseArguments(): ICopyFilesArguments {
         result.define = validateCppIdentifier(value, 'define');
         break;
       case 'cachetime':
-        result.cachetime = Number.parseInt(value, 10);
+        result.cachetime = Math.trunc(Number(value));
         if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${value}`);
         if (result.cachetime < 0) throw new TypeError(`Invalid cachetime: ${value} (must be non-negative)`);
         break;
       case 'cachetimehtml': {
-        result.cachetimeHtml = Number.parseInt(value, 10);
+        result.cachetimeHtml = Math.trunc(Number(value));
         if (Number.isNaN(result.cachetimeHtml)) throw new TypeError(`Invalid cachetimehtml: ${value}`);
         if (result.cachetimeHtml < 0) throw new TypeError(`Invalid cachetimehtml: ${value} (must be non-negative)`);
         break;
       }
       case 'cachetimeassets': {
-        result.cachetimeAssets = Number.parseInt(value, 10);
+        result.cachetimeAssets = Math.trunc(Number(value));
         if (Number.isNaN(result.cachetimeAssets)) throw new TypeError(`Invalid cachetimeassets: ${value}`);
         if (result.cachetimeAssets < 0) throw new TypeError(`Invalid cachetimeassets: ${value} (must be non-negative)`);
         break;
