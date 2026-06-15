@@ -57,6 +57,8 @@ export default [
       'unicorn/prefer-global-this': 'off',
       'unicorn/no-nested-ternary': 'off',
       'unicorn/prefer-module': 'off',
+      'unicorn/max-nested-calls': 'off',
+      'unicorn/try-complexity': 'off',
       'no-alert': 'error',
       'no-debugger': 'error',
       '@typescript-eslint/consistent-type-imports': [

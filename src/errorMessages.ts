@@ -3,8 +3,8 @@ import path from 'node:path';
 import { cyanLog, redLog, yellowLog } from './consoleColor';
 
 /**
- * Get human-readable engine name
- */
+Get human-readable engine name
+*/
 function getEngineName(engine: string): string {
   const names: Record<string, string> = {
     psychic: 'PsychicHttpServer',
@@ -16,8 +16,8 @@ function getEngineName(engine: string): string {
 }
 
 /**
- * Error: Missing index.html or index.htm
- */
+Error: Missing index.html or index.htm
+*/
 export function getMissingIndexError(engine: string): string {
   const hints: Record<string, string> = {
     psychic: `  1. Add an index.html file to your source directory
@@ -57,8 +57,8 @@ Alternative:
 }
 
 /**
- * Error: Invalid engine specified
- */
+Error: Invalid engine specified
+*/
 export function getInvalidEngineError(attempted: string): string {
   return (
     redLog(`[ERROR] Invalid engine: '${attempted}'`) +
@@ -84,8 +84,8 @@ Documentation: https://github.com/BCsabaEngine/svelteesp32#readme`
 }
 
 /**
- * Error: Source path not found or not a directory
- */
+Error: Source path not found or not a directory
+*/
 export function getSourcepathNotFoundError(sourcepath: string, reason: 'not_found' | 'not_directory'): string {
   if (reason === 'not_directory')
     return (
@@ -134,8 +134,8 @@ Attempted path: ${resolvedPath} (resolved)`
 }
 
 /**
- * Error: Size budget exceeded
- */
+Error: Size budget exceeded
+*/
 export function getSizeBudgetExceededError(type: 'size' | 'gzipSize', limit: number, actual: number): string {
   const typeLabel = type === 'size' ? 'Uncompressed' : 'Gzip';
   const flagName = type === 'size' ? '--maxsize' : '--maxgzipsize';
@@ -167,8 +167,8 @@ CI integration:
 }
 
 /**
- * Hint: max_uri_handlers configuration (console output, not an error)
- */
+Hint: max_uri_handlers configuration (console output, not an error)
+*/
 export function getMaxUriHandlersHint(engine: string, routeCount: number, espmethod = 'initSvelteStaticFiles'): string {
   const recommended = routeCount + 5;
 

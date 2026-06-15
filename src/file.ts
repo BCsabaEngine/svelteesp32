@@ -11,12 +11,12 @@ import { getMissingIndexError } from './errorMessages';
 export type FileData = { content: Buffer; hash: string };
 
 /**
- * Find files with identical content based on pre-computed SHA256 hash
- */
+Find files with identical content based on pre-computed SHA256 hash
+*/
 const findSimilarFiles = (files: Map<string, FileData>): string[][] => {
   const contentComparer: Map<string, string[]> = new Map();
 
-  for (const [filename, fileData] of files.entries()) {
+  for (const [filename, fileData] of files) {
     const existingFiles = contentComparer.get(fileData.hash);
 
     if (existingFiles) existingFiles.push(filename);
@@ -30,8 +30,8 @@ const findSimilarFiles = (files: Map<string, FileData>): string[][] => {
 };
 
 /**
- * Check if a file should be skipped (e.g., pre-compressed files when original exists)
- */
+Check if a file should be skipped (e.g., pre-compressed files when original exists)
+*/
 const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
   const extension = path.extname(filename);
   const compressedExtensions = ['.gz', '.brotli', '.br'];
@@ -48,9 +48,9 @@ const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
 };
 
 /**
- * Get all files from the source directory, excluding pre-compressed variants
- * @returns Map of filename to file data (content + SHA256 hash)
- */
+Get all files from the source directory, excluding pre-compressed variants
+@returns Map of filename to file data (content + SHA256 hash)
+*/
 export const getFiles = (
   options: Pick<ICopyFilesArguments, 'sourcepath' | 'exclude' | 'noIndexCheck' | 'engine'>
 ): Map<string, FileData> => {

@@ -264,8 +264,8 @@ const formatChangeSummary = (sources: CppCodeSources, previousFiles: PreviousMan
 };
 
 /**
- * Core processing pipeline. Throws on error; never calls process.exit.
- */
+Core processing pipeline. Throws on error; never calls process.exit.
+*/
 export function runPipeline(options: ICopyFilesArguments): void {
   const summary: ProcessingSummary = {
     filecount: 0,
@@ -282,7 +282,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
   const files = getFiles(options);
   if (files.size === 0) throw new Error(`Directory ${options.sourcepath} is empty`);
 
-  if (options.spa && ![...files.keys()].some((f) => f === 'index.html' || f === 'index.htm'))
+  if (options.spa && [...files.keys()].every((f) => !(f === 'index.html' || f === 'index.htm')))
     console.warn(
       yellowLog(
         '[SvelteESP32] Warning: --spa is set but no index.html/index.htm found; catch-all will not be generated.'
@@ -383,7 +383,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
       path.basename(options.outputfile, path.extname(options.outputfile)) + '.manifest.json'
     );
 
-    let previousManifest: { files: PreviousManifestFile[] } | undefined;
+    let previousManifest: undefined | { files: PreviousManifestFile[] };
     if (existsSync(manifestPath))
       try {
         previousManifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { files: PreviousManifestFile[] };

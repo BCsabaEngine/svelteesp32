@@ -4,7 +4,7 @@ import type { ICopyFilesArguments, IRcFileConfig } from './commandLine';
 import { loadRcFileConfig, validateBasePath } from './commandLine';
 import { runPipeline } from './pipeline';
 
-// Minimal Vite Plugin interface subset — avoids a hard vite devDependency
+// Minimal Vite Plugin interface subset — avoids a hard Vite devDependency
 interface ResolvedViteConfig {
   build: {
     outDir: string;
@@ -64,15 +64,15 @@ function coerceBool(value: boolean | 'true' | 'false' | undefined): boolean | un
 }
 
 /**
- * Vite plugin for svelteesp32.
- *
- * Call with no argument (or a string RC file path) to load all settings from the RC file:
- *   svelteESP32()
- *   svelteESP32('/path/to/custom.rc.json')
- *
- * Call with an options object to configure entirely from the plugin — the RC file is ignored:
- *   svelteESP32({ output: '../firmware/web.h', engine: 'async' })
- */
+Vite plugin for svelteesp32.
+
+Call with no argument (or a string RC file path) to load all settings from the RC file:
+  svelteESP32()
+  svelteESP32('/path/to/custom.rc.json')
+
+Call with an options object to configure entirely from the plugin — the RC file is ignored:
+  svelteESP32({ output: '../firmware/web.h', engine: 'async' })
+*/
 export function svelteESP32(optionsOrRcPath?: SvelteESP32PluginOptions | string): VitePlugin {
   let outDirectory = 'dist';
 
