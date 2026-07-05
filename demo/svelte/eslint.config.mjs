@@ -33,7 +33,7 @@ export default [
 	},
 	...compat.extends('eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'),
 	...svelte.configs.recommended,
-	unicorn.configs.all,
+	unicorn.configs.recommended,
 	{
 		plugins: {
 			'@typescript-eslint': typescriptEslint,
@@ -60,6 +60,7 @@ export default [
 			'simple-import-sort/exports': 'error',
 			'unicorn/filename-case': 'off',
 			'unicorn/prefer-global-this': 'off',
+			'unicorn/no-top-level-assignment-in-function': 'off',
 			'no-alert': 'error',
 			'no-console': 'error',
 			'no-debugger': 'error'
