@@ -155,24 +155,24 @@ describe('commandLine', () => {
       ];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.engine).toBe('async');
-      expect(cmdLine.sourcepath).toBe('/test/dist');
-      expect(cmdLine.outputfile).toBe('/test/output.h');
-      expect(cmdLine.etag).toBe('always');
-      expect(cmdLine.gzip).toBe('never');
+      expect(commandLine.engine).toBe('async');
+      expect(commandLine.sourcepath).toBe('/test/dist');
+      expect(commandLine.outputfile).toBe('/test/output.h');
+      expect(commandLine.etag).toBe('always');
+      expect(commandLine.gzip).toBe('never');
     });
 
     it('should parse arguments with -flag value format', async () => {
       process.argv = ['node', 'script.js', '-e', 'async', '-s', '/test/dist', '-o', '/test/output.h'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.engine).toBe('async');
-      expect(cmdLine.sourcepath).toBe('/test/dist');
-      expect(cmdLine.outputfile).toBe('/test/output.h');
+      expect(commandLine.engine).toBe('async');
+      expect(commandLine.sourcepath).toBe('/test/dist');
+      expect(commandLine.outputfile).toBe('/test/output.h');
     });
 
     it('should parse arguments with --flag value format', async () => {
@@ -188,65 +188,65 @@ describe('commandLine', () => {
       ];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.engine).toBe('espidf');
-      expect(cmdLine.sourcepath).toBe('/test/dist');
-      expect(cmdLine.outputfile).toBe('/test/output.h');
+      expect(commandLine.engine).toBe('espidf');
+      expect(commandLine.sourcepath).toBe('/test/dist');
+      expect(commandLine.outputfile).toBe('/test/output.h');
     });
 
     it('should parse --etag with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--etag', 'always'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.etag).toBe('always');
+      expect(commandLine.etag).toBe('always');
     });
 
     it('should parse --gzip with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--gzip', 'compiler'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.gzip).toBe('compiler');
+      expect(commandLine.gzip).toBe('compiler');
     });
 
     it('should parse --version with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--version', 'v2.0.0'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.version).toBe('v2.0.0');
+      expect(commandLine.version).toBe('v2.0.0');
     });
 
     it('should parse --espmethod with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--espmethod', 'myMethod'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.espmethod).toBe('myMethod');
+      expect(commandLine.espmethod).toBe('myMethod');
     });
 
     it('should parse --define with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--define', 'MYPREFIX'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.define).toBe('MYPREFIX');
+      expect(commandLine.define).toBe('MYPREFIX');
     });
 
     it('should parse --cachetime with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime', '3600'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetime).toBe(3600);
+      expect(commandLine.cachetime).toBe(3600);
     });
 
     it('should parse --config with space format', async () => {
@@ -262,89 +262,89 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js', '--config', '/custom/config.json'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.engine).toBe('async');
+      expect(commandLine.engine).toBe('async');
     });
 
     it('should use default values when not specified', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.engine).toBe('psychic');
-      expect(cmdLine.outputfile).toBe('svelteesp32.h');
-      expect(cmdLine.etag).toBe('never');
-      expect(cmdLine.gzip).toBe('always');
-      expect(cmdLine.created).toBe(false);
-      expect(cmdLine.version).toBe('');
-      expect(cmdLine.espmethod).toBe('initSvelteStaticFiles');
-      expect(cmdLine.define).toBe('SVELTEESP32');
-      expect(cmdLine.cachetime).toBe(0);
+      expect(commandLine.engine).toBe('psychic');
+      expect(commandLine.outputfile).toBe('svelteesp32.h');
+      expect(commandLine.etag).toBe('never');
+      expect(commandLine.gzip).toBe('always');
+      expect(commandLine.created).toBe(false);
+      expect(commandLine.version).toBe('');
+      expect(commandLine.espmethod).toBe('initSvelteStaticFiles');
+      expect(commandLine.define).toBe('SVELTEESP32');
+      expect(commandLine.cachetime).toBe(0);
     });
 
     it('should parse boolean flags', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--created'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.created).toBe(true);
+      expect(commandLine.created).toBe(true);
     });
 
     it('should parse --noindexcheck flag', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--noindexcheck'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.noIndexCheck).toBe(true);
+      expect(commandLine.noIndexCheck).toBe(true);
     });
 
     it('should parse --spa flag', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--spa'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.spa).toBe(true);
+      expect(commandLine.spa).toBe(true);
     });
 
     it('should have undefined spa by default', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.spa).toBeUndefined();
+      expect(commandLine.spa).toBeUndefined();
     });
 
     it('should have empty basePath by default', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.basePath).toBe('');
+      expect(commandLine.basePath).toBe('');
     });
 
     it('should parse --basepath=/ui with equals format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--basepath=/ui'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.basePath).toBe('/ui');
+      expect(commandLine.basePath).toBe('/ui');
     });
 
     it('should parse --basepath /admin with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--basepath', '/admin'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.basePath).toBe('/admin');
+      expect(commandLine.basePath).toBe('/admin');
     });
 
     it('should parse version, espmethod, define, and cachetime', async () => {
@@ -359,21 +359,21 @@ describe('commandLine', () => {
       ];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.version).toBe('v1.0.0');
-      expect(cmdLine.espmethod).toBe('myMethod');
-      expect(cmdLine.define).toBe('MYPREFIX');
-      expect(cmdLine.cachetime).toBe(86_400);
+      expect(commandLine.version).toBe('v1.0.0');
+      expect(commandLine.espmethod).toBe('myMethod');
+      expect(commandLine.define).toBe('MYPREFIX');
+      expect(commandLine.cachetime).toBe(86_400);
     });
 
     it('should handle value with equals sign in --flag=value format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--outputfile=./out=put.h'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.outputfile).toBe('./out=put.h');
+      expect(commandLine.outputfile).toBe('./out=put.h');
     });
   });
 
@@ -382,84 +382,84 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.exclude).toContain('*.map');
-      expect(cmdLine.exclude).not.toContain('.DS_Store');
+      expect(commandLine.exclude).toContain('*.map');
+      expect(commandLine.exclude).not.toContain('.DS_Store');
     });
 
     it('should parse multiple exclude patterns with repeated flag', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map', '--exclude=*.md'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.exclude).toContain('*.map');
-      expect(cmdLine.exclude).toContain('*.md');
+      expect(commandLine.exclude).toContain('*.map');
+      expect(commandLine.exclude).toContain('*.md');
     });
 
     it('should parse comma-separated exclude patterns', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map,*.md,test/**/*.ts'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.exclude).toContain('*.map');
-      expect(cmdLine.exclude).toContain('*.md');
-      expect(cmdLine.exclude).toContain('test/**/*.ts');
+      expect(commandLine.exclude).toContain('*.map');
+      expect(commandLine.exclude).toContain('*.md');
+      expect(commandLine.exclude).toContain('test/**/*.ts');
     });
 
     it('should combine repeated flags and comma-separated patterns', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map,*.md', '--exclude=test/**/*.ts'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.exclude).toContain('*.map');
-      expect(cmdLine.exclude).toContain('*.md');
-      expect(cmdLine.exclude).toContain('test/**/*.ts');
+      expect(commandLine.exclude).toContain('*.map');
+      expect(commandLine.exclude).toContain('*.md');
+      expect(commandLine.exclude).toContain('test/**/*.ts');
     });
 
     it('should have empty exclude patterns by default', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.exclude).toEqual([]);
+      expect(commandLine.exclude).toEqual([]);
     });
 
     it('should handle patterns with spaces after comma', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map, *.md,  test/**/*.ts'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.exclude).toContain('*.map');
-      expect(cmdLine.exclude).toContain('*.md');
-      expect(cmdLine.exclude).toContain('test/**/*.ts');
+      expect(commandLine.exclude).toContain('*.map');
+      expect(commandLine.exclude).toContain('*.md');
+      expect(commandLine.exclude).toContain('test/**/*.ts');
     });
 
     it('should filter empty patterns after split', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map,,*.md'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.exclude).toContain('*.map');
-      expect(cmdLine.exclude).toContain('*.md');
+      expect(commandLine.exclude).toContain('*.map');
+      expect(commandLine.exclude).toContain('*.md');
       // Empty string should not be in array
-      expect(cmdLine.exclude.filter((p) => p === '').length).toBe(0);
+      expect(commandLine.exclude.filter((p) => p === '').length).toBe(0);
     });
 
     it('should parse exclude pattern with --flag value format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude', '*.map,*.md'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.exclude).toContain('*.map');
-      expect(cmdLine.exclude).toContain('*.md');
+      expect(commandLine.exclude).toContain('*.map');
+      expect(commandLine.exclude).toContain('*.md');
     });
   });
 
@@ -486,8 +486,8 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js', `--engine=${engine}`, '--sourcepath=/test/dist'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
-        expect(cmdLine.engine).toBe(engine);
+        const commandLine = parseArguments();
+        expect(commandLine.engine).toBe(engine);
       }
     });
 
@@ -504,8 +504,8 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js', '--sourcepath=/test/dist', `--etag=${etag}`];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
-        expect(cmdLine.etag).toBe(etag);
+        const commandLine = parseArguments();
+        expect(commandLine.etag).toBe(etag);
       }
     });
 
@@ -581,36 +581,36 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=400000'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(400_000);
+      expect(commandLine.maxSize).toBe(400_000);
     });
 
     it('should parse --maxsize with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize', '500000'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(500_000);
+      expect(commandLine.maxSize).toBe(500_000);
     });
 
     it('should parse --maxgzipsize with equals format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize=150000'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxGzipSize).toBe(150_000);
+      expect(commandLine.maxGzipSize).toBe(150_000);
     });
 
     it('should parse --maxgzipsize with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize', '200000'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxGzipSize).toBe(200_000);
+      expect(commandLine.maxGzipSize).toBe(200_000);
     });
 
     it('should reject non-numeric --maxsize', async () => {
@@ -651,90 +651,90 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBeUndefined();
+      expect(commandLine.maxSize).toBeUndefined();
     });
 
     it('should have undefined maxGzipSize by default', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxGzipSize).toBeUndefined();
+      expect(commandLine.maxGzipSize).toBeUndefined();
     });
 
     it('should parse --maxsize with k suffix', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=400k'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(409_600); // 400 * 1024
+      expect(commandLine.maxSize).toBe(409_600); // 400 * 1024
     });
 
     it('should parse --maxsize with K suffix (uppercase)', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=400K'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(409_600); // 400 * 1024
+      expect(commandLine.maxSize).toBe(409_600); // 400 * 1024
     });
 
     it('should parse --maxsize with m suffix', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=1m'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(1_048_576); // 1 * 1024 * 1024
+      expect(commandLine.maxSize).toBe(1_048_576); // 1 * 1024 * 1024
     });
 
     it('should parse --maxsize with M suffix (uppercase)', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=2M'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(2_097_152); // 2 * 1024 * 1024
+      expect(commandLine.maxSize).toBe(2_097_152); // 2 * 1024 * 1024
     });
 
     it('should parse --maxsize with decimal and k suffix', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=1.5k'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(1536); // 1.5 * 1024
+      expect(commandLine.maxSize).toBe(1536); // 1.5 * 1024
     });
 
     it('should parse --maxsize with decimal and m suffix', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize=1.5m'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(1_572_864); // 1.5 * 1024 * 1024
+      expect(commandLine.maxSize).toBe(1_572_864); // 1.5 * 1024 * 1024
     });
 
     it('should parse --maxgzipsize with k suffix', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize=150k'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxGzipSize).toBe(153_600); // 150 * 1024
+      expect(commandLine.maxGzipSize).toBe(153_600); // 150 * 1024
     });
 
     it('should parse --maxgzipsize with m suffix', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxgzipsize=1m'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxGzipSize).toBe(1_048_576); // 1 * 1024 * 1024
+      expect(commandLine.maxGzipSize).toBe(1_048_576); // 1 * 1024 * 1024
     });
 
     it('should reject invalid suffix (g)', async () => {
@@ -750,9 +750,9 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--maxsize', '500k'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.maxSize).toBe(512_000); // 500 * 1024
+      expect(commandLine.maxSize).toBe(512_000); // 500 * 1024
     });
   });
 
@@ -782,8 +782,7 @@ describe('commandLine', () => {
         const fsModule = await import('node:fs');
         vi.mocked(fsModule.existsSync).mockImplementation((path) => {
           if (path === '/test/dist') return true;
-          if (path.toString().includes('.svelteesp32rc.json')) return true;
-          return false;
+          return Boolean(path.toString().includes('.svelteesp32rc.json'));
         });
         vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
         vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -791,10 +790,10 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.engine).toBe('async');
-        expect(cmdLine.etag).toBe('always');
+        expect(commandLine.engine).toBe('async');
+        expect(commandLine.etag).toBe('always');
         expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Using config from:'));
       });
 
@@ -814,9 +813,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.engine).toBe('async');
+        expect(commandLine.engine).toBe('async');
       });
 
       it('should load RC file from home directory when not in current directory', async () => {
@@ -836,9 +835,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.engine).toBe('espidf');
+        expect(commandLine.engine).toBe('espidf');
       });
 
       it('should use custom config path when --config specified', async () => {
@@ -854,9 +853,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js', '--config=/custom/config.json'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.engine).toBe('async');
+        expect(commandLine.engine).toBe('async');
       });
 
       it('should throw error when custom config file not found', async () => {
@@ -887,12 +886,12 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js', '--etag=always', '--outputfile=cli-output.h'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.engine).toBe('async'); // From RC
-        expect(cmdLine.sourcepath).toBe('/test/dist'); // From RC
-        expect(cmdLine.etag).toBe('always'); // Overridden by CLI
-        expect(cmdLine.outputfile).toBe('cli-output.h'); // Overridden by CLI
+        expect(commandLine.engine).toBe('async'); // From RC
+        expect(commandLine.sourcepath).toBe('/test/dist'); // From RC
+        expect(commandLine.etag).toBe('always'); // Overridden by CLI
+        expect(commandLine.outputfile).toBe('cli-output.h'); // Overridden by CLI
       });
 
       it('should allow sourcepath from RC file only', async () => {
@@ -906,9 +905,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.sourcepath).toBe('/test/dist');
+        expect(commandLine.sourcepath).toBe('/test/dist');
       });
     });
 
@@ -917,9 +916,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.exclude).toEqual([]);
+        expect(commandLine.exclude).toEqual([]);
       });
 
       it('should replace defaults with RC exclude patterns', async () => {
@@ -936,11 +935,11 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.exclude).toContain('*.map');
-        expect(cmdLine.exclude).toContain('*.md');
-        expect(cmdLine.exclude).not.toContain('.DS_Store');
+        expect(commandLine.exclude).toContain('*.map');
+        expect(commandLine.exclude).toContain('*.md');
+        expect(commandLine.exclude).not.toContain('.DS_Store');
       });
 
       it('should replace RC exclude patterns with CLI exclude', async () => {
@@ -957,11 +956,11 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js', '--exclude=*.txt'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.exclude).toContain('*.txt'); // From CLI
-        expect(cmdLine.exclude).not.toContain('*.map'); // RC replaced
-        expect(cmdLine.exclude).not.toContain('.DS_Store');
+        expect(commandLine.exclude).toContain('*.txt'); // From CLI
+        expect(commandLine.exclude).not.toContain('*.map'); // RC replaced
+        expect(commandLine.exclude).not.toContain('.DS_Store');
       });
     });
 
@@ -1083,9 +1082,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.basePath).toBe('/admin');
+        expect(commandLine.basePath).toBe('/admin');
       });
 
       it('should validate basepath from RC file', async () => {
@@ -1119,9 +1118,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.maxSize).toBe(500_000);
+        expect(commandLine.maxSize).toBe(500_000);
       });
 
       it('should load maxgzipsize from RC file', async () => {
@@ -1138,9 +1137,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.maxGzipSize).toBe(200_000);
+        expect(commandLine.maxGzipSize).toBe(200_000);
       });
 
       it('should validate maxsize is a positive number in RC file', async () => {
@@ -1205,9 +1204,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.maxSize).toBe(409_600); // 400 * 1024
+        expect(commandLine.maxSize).toBe(409_600); // 400 * 1024
       });
 
       it('should load maxsize with m suffix from RC file', async () => {
@@ -1224,9 +1223,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.maxSize).toBe(1_572_864); // 1.5 * 1024 * 1024
+        expect(commandLine.maxSize).toBe(1_572_864); // 1.5 * 1024 * 1024
       });
 
       it('should load maxgzipsize with k suffix from RC file', async () => {
@@ -1243,9 +1242,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.maxGzipSize).toBe(153_600); // 150 * 1024
+        expect(commandLine.maxGzipSize).toBe(153_600); // 150 * 1024
       });
 
       it('should reject invalid suffix in maxsize from RC file', async () => {
@@ -1280,9 +1279,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.noIndexCheck).toBe(true);
+        expect(commandLine.noIndexCheck).toBe(true);
       });
 
       it('should validate noindexcheck is a boolean in RC file', async () => {
@@ -1315,9 +1314,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js', '--noindexcheck'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.noIndexCheck).toBe(true);
+        expect(commandLine.noIndexCheck).toBe(true);
       });
 
       it('should load spa from RC file', async () => {
@@ -1334,9 +1333,9 @@ describe('commandLine', () => {
         process.argv = ['node', 'script.js'];
 
         const { parseArguments } = await import('../../src/commandLine');
-        const cmdLine = parseArguments();
+        const commandLine = parseArguments();
 
-        expect(cmdLine.spa).toBe(true);
+        expect(commandLine.spa).toBe(true);
       });
 
       it('should validate spa is a boolean in RC file', async () => {
@@ -1789,8 +1788,7 @@ describe('commandLine', () => {
           vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
             if (path.includes('package.json')) return true;
             if (path.includes('.svelteesp32rc')) return true;
-            if (path === '/test/dist') return true;
-            return false;
+            return path === '/test/dist';
           });
 
           vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
@@ -1818,8 +1816,7 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
             if (path.includes('package.json')) return false; // package.json doesn't exist
-            if (path.includes('.svelteesp32rc')) return true;
-            return false;
+            return Boolean(path.includes('.svelteesp32rc'));
           });
 
           vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
@@ -1936,7 +1933,7 @@ describe('commandLine', () => {
     });
   });
 
-  describe('formatConfiguration', () => {
+  describe('formatConfig', () => {
     beforeEach(() => {
       vi.resetModules();
       process.argv = [
@@ -1964,8 +1961,8 @@ describe('commandLine', () => {
         noindexcheck: false
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
 
       expect(result).toContain('source=cli');
       expect(result).toContain('engine=psychic');
@@ -1991,8 +1988,8 @@ describe('commandLine', () => {
         created: true
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('created=true');
     });
 
@@ -2010,8 +2007,8 @@ describe('commandLine', () => {
         noindexcheck: false
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).not.toContain('created=');
     });
 
@@ -2030,8 +2027,8 @@ describe('commandLine', () => {
         version: 'v1.2.3'
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('version=v1.2.3');
     });
 
@@ -2049,8 +2046,8 @@ describe('commandLine', () => {
         noindexcheck: false
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).not.toContain('version=');
     });
 
@@ -2069,8 +2066,8 @@ describe('commandLine', () => {
         espmethod: 'GET'
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('espmethod=GET');
     });
 
@@ -2089,8 +2086,8 @@ describe('commandLine', () => {
         define: 'MY_DEFINE'
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('define=MY_DEFINE');
     });
 
@@ -2109,8 +2106,8 @@ describe('commandLine', () => {
         basePath: '/admin'
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('basePath=/admin');
     });
 
@@ -2129,8 +2126,8 @@ describe('commandLine', () => {
         basePath: ''
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).not.toContain('basePath=');
     });
 
@@ -2148,8 +2145,8 @@ describe('commandLine', () => {
         noindexcheck: false
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('exclude=[*.map, *.md]');
     });
 
@@ -2167,8 +2164,8 @@ describe('commandLine', () => {
         noindexcheck: false
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).not.toContain('exclude=');
     });
 
@@ -2187,8 +2184,8 @@ describe('commandLine', () => {
         maxSize: 500_000
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('maxSize=500000');
     });
 
@@ -2207,8 +2204,8 @@ describe('commandLine', () => {
         maxGzipSize: 200_000
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('maxGzipSize=200000');
     });
 
@@ -2226,8 +2223,8 @@ describe('commandLine', () => {
         noindexcheck: false
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).not.toContain('maxSize=');
       expect(result).not.toContain('maxGzipSize=');
     });
@@ -2250,8 +2247,8 @@ describe('commandLine', () => {
         define: 'MY_APP'
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('created=true');
       expect(result).toContain('version=v1.0.0');
       expect(result).toContain('espmethod=GET');
@@ -2273,8 +2270,8 @@ describe('commandLine', () => {
         noindexcheck: false
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).not.toContain('created=');
       expect(result).not.toContain('version=');
       expect(result).not.toContain('espmethod=');
@@ -2296,8 +2293,8 @@ describe('commandLine', () => {
         exclude: []
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('cachetimeHtml=0');
     });
 
@@ -2315,8 +2312,8 @@ describe('commandLine', () => {
         exclude: []
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).toContain('cachetimeAssets=31536000');
     });
 
@@ -2333,8 +2330,8 @@ describe('commandLine', () => {
         exclude: []
       };
 
-      const { formatConfiguration } = await import('../../src/commandLine');
-      const result = formatConfiguration(mockConfig);
+      const { formatConfig } = await import('../../src/commandLine');
+      const result = formatConfig(mockConfig);
       expect(result).not.toContain('cachetimeHtml=');
       expect(result).not.toContain('cachetimeAssets=');
     });
@@ -2345,72 +2342,72 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimehtml=3600'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeHtml).toBe(3600);
+      expect(commandLine.cachetimeHtml).toBe(3600);
     });
 
     it('should parse --cachetimehtml with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimehtml', '7200'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeHtml).toBe(7200);
+      expect(commandLine.cachetimeHtml).toBe(7200);
     });
 
     it('should parse --cachetimeassets with equals format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimeassets=86400'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeAssets).toBe(86_400);
+      expect(commandLine.cachetimeAssets).toBe(86_400);
     });
 
     it('should parse --cachetimeassets with space format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimeassets', '31536000'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeAssets).toBe(31_536_000);
+      expect(commandLine.cachetimeAssets).toBe(31_536_000);
     });
 
     it('should default cachetimeHtml to undefined', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeHtml).toBeUndefined();
+      expect(commandLine.cachetimeHtml).toBeUndefined();
     });
 
     it('should default cachetimeAssets to undefined', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeAssets).toBeUndefined();
+      expect(commandLine.cachetimeAssets).toBeUndefined();
     });
 
     it('should accept --cachetimehtml=0', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimehtml=0'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeHtml).toBe(0);
+      expect(commandLine.cachetimeHtml).toBe(0);
     });
 
     it('should accept --cachetimeassets=0', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetimeassets=0'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeAssets).toBe(0);
+      expect(commandLine.cachetimeAssets).toBe(0);
     });
 
     it('should reject non-numeric --cachetimehtml', async () => {
@@ -2452,9 +2449,9 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeHtml).toBe(3600);
+      expect(commandLine.cachetimeHtml).toBe(3600);
     });
 
     it('should load cachetimeassets from RC file', async () => {
@@ -2468,9 +2465,9 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeAssets).toBe(86_400);
+      expect(commandLine.cachetimeAssets).toBe(86_400);
     });
 
     it('should validate cachetimehtml type in RC file', async () => {
@@ -2536,9 +2533,9 @@ describe('commandLine', () => {
       process.argv = ['node', 'script.js', '--cachetimehtml=3600'];
 
       const { parseArguments } = await import('../../src/commandLine');
-      const cmdLine = parseArguments();
+      const commandLine = parseArguments();
 
-      expect(cmdLine.cachetimeHtml).toBe(3600);
+      expect(commandLine.cachetimeHtml).toBe(3600);
     });
   });
 });

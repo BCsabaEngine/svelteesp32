@@ -1,5 +1,5 @@
 import type { ICopyFilesArguments } from './commandLine';
-import { formatConfiguration } from './commandLine';
+import { formatConfig } from './commandLine';
 import { genAsyncCpp } from './cppCodeAsync';
 import { genEspIdfCpp } from './cppCodeEspIdf';
 import { genPsychicCpp } from './cppCodePsychic';
@@ -76,18 +76,18 @@ export const computeRouteCount = (
   sources: CppCodeSources,
   engine: ICopyFilesArguments['engine'],
   basePath: string,
-  spa: boolean
+  isSpa: boolean
 ): number => {
   const numberDefault = sources.filter((s) => s.filename === 'index.html' || s.filename === 'index.htm').length;
   const hasDefault = numberDefault > 0;
   if (engine === 'psychic') {
     // psychic aliases the default route onto the existing handler when basePath is empty, so no extra handler is registered
     const defaultExtra = basePath ? numberDefault : 0;
-    const spaExtra = spa && hasDefault && basePath ? 1 : 0;
+    const spaExtra = isSpa && hasDefault && basePath ? 1 : 0;
     return sources.length + defaultExtra + spaExtra;
   }
   // espidf/async/webserver always register a separate default-route handler and a separate SPA/404 handler
-  const spaExtra = spa && hasDefault ? 1 : 0;
+  const spaExtra = isSpa && hasDefault ? 1 : 0;
   return sources.length + numberDefault + spaExtra;
 };
 
@@ -138,8 +138,8 @@ export const genCommonHeader = (d: TemplateData): string => {
   return lines.join('\n');
 };
 
-export const genDataArrays = (d: TemplateData, progmem: boolean): string => {
-  const mem = progmem ? ' PROGMEM' : '';
+export const genDataArrays = (d: TemplateData, isProgmem: boolean): string => {
+  const mem = isProgmem ? ' PROGMEM' : '';
   const gzipArrays = d.sources
     .map((s) => `static const uint8_t datagzip_${s.dataname}[${s.lengthGzip}]${mem} = { ${s.bytesGzip} };`)
     .join('\n');
@@ -221,7 +221,7 @@ export const getCppCode = (
   const spaSource = options.spa ? transformedSources.find((s) => s.isDefault) : undefined;
   const routeCount = computeRouteCount(sources, options.engine, options.basePath, !!options.spa);
   const templateData: TemplateData = {
-    config: formatConfiguration(options),
+    config: formatConfig(options),
     now: (() => {
       const d = new Date();
       return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
