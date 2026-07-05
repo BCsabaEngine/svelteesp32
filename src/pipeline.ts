@@ -5,7 +5,13 @@ import { gzipSync } from 'node:zlib';
 
 import type { ICopyFilesArguments } from './commandLine';
 import { greenLog, redLog, yellowLog } from './consoleColor';
-import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from './cppCode';
+import {
+  computeRouteCount,
+  type CppCodeSource,
+  type CppCodeSources,
+  type ExtensionGroups,
+  getCppCode
+} from './cppCode';
 import { getMaxUriHandlersHint, getSizeBudgetExceededError } from './errorMessages';
 import { getFiles } from './file';
 
@@ -417,7 +423,14 @@ export function runPipeline(options: ICopyFilesArguments): void {
 
   // Show max_uri_handlers hint for applicable engines
   if (options.engine === 'psychic' || options.engine === 'espidf')
-    console.log('\n' + getMaxUriHandlersHint(options.engine, sources.length, options.espmethod));
+    console.log(
+      '\n' +
+        getMaxUriHandlersHint(
+          options.engine,
+          computeRouteCount(sources, options.engine, options.basePath, !!options.spa),
+          options.espmethod
+        )
+    );
 }
 
 export {

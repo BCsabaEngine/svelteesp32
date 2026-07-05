@@ -149,6 +149,8 @@ export const genEspIdfCpp = (d: TemplateData): string => {
     `#define ${d.definePrefix}_COUNT ${d.fileCount}`,
     `#define ${d.definePrefix}_SIZE ${d.fileSize}`,
     `#define ${d.definePrefix}_SIZE_GZIP ${d.fileGzipSize}`,
+    `#define ${d.definePrefix}_URI_HANDLERS ${d.uriHandlers}`,
+    `#define ${d.definePrefix}_MAX_URI_HANDLERS ${d.maxUriHandlers}`,
     '//',
     ...d.sources.map((s) => `#define ${d.definePrefix}_FILE_${s.datanameUpperCase}`),
     '//',
