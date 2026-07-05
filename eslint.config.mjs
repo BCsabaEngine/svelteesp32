@@ -25,7 +25,7 @@ export default [
   js.configs.recommended,
   ...typescriptEslint.configs['flat/recommended'],
   prettierConfig,
-  unicorn.configs.all,
+  unicorn.configs.recommended,
   {
     files: ['test/fixtures/**/*.js'],
     languageOptions: {
