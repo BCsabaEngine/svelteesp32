@@ -5,14 +5,8 @@ import { gzipSync } from 'node:zlib';
 
 import type { ICopyFilesArguments } from './commandLine';
 import { greenLog, redLog, yellowLog } from './consoleColor';
-import {
-  computeRouteCount,
-  type CppCodeSource,
-  type CppCodeSources,
-  type ExtensionGroups,
-  getCppCode
-} from './cppCode';
-import { getMaxUriHandlersHint, getSizeBudgetExceededError } from './errorMessages';
+import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from './cppCode';
+import { getSizeBudgetExceededError } from './errorMessages';
 import { getFiles } from './file';
 
 const MIME_TYPES: Record<string, string> = {
@@ -420,17 +414,6 @@ export function runPipeline(options: ICopyFilesArguments): void {
 
     if (previousManifest) console.log(formatChangeSummary(sources, previousManifest.files));
   }
-
-  // Show max_uri_handlers hint for applicable engines
-  if (options.engine === 'psychic' || options.engine === 'espidf')
-    console.log(
-      '\n' +
-        getMaxUriHandlersHint(
-          options.engine,
-          computeRouteCount(sources, options.engine, options.basePath, !!options.spa),
-          options.espmethod
-        )
-    );
 }
 
 export {
