@@ -3,6 +3,7 @@ import type * as zlib from 'node:zlib';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as CppCodeModule from '../../src/cppCode';
 import type { ExtensionGroup, getCppCode } from '../../src/cppCode';
 import type { getFiles } from '../../src/file';
 import type * as IndexModule from '../../src/index';
@@ -23,7 +24,8 @@ vi.mock('../../src/file', () => ({
   getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'mock-sha256-hash' }]]))
 }));
 
-vi.mock('../../src/cppCode', () => ({
+vi.mock('../../src/cppCode', async (importOriginal) => ({
+  ...(await importOriginal<typeof CppCodeModule>()),
   getCppCode: vi.fn(() => 'mock-cpp-code')
 }));
 

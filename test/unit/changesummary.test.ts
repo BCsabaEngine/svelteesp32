@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as CppCodeModule from '../../src/cppCode';
 import type * as IndexModule from '../../src/index';
 
 vi.mock('node:fs', () => ({
@@ -17,7 +18,8 @@ vi.mock('../../src/file', () => ({
   getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'abc123' }]]))
 }));
 
-vi.mock('../../src/cppCode', () => ({
+vi.mock('../../src/cppCode', async (importOriginal) => ({
+  ...(await importOriginal<typeof CppCodeModule>()),
   getCppCode: vi.fn(() => 'mock-cpp-code')
 }));
 

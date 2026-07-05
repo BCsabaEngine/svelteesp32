@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from '../../src/cppCode';
+import {
+  computeRouteCount,
+  type CppCodeSource,
+  type CppCodeSources,
+  type ExtensionGroups,
+  getCppCode
+} from '../../src/cppCode';
 
 const mockOptions = {
   sourcepath: '/test/path',
@@ -34,6 +40,41 @@ const createMockSource = (filename: string, content: string): CppCodeSource => (
 const createMockAssetSource = (filename: string, content: string): CppCodeSource => ({
   ...createMockSource(filename, content),
   mime: 'text/css'
+});
+
+describe('computeRouteCount (issue #120)', () => {
+  const sourcesWithIndex: CppCodeSources = [
+    createMockSource('index.html', '<html></html>'),
+    createMockAssetSource('style.css', 'body{}')
+  ];
+  const sourcesWithoutIndex: CppCodeSources = [
+    createMockAssetSource('app.js', 'console.log()'),
+    createMockAssetSource('style.css', 'body{}')
+  ];
+
+  it('espidf/async/webserver: counts the default-route registration unconditionally when index.html is present', () => {
+    expect(computeRouteCount(sourcesWithIndex, 'espidf', '', false)).toBe(3);
+    expect(computeRouteCount(sourcesWithIndex, 'async', '/ui', false)).toBe(3);
+    expect(computeRouteCount(sourcesWithIndex, 'webserver', '', false)).toBe(3);
+  });
+
+  it('espidf/async/webserver: adds one more handler for the SPA catch-all', () => {
+    expect(computeRouteCount(sourcesWithIndex, 'espidf', '', true)).toBe(4);
+  });
+
+  it('does not add default-route/SPA extras when there is no index.html/index.htm', () => {
+    expect(computeRouteCount(sourcesWithoutIndex, 'espidf', '', true)).toBe(2);
+  });
+
+  it('psychic: aliases the default route (no extra) when basePath is empty', () => {
+    expect(computeRouteCount(sourcesWithIndex, 'psychic', '', false)).toBe(2);
+    expect(computeRouteCount(sourcesWithIndex, 'psychic', '', true)).toBe(2);
+  });
+
+  it('psychic: counts the extra default-route and SPA catch-all only when basePath is set', () => {
+    expect(computeRouteCount(sourcesWithIndex, 'psychic', '/ui', false)).toBe(3);
+    expect(computeRouteCount(sourcesWithIndex, 'psychic', '/ui', true)).toBe(4);
+  });
 });
 
 describe('cppCode', () => {
@@ -74,7 +115,7 @@ describe('cppCode', () => {
       expect(result).toContain('#define SVELTEESP32_SIZE_GZIP');
     });
 
-    it('should generate MAX_URI_HANDLERS define for psychic engine', () => {
+    it('should generate URI_HANDLERS and MAX_URI_HANDLERS defines for psychic engine', () => {
       const sources: CppCodeSources = [
         createMockSource('index.html', '<html></html>'),
         createMockSource('style.css', 'body{}')
@@ -82,10 +123,11 @@ describe('cppCode', () => {
 
       const result = getCppCode(sources, mockFilesByExtension, mockOptions);
 
+      expect(result).toContain('#define SVELTEESP32_URI_HANDLERS 2');
       expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 7');
     });
 
-    it('should not generate MAX_URI_HANDLERS define for async engine', () => {
+    it('should not generate URI_HANDLERS or MAX_URI_HANDLERS defines for async engine', () => {
       const sources: CppCodeSources = [
         createMockSource('index.html', '<html></html>'),
         createMockSource('style.css', 'body{}')
@@ -97,7 +139,32 @@ describe('cppCode', () => {
         cachetime: 0
       });
 
-      expect(result).not.toContain('MAX_URI_HANDLERS');
+      expect(result).not.toContain('URI_HANDLERS');
+    });
+
+    it('should count the extra default-route registration for URI_HANDLERS/MAX_URI_HANDLERS when basePath is set (issue #120)', () => {
+      const sources: CppCodeSources = [
+        createMockSource('index.html', '<html></html>'),
+        createMockSource('style.css', 'body{}')
+      ];
+
+      // basePath set: index.html gets its own route AND a basePath default route (+1 vs. the no-basePath case)
+      const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, basePath: '/ui' });
+
+      expect(result).toContain('#define SVELTEESP32_URI_HANDLERS 3');
+      expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 8');
+    });
+
+    it('should count the extra SPA catch-all for URI_HANDLERS/MAX_URI_HANDLERS when spa and basePath are set (issue #120)', () => {
+      const sources: CppCodeSources = [
+        createMockSource('index.html', '<html></html>'),
+        createMockSource('style.css', 'body{}')
+      ];
+
+      const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, basePath: '/ui', spa: true });
+
+      expect(result).toContain('#define SVELTEESP32_URI_HANDLERS 4');
+      expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 9');
     });
 
     it('should generate file defines for each source', () => {

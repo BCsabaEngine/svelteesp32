@@ -500,6 +500,46 @@ describe('cppCodeEspIdf', () => {
     });
   });
 
+  describe('URI_HANDLERS / MAX_URI_HANDLERS defines (issue #120)', () => {
+    it('should account for the extra default-route registration when index.html is present', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, version: '', cachetime: 0 });
+
+      // 1 file + 1 default-route registration
+      expect(result).toContain('#define SVELTEESP32_URI_HANDLERS 2');
+      // ...+ 5 safety margin
+      expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 7');
+    });
+
+    it('should add one more handler on top of that when spa is true', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension, {
+        ...mockOptions,
+        version: '',
+        cachetime: 0,
+        spa: true
+      });
+
+      // 1 file + 1 default-route registration + 1 SPA err-handler
+      expect(result).toContain('#define SVELTEESP32_URI_HANDLERS 3');
+      // ...+ 5 safety margin
+      expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 8');
+    });
+
+    it('should not add a default-route extra when there is no index.html/index.htm', () => {
+      const sources: CppCodeSources = [
+        createMockSource('app.js', 'console.log()'),
+        createMockSource('style.css', 'body{}')
+      ];
+      const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, version: '', cachetime: 0 });
+
+      // 2 files + 0 default-route extra
+      expect(result).toContain('#define SVELTEESP32_URI_HANDLERS 2');
+      // ...+ 5 safety margin
+      expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 7');
+    });
+  });
+
   describe('SPA catch-all', () => {
     it('should not generate spa_handler when spa is false', async () => {
       const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
