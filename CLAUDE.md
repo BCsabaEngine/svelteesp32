@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines.
+TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines. Requires Node.js >= 22, npm >= 10 (see `engines` in `package.json`).
 
 ## Commands
 
@@ -41,12 +41,12 @@ npm run test:all       # run both PlatformIO integration tests
 - `src/initCommand.ts` — Interactive `npx svelteesp32 init` wizard that creates `.svelteesp32rc.json`
 - `src/vitePlugin.ts` — Vite plugin with two exclusive modes. Exported via the `./vite` package entry. Runs `runPipeline()` in `closeBundle()`. **RC file mode**: `svelteESP32()` or `svelteESP32('/path/to/rc.json')` — loads all settings from the RC file; `outputfile` in RC file is required. **Plugin options mode**: `svelteESP32({ output, ... })` — uses the options object exclusively; RC file is completely ignored; `output` is required. The two modes do not merge.
 - `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists. Symlinks are not followed (`followSymbolicLinks: false`). Files over 50 MB are rejected before read/compress. `--exclude` patterns are passed to `tinyglobby`'s `ignore` option (no separate `picomatch` call).
-- `src/cppCode.ts` — Shared C++ code generation utilities: common header, data arrays, ETag arrays, manifest, hook section, `sw()` switch helper; used by all engine modules
+- `src/cppCode.ts` — Shared C++ code generation utilities: common header, data arrays, ETag arrays, manifest, hook section, `sw()` switch helper, `cacheCtrl()` (renders `max-age=...`/`no-cache`), `computeRouteCount()`; used by all engine modules
 - `src/cppCodePsychic.ts` — PsychicHttpServer engine code generation (`genPsychicCpp`)
 - `src/cppCodeAsync.ts` — ESPAsyncWebServer engine code generation (`genAsyncCpp`)
 - `src/cppCodeWebserver.ts` — Arduino WebServer engine code generation (`genWebserverCpp`)
 - `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation (`genEspIdfCpp`)
-- `src/errorMessages.ts` — Framework-specific error messages
+- `src/errorMessages.ts` — CLI validation error messages with actionable hints (missing index, invalid engine, bad sourcepath, size-budget-exceeded)
 - `src/consoleColor.ts` — ANSI terminal color helpers (`greenLog`, `yellowLog`, `redLog`, `cyanLog`) used by pipeline output
 - `src/cliInit.mts` — Thin ESM entry point for `npm run dev:init`; calls `runInit()` from `initCommand.ts`
 
@@ -60,6 +60,10 @@ npm run test:all       # run both PlatformIO integration tests
 ### Pipeline
 
 File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → TypeScript code generation (per-engine modules) → C++ header
+
+### Demo Apps
+
+`demo/svelte` is a small Svelte app (LED toggle + uptime card) whose `dist` output is embedded via `dev:psychic`/`dev:async`/`dev:webserver`. `demo/esp32` (PlatformIO, all three Arduino-based engines) and `demo/esp32idf` implement `GET /api/status` / `POST /api/toggle` handlers alongside the generated static-file routes — demonstrating the generated header coexisting with hand-written API routes on the same server. Useful reference when changing route-registration code (e.g. `computeRouteCount`, `--spa`).
 
 ### CLI Options
 
@@ -91,6 +95,8 @@ Test files in `test/unit/`. Fixtures in `test/fixtures/sample-files/`.
 - Dynamic imports for commandLine tests (side effects)
 - `test/unit/index.test.ts` uses `makeFileData()` helper at outer scope
 - `test/unit/changesummary.test.ts` tests `formatChangeSummary` and `createSourceEntry` via dynamic import of `src/index.ts` (uses `vi.resetModules()` in `beforeEach`)
+- `cppCodeEspIdf.ts` and `cppCodeWebserver.ts` have dedicated unit tests; `cppCodePsychic.ts` and `cppCodeAsync.ts` do not — verify psychic/async engine changes through PlatformIO integration tests (`npm run test:esp32`) or manually via `npm run dev:psychic` / `npm run dev:async`
+- No dedicated `pipeline.test.ts` — `runPipeline()` is exercised indirectly through `index.test.ts` and `changesummary.test.ts`
 
 ## Documentation Conventions
 
