@@ -88,7 +88,7 @@ void setup() {
 
 ## What's New
 
-- **v3.1.0** — Removed `handlebars`, `picomatch`, and `mime-types` dependencies; C++ generation is now pure TypeScript with a built-in MIME type map and direct `tinyglobby` exclude handling. `--cachetime-html` → `--cachetimehtml`, `--cachetime-assets` → `--cachetimeassets` (CLI now matches RC file keys); `--dry-run` alias removed — use `--dryrun`
+- **v3.1.0** — Removed `handlebars`, `picomatch`, and `mime-types` dependencies; C++ generation is now pure TypeScript with a built-in MIME type map and direct `tinyglobby` exclude handling. `--cachetime-html` → `--cachetimehtml`, `--cachetime-assets` → `--cachetimeassets` (CLI now matches RC file keys); `--dry-run` alias removed — use `--dryrun`. `SVELTEESP32_URI_HANDLERS`/`SVELTEESP32_MAX_URI_HANDLERS` (psychic/espidf) now reflect the exact registered route count, including the default `/` route and `--spa` catch-all
 - **v3.0.0** — **Vite plugin** (`import { svelteESP32 } from 'svelteesp32/vite'`) generates the header automatically after every build — call with no argument for RC file mode or pass an options object for plugin-options mode; `npx svelteesp32 init` interactive RC file wizard; Node.js >= 22 required
 - **v2.4.0** — `--analyze` for CI size budget checks (per-file table, exits 1 on over-budget); `--manifest` to write a companion JSON manifest alongside the header
 - **v2.3.0** — `--cachetimehtml` and `--cachetimeassets` for per-type cache control (e.g. `no-cache` for HTML, 1-year for content-hashed JS/CSS)
@@ -379,7 +379,7 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 **Recommendation:** For ESP32-only projects, use PsychicHttpServer V2 (`-e psychic`) for the fastest, most stable experience.
 
-**Note:** For PsychicHttp, configure `server.config.max_uri_handlers`. The generated header provides `SVELTEESP32_MAX_URI_HANDLERS` (file count + 5 safety margin) for use directly in your sketch.
+**Note:** For PsychicHttp and native ESP-IDF, configure `server.config.max_uri_handlers` / `httpd_config_t.max_uri_handlers`. The generated header provides `SVELTEESP32_URI_HANDLERS` (the exact number of routes registered, accounting for the default `/` route and the `--spa` catch-all handler) and `SVELTEESP32_MAX_URI_HANDLERS` (`SVELTEESP32_URI_HANDLERS` + 5 safety margin for your own custom routes) for use directly in your sketch.
 
 ---
 
@@ -576,7 +576,7 @@ Catch configuration issues at compile time with generated defines:
 #endif
 ```
 
-**Available defines:** `SVELTEESP32_COUNT`, `SVELTEESP32_SIZE`, `SVELTEESP32_SIZE_GZIP`, `SVELTEESP32_FILE_*`, `SVELTEESP32_*_FILES`
+**Available defines:** `SVELTEESP32_COUNT`, `SVELTEESP32_SIZE`, `SVELTEESP32_SIZE_GZIP`, `SVELTEESP32_FILE_*`, `SVELTEESP32_*_FILES`, and (psychic/espidf only) `SVELTEESP32_URI_HANDLERS`, `SVELTEESP32_MAX_URI_HANDLERS`
 
 ### Runtime File Manifest
 
@@ -812,6 +812,7 @@ add_dependencies(${COMPONENT_LIB} frontend_header)
 void app_main(void) {
     // ... WiFi init ...
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.max_uri_handlers = SVELTEESP32_MAX_URI_HANDLERS;  // already defined in the header, includes a safety margin
     httpd_handle_t server = NULL;
     httpd_start(&server, &config);
     initSvelteStaticFiles(server);

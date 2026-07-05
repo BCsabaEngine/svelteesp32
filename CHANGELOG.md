@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.3] - 2026-07-05
+
+### Fixed
+
+- **Accurate `max_uri_handlers` count**: The generated `SVELTEESP32_MAX_URI_HANDLERS` (and new `SVELTEESP32_URI_HANDLERS`) defines now account for the default `/` route and the `--spa` catch-all handler instead of just the raw file count, for the `psychic` and `espidf` engines.
+- Removed the `[CONFIG TIP] max_uri_handlers configuration` console hint printed after generation — the generated header defines are sufficient.
+
+### Changed
+
+- Updated ESP32 demo library versions and PlatformIO dependencies
+
 ## [3.1.2] - 2026-06-15
 
 ### Changed

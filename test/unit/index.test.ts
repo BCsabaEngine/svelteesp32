@@ -3,6 +3,7 @@ import type * as zlib from 'node:zlib';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as CppCodeModule from '../../src/cppCode';
 import type { ExtensionGroup, getCppCode } from '../../src/cppCode';
 import type { getFiles } from '../../src/file';
 import type * as IndexModule from '../../src/index';
@@ -23,7 +24,8 @@ vi.mock('../../src/file', () => ({
   getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'mock-sha256-hash' }]]))
 }));
 
-vi.mock('../../src/cppCode', () => ({
+vi.mock('../../src/cppCode', async (importOriginal) => ({
+  ...(await importOriginal<typeof CppCodeModule>()),
   getCppCode: vi.fn(() => 'mock-cpp-code')
 }));
 
@@ -786,70 +788,6 @@ describe('index.ts main pipeline integration', () => {
       main();
 
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('/test/output.h'));
-    });
-  });
-
-  describe('engine-specific hints', () => {
-    it('should show max_uri_handlers hint for psychic engine', async () => {
-      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
-
-      vi.resetModules();
-      const { main } = await import('../../src/index');
-      main();
-
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('max_uri_handlers'));
-    });
-
-    it('should show max_uri_handlers hint for espidf engine', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'espidf',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
-      vi.doMock('../../src/file', () => ({
-        getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'h' }]]))
-      }));
-
-      vi.resetModules();
-      const { main } = await import('../../src/index');
-      main();
-
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('max_uri_handlers'));
-    });
-
-    it('should not show max_uri_handlers hint for async engine', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'async',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
-      vi.doMock('../../src/file', () => ({
-        getFiles: vi.fn(() => new Map([['index.html', { content: Buffer.from('<html></html>'), hash: 'h' }]]))
-      }));
-
-      vi.resetModules();
-      const { main } = await import('../../src/index');
-      main();
-
-      // Get all console.log calls and check none contain max_uri_handlers
-      const mockLog = vi.mocked(console.log);
-      const allLogs = mockLog.mock.calls.map((call) => call[0]);
-      const hasMaxUriHandlers = allLogs.some((log) => typeof log === 'string' && log.includes('max_uri_handlers'));
-      expect(hasMaxUriHandlers).toBe(false);
     });
   });
 

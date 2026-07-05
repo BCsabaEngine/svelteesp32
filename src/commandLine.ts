@@ -233,19 +233,19 @@ function getNpmPackageVariable(packageJson: Record<string, unknown>, variableNam
   return String(current);
 }
 
-function checkStringForNpmVariable(value: string | undefined): boolean {
+function hasNpmVariable(value: string | undefined): boolean {
   return value?.includes('$npm_package_') ?? false;
 }
 
 function hasNpmVariables(config: IRcFileConfig): boolean {
   return (
-    checkStringForNpmVariable(config.sourcepath) ||
-    checkStringForNpmVariable(config.outputfile) ||
-    checkStringForNpmVariable(config.espmethod) ||
-    checkStringForNpmVariable(config.define) ||
-    checkStringForNpmVariable(config.version) ||
-    checkStringForNpmVariable(config.basepath) ||
-    (Array.isArray(config.exclude) && config.exclude.some((pattern) => checkStringForNpmVariable(pattern)))
+    hasNpmVariable(config.sourcepath) ||
+    hasNpmVariable(config.outputfile) ||
+    hasNpmVariable(config.espmethod) ||
+    hasNpmVariable(config.define) ||
+    hasNpmVariable(config.version) ||
+    hasNpmVariable(config.basepath) ||
+    (Array.isArray(config.exclude) && config.exclude.some((pattern) => hasNpmVariable(pattern)))
   );
 }
 
@@ -409,7 +409,8 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
     if (!Array.isArray(configObject['exclude'])) throw new TypeError("'exclude' in RC file must be an array");
 
     // Validate each exclude pattern is a string
-    for (const pattern of configObject['exclude'])
+    const excludePatterns = configObject['exclude'];
+    for (const pattern of excludePatterns)
       if (typeof pattern !== 'string') throw new TypeError('All exclude patterns must be strings');
   }
 
@@ -732,41 +733,41 @@ export function parseArguments(): ICopyFilesArguments {
 // Export functions for testing
 export { getNpmPackageVariable, hasNpmVariables, interpolateNpmVariables, parseSize, validateCppIdentifier };
 
-export function formatConfiguration(cmdLine: ICopyFilesArguments): string {
-  const relativeOutput = path.relative(process.cwd(), cmdLine.outputfile);
+export function formatConfig(commandLine: ICopyFilesArguments): string {
+  const relativeOutput = path.relative(process.cwd(), commandLine.outputfile);
   const parts: string[] = [
-    `source=${cmdLine.configSource}`,
-    `engine=${cmdLine.engine}`,
-    `sourcepath=${cmdLine.sourcepath}`,
+    `source=${commandLine.configSource}`,
+    `engine=${commandLine.engine}`,
+    `sourcepath=${commandLine.sourcepath}`,
     `outputfile=${relativeOutput}`,
-    `etag=${cmdLine.etag}`,
-    `gzip=${cmdLine.gzip}`,
-    `cachetime=${cmdLine.cachetime}`
+    `etag=${commandLine.etag}`,
+    `gzip=${commandLine.gzip}`,
+    `cachetime=${commandLine.cachetime}`
   ];
 
-  if (cmdLine.cachetimeHtml !== undefined) parts.push(`cachetimeHtml=${cmdLine.cachetimeHtml}`);
+  if (commandLine.cachetimeHtml !== undefined) parts.push(`cachetimeHtml=${commandLine.cachetimeHtml}`);
 
-  if (cmdLine.cachetimeAssets !== undefined) parts.push(`cachetimeAssets=${cmdLine.cachetimeAssets}`);
+  if (commandLine.cachetimeAssets !== undefined) parts.push(`cachetimeAssets=${commandLine.cachetimeAssets}`);
 
-  if (cmdLine.created) parts.push(`created=${cmdLine.created}`);
+  if (commandLine.created) parts.push(`created=${commandLine.created}`);
 
-  if (cmdLine.version) parts.push(`version=${cmdLine.version}`);
+  if (commandLine.version) parts.push(`version=${commandLine.version}`);
 
-  if (cmdLine.espmethod) parts.push(`espmethod=${cmdLine.espmethod}`);
+  if (commandLine.espmethod) parts.push(`espmethod=${commandLine.espmethod}`);
 
-  if (cmdLine.define) parts.push(`define=${cmdLine.define}`);
+  if (commandLine.define) parts.push(`define=${commandLine.define}`);
 
-  if (cmdLine.basePath) parts.push(`basePath=${cmdLine.basePath}`);
+  if (commandLine.basePath) parts.push(`basePath=${commandLine.basePath}`);
 
-  if (cmdLine.maxSize !== undefined) parts.push(`maxSize=${cmdLine.maxSize}`);
+  if (commandLine.maxSize !== undefined) parts.push(`maxSize=${commandLine.maxSize}`);
 
-  if (cmdLine.maxGzipSize !== undefined) parts.push(`maxGzipSize=${cmdLine.maxGzipSize}`);
+  if (commandLine.maxGzipSize !== undefined) parts.push(`maxGzipSize=${commandLine.maxGzipSize}`);
 
-  if (cmdLine.spa) parts.push(`spa=${cmdLine.spa}`);
+  if (commandLine.spa) parts.push(`spa=${commandLine.spa}`);
 
-  if (cmdLine.analyze) parts.push(`analyze=${cmdLine.analyze}`);
+  if (commandLine.analyze) parts.push(`analyze=${commandLine.analyze}`);
 
-  if (cmdLine.exclude.length > 0) parts.push(`exclude=[${cmdLine.exclude.join(', ')}]`);
+  if (commandLine.exclude.length > 0) parts.push(`exclude=[${commandLine.exclude.join(', ')}]`);
 
   // eslint-disable-next-line unicorn/prefer-string-replace-all
   return parts.join(' ').replace(/[\n\r]/g, ' ');

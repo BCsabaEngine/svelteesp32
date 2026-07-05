@@ -37,7 +37,7 @@ const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
   const compressedExtensions = ['.gz', '.brotli', '.br'];
 
   if (compressedExtensions.includes(extension)) {
-    const original = filename.slice(0, -1 * extension.length);
+    const original = filename.slice(0, -extension.length);
     if (allFilenames.includes(original)) {
       console.log(redLog(` ${filename} skipped — likely a compressed version of ${original}`));
       return true;

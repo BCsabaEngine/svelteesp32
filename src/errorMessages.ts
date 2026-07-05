@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { cyanLog, redLog, yellowLog } from './consoleColor';
+import { cyanLog, redLog } from './consoleColor';
 
 /**
 Get human-readable engine name
@@ -163,45 +163,5 @@ How to fix:
 CI integration:
   This non-zero exit code allows build pipelines to fail early when
   the frontend exceeds allocated flash space.`
-  );
-}
-
-/**
-Hint: max_uri_handlers configuration (console output, not an error)
-*/
-export function getMaxUriHandlersHint(engine: string, routeCount: number, espmethod = 'initSvelteStaticFiles'): string {
-  const recommended = routeCount + 5;
-
-  const hints: Record<string, string> = {
-    psychic: `PsychicHttpServer server;
-  server.config.max_uri_handlers = SVELTEESP32_MAX_URI_HANDLERS;  // already defined in the header (${recommended})
-  ${espmethod}(&server);
-  server.listen(80);`,
-
-    espidf: `httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-  config.max_uri_handlers = ${recommended};  // Default is 8, you need at least ${routeCount}
-  httpd_handle_t server = NULL;
-  httpd_start(&server, &config);
-  ${espmethod}(server);`
-  };
-
-  const hint = hints[engine];
-  if (!hint) return ''; // No hint for async engine (no limit)
-
-  return (
-    yellowLog('[CONFIG TIP] max_uri_handlers configuration') +
-    `
-
-Your generated code includes ${routeCount} routes. Make sure your server can handle them:
-
-For ${getEngineName(engine)}:
-  ${hint}
-
-Recommended formula: max_uri_handlers = file_count + 5 (safety margin)
-
-Runtime symptoms if too low:
-  • Routes not registered (HTTP 404 errors)
-  • ESP_ERR_HTTPD_HANDLERS_FULL error in logs
-  • Some files load, others don't (random behavior)`
   );
 }

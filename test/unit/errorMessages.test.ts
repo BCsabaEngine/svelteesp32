@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getInvalidEngineError,
-  getMaxUriHandlersHint,
   getMissingIndexError,
   getSizeBudgetExceededError,
   getSourcepathNotFoundError
@@ -233,66 +232,6 @@ describe('errorMessages', () => {
       expect(result).toContain('CI integration:');
       expect(result).toContain('non-zero exit code');
       expect(result).toContain('build pipelines');
-    });
-  });
-
-  describe('getMaxUriHandlersHint', () => {
-    it('should calculate recommended handler count', () => {
-      const result = getMaxUriHandlersHint('psychic', 10);
-      expect(result).toContain('15'); // 10 + 5
-      expect(result).toContain('SVELTEESP32_MAX_URI_HANDLERS');
-    });
-
-    it('should include route count in message', () => {
-      const result = getMaxUriHandlersHint('psychic', 10);
-      expect(result).toContain('10 routes');
-    });
-
-    it('should show engine-specific code for psychic', () => {
-      const result = getMaxUriHandlersHint('psychic', 10);
-      expect(result).toContain('[CONFIG TIP]');
-      expect(result).toContain('PsychicHttpServer');
-      expect(result).toContain('server.config.max_uri_handlers');
-      expect(result).toContain('initSvelteStaticFiles');
-      expect(result).toContain('server.listen(80)');
-    });
-
-    it('should show engine-specific code for espidf', () => {
-      const result = getMaxUriHandlersHint('espidf', 8);
-      expect(result).toContain('ESP-IDF');
-      expect(result).toContain('HTTPD_DEFAULT_CONFIG');
-      expect(result).toContain('config.max_uri_handlers = 13');
-      expect(result).toContain('httpd_start');
-    });
-
-    it('should return empty string for async engine', () => {
-      const result = getMaxUriHandlersHint('async', 10);
-      expect(result).toBe('');
-    });
-
-    it('should return empty string for webserver engine', () => {
-      const result = getMaxUriHandlersHint('webserver', 10);
-      expect(result).toBe('');
-    });
-
-    it('should return empty string for unknown engine', () => {
-      const result = getMaxUriHandlersHint('unknown' as 'psychic', 10);
-      expect(result).toBe('');
-    });
-
-    it('should include recommended formula', () => {
-      const result = getMaxUriHandlersHint('psychic', 10);
-      expect(result).toContain('Recommended formula');
-      expect(result).toContain('file_count + 5');
-      expect(result).toContain('safety margin');
-    });
-
-    it('should include runtime symptoms', () => {
-      const result = getMaxUriHandlersHint('psychic', 10);
-      expect(result).toContain('Runtime symptoms');
-      expect(result).toContain('HTTP 404');
-      expect(result).toContain('ESP_ERR_HTTPD_HANDLERS_FULL');
-      expect(result).toContain('random behavior');
     });
   });
 });

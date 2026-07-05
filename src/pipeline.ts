@@ -6,7 +6,7 @@ import { gzipSync } from 'node:zlib';
 import type { ICopyFilesArguments } from './commandLine';
 import { greenLog, redLog, yellowLog } from './consoleColor';
 import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from './cppCode';
-import { getMaxUriHandlersHint, getSizeBudgetExceededError } from './errorMessages';
+import { getSizeBudgetExceededError } from './errorMessages';
 import { getFiles } from './file';
 
 const MIME_TYPES: Record<string, string> = {
@@ -65,12 +65,12 @@ const formatCompressionLog = (
   padding: string,
   originalSize: number,
   compressedSize: number,
-  useGzip: boolean
+  isGzipUsed: boolean
 ): string => {
   const ratio = calculateCompressionRatio(originalSize, compressedSize);
   const sizeInfo = `(${originalSize} -> ${compressedSize} = ${ratio}%)`;
 
-  if (useGzip) return greenLog(` [${filename}] ${padding} ✓ gzip used ${sizeInfo}`);
+  if (isGzipUsed) return greenLog(` [${filename}] ${padding} ✓ gzip used ${sizeInfo}`);
 
   const tooSmall = originalSize <= GZIP_MIN_SIZE ? '(too small) ' : '';
   return yellowLog(` [${filename}] ${padding} x gzip unused ${tooSmall}${sizeInfo}`);
@@ -121,7 +121,7 @@ const formatDryRunRoutes = (
   sources: CppCodeSources,
   engine: 'psychic' | 'async' | 'espidf' | 'webserver',
   basePath: string,
-  spa: boolean
+  isSpa: boolean
 ): string => {
   if (sources.length === 0) return '  (no files)';
 
@@ -146,7 +146,7 @@ const formatDryRunRoutes = (
       tag: source.isGzip ? '' : '[no gzip]'
     });
 
-  if (spa && defaultSource) {
+  if (isSpa && defaultSource) {
     const spaUrl = engine === 'psychic' && basePath ? `${basePath}/*` : '(SPA catch-all)';
     rows.push({ url: spaUrl, mime: defaultSource.mime, sizeCell: '', tag: '[SPA catch-all → index.html]' });
   }
@@ -196,14 +196,14 @@ const formatAnalyzeTable = (
   const lines = [header, separator, ...dataRows, separator, totalRow];
 
   if (maxSize !== undefined) {
-    const pass = summary.size <= maxSize;
-    const budgetRow = `${'Budget (maxsize)'.padEnd(fileWidth)}  ${formatSizePrecise(maxSize).padEnd(origWidth)}  ${'-'.padEnd(gzipWidth)}  ${pass ? '✓ PASS' : '✗ FAIL'}`;
+    const isPass = summary.size <= maxSize;
+    const budgetRow = `${'Budget (maxsize)'.padEnd(fileWidth)}  ${formatSizePrecise(maxSize).padEnd(origWidth)}  ${'-'.padEnd(gzipWidth)}  ${isPass ? '✓ PASS' : '✗ FAIL'}`;
     lines.push(budgetRow);
   }
 
   if (maxGzipSize !== undefined) {
-    const pass = summary.gzipsize <= maxGzipSize;
-    const budgetRow = `${'Budget (maxgzipsize)'.padEnd(fileWidth)}  ${'-'.padEnd(origWidth)}  ${formatSizePrecise(maxGzipSize).padEnd(gzipWidth)}  ${pass ? '✓ PASS' : '✗ FAIL'}`;
+    const isPass = summary.gzipsize <= maxGzipSize;
+    const budgetRow = `${'Budget (maxgzipsize)'.padEnd(fileWidth)}  ${'-'.padEnd(origWidth)}  ${formatSizePrecise(maxGzipSize).padEnd(gzipWidth)}  ${isPass ? '✓ PASS' : '✗ FAIL'}`;
     lines.push(budgetRow);
   }
 
@@ -320,15 +320,15 @@ export function runPipeline(options: ICopyFilesArguments): void {
     const zipContent = gzipSync(content, { level: 9 });
 
     // Determine if gzip should be used
-    const useGzip = shouldUseGzip(content.length, zipContent.length);
-    summary.gzipsize += useGzip ? zipContent.length : content.length;
+    const isUseGzip = shouldUseGzip(content.length, zipContent.length);
+    summary.gzipsize += isUseGzip ? zipContent.length : content.length;
 
     // Create and add source entry
-    sources.push(createSourceEntry(filename, dataname, content, zipContent, mimeType, sha256, useGzip));
+    sources.push(createSourceEntry(filename, dataname, content, zipContent, mimeType, sha256, isUseGzip));
 
     // Log compression result
     const padding = ' '.repeat(longestFilename - originalFilename.length);
-    console.log(formatCompressionLog(originalFilename, padding, content.length, zipContent.length, useGzip));
+    console.log(formatCompressionLog(originalFilename, padding, content.length, zipContent.length, isUseGzip));
   }
 
   console.log('');
@@ -337,10 +337,10 @@ export function runPipeline(options: ICopyFilesArguments): void {
   // Analyze mode: show per-file size table and budget status, then exit
   if (options.analyze) {
     console.log(formatAnalyzeTable(sources, summary, options.maxSize, options.maxGzipSize));
-    const overBudget =
+    const isOverBudget =
       (options.maxSize !== undefined && summary.size > options.maxSize) ||
       (options.maxGzipSize !== undefined && summary.gzipsize > options.maxGzipSize);
-    if (overBudget) throw new OverBudgetError();
+    if (isOverBudget) throw new OverBudgetError();
     return;
   }
 
@@ -414,10 +414,6 @@ export function runPipeline(options: ICopyFilesArguments): void {
 
     if (previousManifest) console.log(formatChangeSummary(sources, previousManifest.files));
   }
-
-  // Show max_uri_handlers hint for applicable engines
-  if (options.engine === 'psychic' || options.engine === 'espidf')
-    console.log('\n' + getMaxUriHandlersHint(options.engine, sources.length, options.espmethod));
 }
 
 export {
