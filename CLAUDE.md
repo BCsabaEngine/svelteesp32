@@ -78,7 +78,7 @@ RC files: `.svelteesp32rc.json` or `.svelteesp32rc` in cwd, home, or `--config=p
 - `--spa` catch-all: psychic adds `server->on("{{basePath}}/*", ...)` only when basePath is set (no-basePath case handled by `defaultEndpoint`); async/webserver add `server->onNotFound(...)` with optional basePath prefix guard; espidf uses `httpd_register_err_handler(HTTPD_404_NOT_FOUND, spa_handler_*)`
 - Data arrays: `static const uint8_t data_*[]` / `static const uint8_t datagzip_*[]` — `static` prevents multiple-definition linker errors when included in more than one TU
 - ETag variables: `static const char etag_*[]` (char array, not pointer) — avoids pointer indirection and keeps `static` linkage
-- `{{definePrefix}}_MAX_URI_HANDLERS`: psychic engine only; `#define` set to `sources.length + 5` for use in `server.config.max_uri_handlers`
+- `{{definePrefix}}_URI_HANDLERS` / `{{definePrefix}}_MAX_URI_HANDLERS`: psychic and espidf only (only engines with a fixed-size handler table). `computeRouteCount()` in `src/cppCode.ts` computes the real number of registered handlers (file count, plus one for the default `/` route when `index.html`/`index.htm` is present, plus one more when `--spa` is active — psychic only counts the default-route/SPA extras when `basePath` is set, since it aliases the default route via `defaultEndpoint` otherwise). `_URI_HANDLERS` is that exact count; `_MAX_URI_HANDLERS` is `_URI_HANDLERS + 5` (safety margin for the user's own custom routes), for use in `server.config.max_uri_handlers` / `httpd_config_t.max_uri_handlers`
 - Per-source cache time: `cacheTime` is computed per file in `transformSourceToTemplateData` — HTML files use `cachetimeHtml ?? cachetime`, non-HTML use `cachetimeAssets ?? cachetime`
 
 ## Testing (Vitest)

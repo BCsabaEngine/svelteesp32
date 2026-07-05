@@ -379,7 +379,7 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 **Recommendation:** For ESP32-only projects, use PsychicHttpServer V2 (`-e psychic`) for the fastest, most stable experience.
 
-**Note:** For PsychicHttp, configure `server.config.max_uri_handlers`. The generated header provides `SVELTEESP32_MAX_URI_HANDLERS` (file count + 5 safety margin) for use directly in your sketch.
+**Note:** For PsychicHttp and native ESP-IDF, configure `server.config.max_uri_handlers` / `httpd_config_t.max_uri_handlers`. The generated header provides `SVELTEESP32_URI_HANDLERS` (the exact number of routes registered, accounting for the default `/` route and the `--spa` catch-all handler) and `SVELTEESP32_MAX_URI_HANDLERS` (`SVELTEESP32_URI_HANDLERS` + 5 safety margin for your own custom routes) for use directly in your sketch.
 
 ---
 
@@ -576,7 +576,7 @@ Catch configuration issues at compile time with generated defines:
 #endif
 ```
 
-**Available defines:** `SVELTEESP32_COUNT`, `SVELTEESP32_SIZE`, `SVELTEESP32_SIZE_GZIP`, `SVELTEESP32_FILE_*`, `SVELTEESP32_*_FILES`
+**Available defines:** `SVELTEESP32_COUNT`, `SVELTEESP32_SIZE`, `SVELTEESP32_SIZE_GZIP`, `SVELTEESP32_FILE_*`, `SVELTEESP32_*_FILES`, and (psychic/espidf only) `SVELTEESP32_URI_HANDLERS`, `SVELTEESP32_MAX_URI_HANDLERS`
 
 ### Runtime File Manifest
 
@@ -812,6 +812,7 @@ add_dependencies(${COMPONENT_LIB} frontend_header)
 void app_main(void) {
     // ... WiFi init ...
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.max_uri_handlers = SVELTEESP32_MAX_URI_HANDLERS;  // already defined in the header, includes a safety margin
     httpd_handle_t server = NULL;
     httpd_start(&server, &config);
     initSvelteStaticFiles(server);
