@@ -24,19 +24,28 @@ const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: s
     ].join('\n')
   });
   if (etagCheck) lines.push(etagCheck);
+  // HEAD: same status and headers as GET, but no body. The empty-content beginResponse() overload
+  // reports Content-Length: 0 - a truthful length would stall the response, because
+  // AsyncWebServerResponse only completes once _sentLength reaches _contentLength.
+  const beginResponse = (array: string, length: number): string =>
+    [
+      `    AsyncWebServerResponse *response = request->method() == HTTP_HEAD`,
+      `      ? request->beginResponse(200, "${source.mime}")`,
+      `      : request->beginResponse(200, "${source.mime}", ${array}_${source.dataname}, ${length});`
+    ].join('\n');
   lines.push(
     sw(d.gzip, {
       always: [
-        `    AsyncWebServerResponse *response = request->beginResponse(200, "${source.mime}", datagzip_${source.dataname}, ${source.lengthGzip});`,
+        beginResponse('datagzip', source.lengthGzip),
         ...(source.isGzip ? [`    response->addHeader("Content-Encoding", "gzip");`] : [])
       ].join('\n'),
-      never: `    AsyncWebServerResponse *response = request->beginResponse(200, "${source.mime}", data_${source.dataname}, ${source.length});`,
+      never: beginResponse('data', source.length),
       compiler: [
         `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-        `    AsyncWebServerResponse *response = request->beginResponse(200, "${source.mime}", datagzip_${source.dataname}, ${source.lengthGzip});`,
+        beginResponse('datagzip', source.lengthGzip),
         ...(source.isGzip ? [`    response->addHeader("Content-Encoding", "gzip");`] : []),
         `  #else`,
-        `    AsyncWebServerResponse *response = request->beginResponse(200, "${source.mime}", data_${source.dataname}, ${source.length});`,
+        beginResponse('data', source.length),
         `  #endif`
       ].join('\n')
     })
@@ -86,13 +95,13 @@ export const genAsyncCpp = (d: TemplateData): string => {
     lines.push(
       '//',
       `// ${source.filename}`,
-      `  server->on("${path}", HTTP_GET, [](AsyncWebServerRequest * request) {`,
+      `  server->on("${path}", HTTP_GET | HTTP_HEAD, [](AsyncWebServerRequest * request) {`,
       genAsyncHandlerBody(d, source, path),
       `  });`
     );
     if (source.isDefault)
       lines.push(
-        `  server->on("${defaultPath}", HTTP_GET, [](AsyncWebServerRequest * request) {`,
+        `  server->on("${defaultPath}", HTTP_GET | HTTP_HEAD, [](AsyncWebServerRequest * request) {`,
         genAsyncHandlerBody(d, source, defaultPath),
         `  });`
       );
@@ -104,7 +113,7 @@ export const genAsyncCpp = (d: TemplateData): string => {
       '//',
       `// SPA catch-all: unmatched routes serve ${source.filename}`,
       `  server->onNotFound([](AsyncWebServerRequest * request) {`,
-      `    if (request->method() != HTTP_GET) { request->send(404); return; }`
+      `    if (request->method() != HTTP_GET && request->method() != HTTP_HEAD) { request->send(404); return; }`
     );
     if (d.basePath)
       lines.push(

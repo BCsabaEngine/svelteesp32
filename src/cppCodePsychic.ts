@@ -1,8 +1,24 @@
 import type { TemplateData, TransformedSource } from './cppCode';
 import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genManifest, sw } from './cppCode';
 
-const genPsychicHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
+// isAnyMethod: the route is registered as HTTP_ANY, so the handler must reject methods other than GET/HEAD itself
+const genPsychicHandlerBody = (
+  d: TemplateData,
+  source: TransformedSource,
+  path: string,
+  isAnyMethod: boolean
+): string => {
   const lines: string[] = [];
+  if (isAnyMethod)
+    lines.push(
+      [
+        `    if (request->method() != HTTP_GET && request->method() != HTTP_HEAD) {`,
+        `      response->setCode(405);`,
+        `      response->addHeader("Allow", "GET, HEAD");`,
+        `      return response->send();`,
+        `    }`
+      ].join('\n')
+    );
   const etagCheck = sw(d.etag, {
     always: [
       `    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_${source.dataname})) {`,
@@ -47,18 +63,22 @@ const genPsychicHandlerBody = (d: TemplateData, source: TransformedSource, path:
     ].join('\n')
   });
   if (cacheHeaders) lines.push(cacheHeaders);
+  // HEAD: same status and headers as GET, but no body. esp-idf's httpd_resp_send() derives
+  // Content-Length from the buffer length, so a body-less send always reports Content-Length: 0.
   lines.push(
+    `    if (request->method() != HTTP_HEAD) {`,
     sw(d.gzip, {
-      always: `    response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
-      never: `    response->setContent(data_${source.dataname}, ${source.length});`,
+      always: `      response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
+      never: `      response->setContent(data_${source.dataname}, ${source.length});`,
       compiler: [
         `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-        `    response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
+        `      response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
         `  #else`,
-        `    response->setContent(data_${source.dataname}, ${source.length});`,
+        `      response->setContent(data_${source.dataname}, ${source.length});`,
         `  #endif`
       ].join('\n')
     }),
+    `    }`,
     `    ${d.definePrefix}_onFileServed("${path}", 200);`,
     `    return response->send();`
   );
@@ -88,35 +108,40 @@ export const genPsychicCpp = (d: TemplateData): string => {
     '// Http Handlers',
     `void ${d.methodName}(PsychicHttpServer * server) {`
   ];
+  // HTTP_ANY keeps GET and HEAD on a single endpoint (psychic matches HTTP_ANY against every method),
+  // so HEAD costs no extra PsychicEndpoint. The handler rejects anything but GET/HEAD with a 405.
   for (const source of d.sources) {
     const path = `${d.basePath}/${source.filename}`;
     const serverPrefix = source.isDefault && !d.basePath ? 'server->defaultEndpoint = ' : '';
     lines.push(
       '//',
       `// ${source.filename}`,
-      `  ${serverPrefix}server->on("${path}", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {`,
-      genPsychicHandlerBody(d, source, path),
+      `  ${serverPrefix}server->on("${path}", HTTP_ANY, [](PsychicRequest * request, PsychicResponse * response) {`,
+      genPsychicHandlerBody(d, source, path, true),
       `  });`
     );
     if (source.isDefault && d.basePath)
       lines.push(
         '//',
         `// ${source.filename} (base path route)`,
-        `  server->on("${d.basePath}", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {`,
-        genPsychicHandlerBody(d, source, d.basePath),
+        `  server->on("${d.basePath}", HTTP_ANY, [](PsychicRequest * request, PsychicResponse * response) {`,
+        genPsychicHandlerBody(d, source, d.basePath, true),
         `  });`
       );
   }
+  // The SPA catch-all stays method-specific: an HTTP_ANY wildcard would shadow API routes the user
+  // registers under basePath after this function runs, since psychic matches endpoints in order.
   if (d.spa && d.spaSource && d.basePath) {
     const source = d.spaSource;
     const path = `${d.basePath}/${source.filename}`;
-    lines.push(
-      '//',
-      `// SPA catch-all: unmatched routes serve ${source.filename}`,
-      `  server->on("${d.basePath}/*", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {`,
-      genPsychicHandlerBody(d, source, path),
-      `  });`
-    );
+    for (const method of ['HTTP_GET', 'HTTP_HEAD'])
+      lines.push(
+        '//',
+        `// SPA catch-all (${method}): unmatched routes serve ${source.filename}`,
+        `  server->on("${d.basePath}/*", ${method}, [](PsychicRequest * request, PsychicResponse * response) {`,
+        genPsychicHandlerBody(d, source, path, false),
+        `  });`
+      );
   }
   lines.push('}');
   return lines.join('\n');
