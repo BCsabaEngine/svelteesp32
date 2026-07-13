@@ -208,7 +208,7 @@ describe('cppCode', () => {
 
       const result = getCppCode(sources, mockFilesByExtension, mockOptions);
 
-      expect(result).toContain('static const char etag_index_html[] = "abc123"');
+      expect(result).toContain(String.raw`static const char etag_index_html[] = "\"abc123\"";`);
     });
 
     it('should generate route handlers for each file', () => {
@@ -1196,5 +1196,59 @@ describe('cppCode', () => {
 
       expect(result).not.toContain('collectAllHeaders');
     });
+  });
+});
+
+describe('etag format (RFC 9110 quoted, truncated)', () => {
+  const mockFilesByExtension: ExtensionGroups = [{ extension: 'HTML', count: 1 }];
+  // A realistic full-length SHA256 - only the first 16 hex chars may reach the generated header.
+  const sha256 = '387b88e3ef16c0a7d4f9b2c1a0e5d8f36b2a4c9e1d7f0a3b5c8e2d6f4a1b9c0e';
+  const sourceWithRealHash: CppCodeSources = [{ ...createMockSource('index.html', '<html></html>'), sha256 }];
+
+  const engines = ['psychic', 'async', 'espidf', 'webserver'] as const;
+
+  it.each(engines)('%s: emits the tag as 16 hex chars wrapped in quotes', (engine) => {
+    const result = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine });
+
+    expect(result).toContain(String.raw`static const char etag_index_html[] = "\"387b88e3ef16c0a7\"";`);
+    // The remaining 48 hex chars must not leak into the header.
+    expect(result).not.toContain('d4f9b2c1a0e5d8f3');
+  });
+
+  it.each(engines)('%s: matches If-None-Match with strstr, not exact equality', (engine) => {
+    const result = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine });
+
+    // strstr lets a comma-separated list and a W/ weak validator still match the tag.
+    expect(result).toContain('strstr(');
+    expect(result).not.toContain('.equals(etag_');
+    expect(result).not.toContain('strcmp(hdr_value');
+  });
+
+  it('espidf compares the malloc-ed header buffer against the tag with NULL, not nullptr', () => {
+    const result = getCppCode(sourceWithRealHash, mockFilesByExtension, {
+      ...mockOptions,
+      engine: 'espidf' as const
+    });
+
+    expect(result).toContain('if (strstr(hdr_value, etag_index_html) != NULL) {');
+  });
+
+  it('psychic/async/webserver compare through String::c_str()', () => {
+    const psychic = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine: 'psychic' });
+    const async = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine: 'async' });
+    const webserver = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine: 'webserver' });
+
+    expect(psychic).toContain('strstr(request->header("If-None-Match").c_str(), etag_index_html) != nullptr');
+    expect(async).toContain('strstr(h->value().c_str(), etag_index_html) != nullptr');
+    expect(webserver).toContain('strstr(server->header("If-None-Match").c_str(), etag_index_html) != nullptr');
+  });
+
+  it('truncates in the generated header only - the source keeps the full hash', () => {
+    getCppCode(sourceWithRealHash, mockFilesByExtension, mockOptions);
+
+    // The C++ emission must not mutate the source: the full hash still feeds the JSON
+    // manifest and the change-summary diff, which compare against previously stored hashes.
+    expect(sourceWithRealHash[0]!.sha256).toBe(sha256);
+    expect(sourceWithRealHash[0]!.sha256).toHaveLength(64);
   });
 });

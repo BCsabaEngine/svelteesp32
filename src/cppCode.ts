@@ -72,6 +72,12 @@ export type TemplateData = {
 export const cacheCtrl = (source: TransformedSource): string =>
   source.cacheTime ? `max-age=${source.cacheTime.value}` : 'no-cache';
 
+const ETAG_HEX_LENGTH = 16;
+
+// RFC 9110: opaque-tag = DQUOTE *etagc DQUOTE — the quotes are part of the value.
+// The full hash stays in the JSON manifest; only the emitted tag is truncated.
+export const etagLiteral = (sha256: string): string => String.raw`"\"${sha256.slice(0, ETAG_HEX_LENGTH)}\""`;
+
 export const computeRouteCount = (
   sources: CppCodeSources,
   engine: ICopyFilesArguments['engine'],
@@ -157,7 +163,7 @@ export const genDataArrays = (d: TemplateData, isProgmem: boolean): string => {
 };
 
 export const genEtagArrays = (d: TemplateData): string => {
-  const items = d.sources.map((s) => `static const char etag_${s.dataname}[] = "${s.sha256}";`).join('\n');
+  const items = d.sources.map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`).join('\n');
   return sw(d.etag, {
     always: items,
     compiler: [`#ifdef ${d.definePrefix}_ENABLE_ETAG`, items, '#endif'].join('\n')

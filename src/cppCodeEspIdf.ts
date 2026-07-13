@@ -1,5 +1,5 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, sw } from './cppCode';
+import { cacheCtrl, etagLiteral, sw } from './cppCode';
 
 const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): string => {
   const path = `${d.basePath}/${source.filename}`;
@@ -11,7 +11,7 @@ const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): strin
       `        char* hdr_value = malloc(hdr_len + 1);`,
       `        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }`,
       `        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {`,
-      `            if (strcmp(hdr_value, etag_${source.dataname}) == 0) {`,
+      `            if (strstr(hdr_value, etag_${source.dataname}) != NULL) {`,
       `                free(hdr_value);`,
       `                httpd_resp_set_status(req, "304 Not Modified");`,
       `                ${d.definePrefix}_onFileServed("${path}", 304);`,
@@ -29,7 +29,7 @@ const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): strin
       `        char* hdr_value = malloc(hdr_len + 1);`,
       `        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }`,
       `        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {`,
-      `            if (strcmp(hdr_value, etag_${source.dataname}) == 0) {`,
+      `            if (strstr(hdr_value, etag_${source.dataname}) != NULL) {`,
       `                free(hdr_value);`,
       `                httpd_resp_set_status(req, "304 Not Modified");`,
       `                ${d.definePrefix}_onFileServed("${path}", 304);`,
@@ -176,7 +176,9 @@ export const genEspIdfCpp = (d: TemplateData): string => {
     }),
     '//'
   );
-  const etagItems = d.sources.map((s) => `static const char etag_${s.dataname}[] = "${s.sha256}";`).join('\n');
+  const etagItems = d.sources
+    .map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`)
+    .join('\n');
   const etagBlock = sw(d.etag, {
     always: etagItems,
     compiler: [`#ifdef ${d.definePrefix}_ENABLE_ETAG`, etagItems, '#endif'].join('\n')

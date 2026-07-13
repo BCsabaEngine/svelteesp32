@@ -21,7 +21,7 @@ const genPsychicHandlerBody = (
     );
   const etagCheck = sw(d.etag, {
     always: [
-      `    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_${source.dataname})) {`,
+      `    if (request->hasHeader("If-None-Match") && strstr(request->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
       `      response->setCode(304);`,
       `      ${d.definePrefix}_onFileServed("${path}", 304);`,
       `      return response->send();`,
@@ -29,7 +29,7 @@ const genPsychicHandlerBody = (
     ].join('\n'),
     compiler: [
       `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_${source.dataname})) {`,
+      `    if (request->hasHeader("If-None-Match") && strstr(request->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
       `      response->setCode(304);`,
       `      ${d.definePrefix}_onFileServed("${path}", 304);`,
       `      return response->send();`,

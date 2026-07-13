@@ -5,7 +5,7 @@ const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, pat
   const lines: string[] = [];
   const etagCheck = sw(d.etag, {
     always: [
-      `    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_${source.dataname})) {`,
+      `    if (server->hasHeader("If-None-Match") && strstr(server->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
       `      server->send(304);`,
       `      ${d.definePrefix}_onFileServed("${path}", 304);`,
       `      return;`,
@@ -13,7 +13,7 @@ const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, pat
     ].join('\n'),
     compiler: [
       `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_${source.dataname})) {`,
+      `    if (server->hasHeader("If-None-Match") && strstr(server->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
       `      server->send(304);`,
       `      ${d.definePrefix}_onFileServed("${path}", 304);`,
       `      return;`,

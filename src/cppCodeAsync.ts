@@ -6,7 +6,7 @@ const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: s
   const etagCheck = sw(d.etag, {
     always: [
       `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
-      `    if (h && h->value().equals(etag_${source.dataname})) {`,
+      `    if (h && strstr(h->value().c_str(), etag_${source.dataname}) != nullptr) {`,
       `      ${d.definePrefix}_onFileServed("${path}", 304);`,
       `      request->send(304);`,
       `      return;`,
@@ -15,7 +15,7 @@ const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: s
     compiler: [
       `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
       `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
-      `    if (h && h->value().equals(etag_${source.dataname})) {`,
+      `    if (h && strstr(h->value().c_str(), etag_${source.dataname}) != nullptr) {`,
       `      ${d.definePrefix}_onFileServed("${path}", 304);`,
       `      request->send(304);`,
       `      return;`,
