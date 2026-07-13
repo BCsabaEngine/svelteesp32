@@ -1,5 +1,14 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genManifest, sw } from './cppCode';
+import {
+  cacheCtrl,
+  genCacheHeaders,
+  genCommonHeader,
+  genDataArrays,
+  genEtagArrays,
+  genHook,
+  genManifest,
+  sw
+} from './cppCode';
 
 // isAnyMethod: the route is registered as HTTP_ANY, so the handler must reject methods other than GET/HEAD itself
 const genPsychicHandlerBody = (
@@ -47,22 +56,10 @@ const genPsychicHandlerBody = (
       : ''
   });
   if (gzipEncoding) lines.push(gzipEncoding);
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
   // HEAD: same status and headers as GET, but no body. esp-idf's httpd_resp_send() derives
   // Content-Length from the buffer length, so a body-less send always reports Content-Length: 0.
   lines.push(
+    genCacheHeaders(d, source, (h, v) => `    response->addHeader("${h}", ${v});`),
     `    if (request->method() != HTTP_HEAD) {`,
     sw(d.gzip, {
       always: `      response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,

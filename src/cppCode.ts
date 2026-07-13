@@ -72,6 +72,27 @@ export type TemplateData = {
 export const cacheCtrl = (source: TransformedSource): string =>
   source.cacheTime ? `max-age=${source.cacheTime.value}` : 'no-cache';
 
+// Cache-Control is independent of the ETag switch: --cachetime must survive --etag=never, and an
+// ifdef'd-out ETag must not take caching down with it. Only the validator line is gated.
+// Emitting this from one place is the point - four engine copies drifting apart is how the 304
+// lost its headers.
+export const genCacheHeaders = (
+  d: TemplateData,
+  source: TransformedSource,
+  emit: (header: string, value: string) => string
+): string => {
+  const etagLine = emit('ETag', `etag_${source.dataname}`);
+  return [
+    emit('Cache-Control', `"${cacheCtrl(source)}"`),
+    sw(d.etag, {
+      always: etagLine,
+      compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagLine, `  #endif`].join('\n')
+    })
+  ]
+    .filter(Boolean)
+    .join('\n');
+};
+
 const ETAG_HEX_LENGTH = 16;
 
 // RFC 9110: opaque-tag = DQUOTE *etagc DQUOTE — the quotes are part of the value.

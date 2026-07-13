@@ -1,5 +1,14 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genManifest, sw } from './cppCode';
+import {
+  cacheCtrl,
+  genCacheHeaders,
+  genCommonHeader,
+  genDataArrays,
+  genEtagArrays,
+  genHook,
+  genManifest,
+  sw
+} from './cppCode';
 
 const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
   const lines: string[] = [];
@@ -47,22 +56,12 @@ const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: s
         beginResponse('data', source.length),
         `  #endif`
       ].join('\n')
-    })
+    }),
+    // Must follow beginResponse(): there is no `response` to hang the headers on before it.
+    genCacheHeaders(d, source, (h, v) => `    response->addHeader("${h}", ${v});`),
+    `    ${d.definePrefix}_onFileServed("${path}", 200);`,
+    `    request->send(response);`
   );
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
-  lines.push(`    ${d.definePrefix}_onFileServed("${path}", 200);`, `    request->send(response);`);
   return lines.join('\n');
 };
 

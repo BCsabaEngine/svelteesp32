@@ -1,5 +1,5 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, etagLiteral, sw } from './cppCode';
+import { cacheCtrl, etagLiteral, genCacheHeaders, sw } from './cppCode';
 
 const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): string => {
   const path = `${d.basePath}/${source.filename}`;
@@ -43,20 +43,8 @@ const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): strin
       : ''
   });
   if (gzipEncoding) lines.push(gzipEncoding);
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    httpd_resp_set_hdr(req, "Cache-Control", "${cacheCtrl(source)}");`,
-      `    httpd_resp_set_hdr(req, "ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    httpd_resp_set_hdr(req, "Cache-Control", "${cacheCtrl(source)}");`,
-      `    httpd_resp_set_hdr(req, "ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
   lines.push(
+    genCacheHeaders(d, source, (h, v) => `    httpd_resp_set_hdr(req, "${h}", ${v});`),
     sw(d.gzip, {
       always: [
         `    ${d.definePrefix}_onFileServed("${path}", 200);`,

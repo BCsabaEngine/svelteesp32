@@ -1,5 +1,14 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genManifest, sw } from './cppCode';
+import {
+  cacheCtrl,
+  genCacheHeaders,
+  genCommonHeader,
+  genDataArrays,
+  genEtagArrays,
+  genHook,
+  genManifest,
+  sw
+} from './cppCode';
 
 const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
   const lines: string[] = [];
@@ -20,20 +29,8 @@ const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, pat
     compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagBody, `  #endif`].join('\n')
   });
   if (etagCheck) lines.push(etagCheck);
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    server->sendHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    server->sendHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    server->sendHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    server->sendHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
   lines.push(
+    genCacheHeaders(d, source, (h, v) => `    server->sendHeader("${h}", ${v});`),
     sw(d.gzip, {
       always: [
         ...(source.isGzip ? [`    server->sendHeader("Content-Encoding", "gzip");`] : []),
