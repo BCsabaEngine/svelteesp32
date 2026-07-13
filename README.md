@@ -346,10 +346,20 @@ const size_t SVELTEESP32_FILE_COUNT = sizeof(SVELTEESP32_FILES) / sizeof(SVELTEE
 extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}
 
 void initSvelteStaticFiles(PsychicHttpServer * server) {
-  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
+  server->on("/assets/index-KwubEIf-.js", HTTP_ANY, [](PsychicRequest * request, PsychicResponse * response) {
+    if (request->method() != HTTP_GET && request->method() != HTTP_HEAD) {
+      response->setCode(405);
+      response->addHeader("Allow", "GET, HEAD");
+      return response->send();
+    }
+
+    // A 304 repeats the ETag and Cache-Control of the 200 it replaces (RFC 7232 4.1), so the
+    // client can refresh the cached entry's freshness lifetime instead of revalidating every load.
     if (request->hasHeader("If-None-Match") &&
         strstr(request->header("If-None-Match").c_str(), etag_assets_index_KwubEIf__js) != nullptr) {
       response->setCode(304);
+      response->addHeader("Cache-Control", "no-cache");
+      response->addHeader("ETag", etag_assets_index_KwubEIf__js);
       SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 304);
       return response->send();
     }
@@ -358,7 +368,9 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
     response->addHeader("Content-Encoding", "gzip");
     response->addHeader("Cache-Control", "no-cache");
     response->addHeader("ETag", etag_assets_index_KwubEIf__js);
-    response->setContent(datagzip_assets_index_KwubEIf__js, 12547);
+    if (request->method() != HTTP_HEAD) {
+      response->setContent(datagzip_assets_index_KwubEIf__js, 12547);
+    }
     SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 200);
     return response->send();
   });

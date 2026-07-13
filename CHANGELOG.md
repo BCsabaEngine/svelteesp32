@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.2.1] - 2026-07-13
 
+### Fixed
+
+- **`304 Not Modified` responses now repeat the `ETag` and `Cache-Control` headers that the matching `200` would carry.** A 304 previously went out as a bare status line with no headers at all, violating RFC 7232 §4.1 (now RFC 9110 §15.4.5): _"The server generating a 304 response MUST generate any of the following header fields that would have been sent in a 200 (OK) response to the same request: Cache-Control, Content-Location, Date, ETag, Expires, and Vary."_
+
+  The practical cost is spelled out in RFC 7234 §4.3.4 (now RFC 9111 §4.3.4): a client refreshes its stored response's freshness lifetime from the headers on the 304. With none present, the lifetime was never refreshed — so a browser revalidated on _every_ load, and `--cachetime`, `--cachetimehtml` and `--cachetimeassets` had no effect at all on any client that already held the file. All four engines are fixed.
+
+  `Content-Encoding` and `Content-Type` are deliberately left off the 304: they describe a representation, and a 304 has no body.
+
 ### Changed
 
 - **ETags are now quoted and truncated to 16 hex characters.** The generated tag was the raw 64-character SHA256 hex with no quotes, which is not a valid entity-tag: RFC 9110 defines `opaque-tag = DQUOTE *etagc DQUOTE`, and some proxies and stricter clients mishandle an unquoted value. Headers now emit `static const char etag_index_html[] = "\"387b88e345cc56ef\"";` and send `ETag: "387b88e345cc56ef"`.
