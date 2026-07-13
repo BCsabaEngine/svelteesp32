@@ -52,10 +52,18 @@ npm run test:all       # run both PlatformIO integration tests
 
 ### Engines
 
-- **psychic** — PsychicHttpServer V2 API, ESP32 only
-- **async** — ESPAsyncWebServer, ESP32/ESP8266, PROGMEM
-- **espidf** — Native ESP-IDF, `unsigned char` data arrays with `(const char *)` casts
-- **webserver** — Arduino WebServer, ESP32, PROGMEM, synchronous (requires `handleClient()` in loop)
+- **psychic** — PsychicHttpServer V2 API, ESP32 only. Serves GET+HEAD.
+- **async** — ESPAsyncWebServer, ESP32/ESP8266, PROGMEM. Serves GET+HEAD.
+- **espidf** — Native ESP-IDF, `unsigned char` data arrays with `(const char *)` casts. GET only.
+- **webserver** — Arduino WebServer, ESP32, PROGMEM, synchronous (requires `handleClient()` in loop). GET only.
+
+### HTTP HEAD (psychic + async only, always on, no CLI flag)
+
+- **psychic**: file routes registered as `HTTP_ANY` — psychic matches `HTTP_ANY` against every method, so GET and HEAD share one `PsychicEndpoint`. The handler returns `405` + `Allow: GET, HEAD` for anything else, and skips `setContent()` on HEAD. The `--spa` catch-all is deliberately **not** `HTTP_ANY` (a wildcard would shadow API routes the user registers under `basePath` after `initSvelteStaticFiles()`, since psychic matches endpoints in registration order) — it gets one `HTTP_GET` and one `HTTP_HEAD` registration, which is why `computeRouteCount()` adds 2 for the psychic SPA case.
+- **async**: routes registered as `HTTP_GET | HTTP_HEAD` (the method is a bitmask, `HTTP_HEAD = 1u << 2`), so one handler covers both. The body is skipped via a ternary on `beginResponse()`.
+- **`Content-Length: 0` on HEAD is unavoidable**: `httpd_resp_send()` bakes Content-Length into a hardcoded format string from `buf_len`, and a custom header would duplicate it. Async matches this for consistency (a truthful length there would stall the response — `AsyncWebServerResponse` only completes once `_sentLength == _contentLength`).
+- No library suppresses the HEAD body for us — `esp_http_server`, ESPAsyncWebServer and Arduino `WebServer` all have zero HEAD handling in their response paths. The generated handler must skip the body itself.
+- **webserver ETag depends on `collectAllHeaders()`**: Arduino `WebServer` only retains headers it is told to collect (`_collectAllHeaders = false` by default), so `hasHeader("If-None-Match")` is false and the 304 branch is dead code without it. Use `collectAllHeaders()`, not `collectHeaders(keys, n)` — the latter re-initialises the list on every call and would clobber the user's own.
 
 ### Pipeline
 
@@ -82,7 +90,7 @@ RC files: `.svelteesp32rc.json` or `.svelteesp32rc` in cwd, home, or `--config=p
 - `--spa` catch-all: psychic adds `server->on("{{basePath}}/*", ...)` only when basePath is set (no-basePath case handled by `defaultEndpoint`); async/webserver add `server->onNotFound(...)` with optional basePath prefix guard; espidf uses `httpd_register_err_handler(HTTPD_404_NOT_FOUND, spa_handler_*)`
 - Data arrays: `static const uint8_t data_*[]` / `static const uint8_t datagzip_*[]` — `static` prevents multiple-definition linker errors when included in more than one TU
 - ETag variables: `static const char etag_*[]` (char array, not pointer) — avoids pointer indirection and keeps `static` linkage
-- `{{definePrefix}}_URI_HANDLERS` / `{{definePrefix}}_MAX_URI_HANDLERS`: psychic and espidf only (only engines with a fixed-size handler table). `computeRouteCount()` in `src/cppCode.ts` computes the real number of registered handlers (file count, plus one for the default `/` route when `index.html`/`index.htm` is present, plus one more when `--spa` is active — psychic only counts the default-route/SPA extras when `basePath` is set, since it aliases the default route via `defaultEndpoint` otherwise). `_URI_HANDLERS` is that exact count; `_MAX_URI_HANDLERS` is `_URI_HANDLERS + 5` (safety margin for the user's own custom routes), for use in `server.config.max_uri_handlers` / `httpd_config_t.max_uri_handlers`
+- `{{definePrefix}}_URI_HANDLERS` / `{{definePrefix}}_MAX_URI_HANDLERS`: emitted for psychic and espidf. `computeRouteCount()` in `src/cppCode.ts` computes the real number of registered handlers (file count, plus one for the default `/` route when `index.html`/`index.htm` is present, plus the `--spa` catch-all — psychic only counts the default-route/SPA extras when `basePath` is set, since it aliases the default route via `defaultEndpoint` otherwise, and counts the SPA catch-all twice because it is registered once per method). `_URI_HANDLERS` is that exact count; `_MAX_URI_HANDLERS` is `_URI_HANDLERS + 5` (safety margin for the user's own custom routes). **Load-bearing for espidf only** (`httpd_config_t.max_uri_handlers`). For psychic they are informational: PsychicHttp 3.x registers one wildcard esp-idf handler per HTTP method and routes endpoints internally, overwriting `server.config.max_uri_handlers` in `start()` — assigning the define does nothing.
 - Per-source cache time: `cacheTime` is computed per file in `transformSourceToTemplateData` — HTML files use `cachetimeHtml ?? cachetime`, non-HTML use `cachetimeAssets ?? cachetime`
 
 ## Testing (Vitest)

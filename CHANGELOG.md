@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-07-13
+
+### Added
+
+- **HTTP `HEAD` support (psychic, async)**: Generated routes now answer `HEAD` as well as `GET` — same status code and headers, no body. `curl -I`, health checks and uptime monitors previously received a `404`. Always on; there is no flag, because it costs no extra route on either engine. psychic registers file routes as `HTTP_ANY` and dispatches on the method inside the handler; async registers them as `HTTP_GET | HTTP_HEAD`. The `--spa` catch-all answers `HEAD` too.
+
+  `HEAD` responses report `Content-Length: 0`. ESP-IDF's `httpd_resp_send()` derives `Content-Length` from the buffer it is handed and offers no way to override it, so a body-less response cannot carry the real length; async reports `0` for consistency.
+
+  The **webserver** and **espidf** engines remain `GET`-only — HEAD would require a second handler per file there. The README shows how to add it by hand.
+
+### Fixed
+
+- **ETag/`304` never fired on the `webserver` engine**: the generated handler tests `server->hasHeader("If-None-Match")`, but Arduino `WebServer` only retains request headers it has been told to collect, and nothing called `collectHeaders()`. `hasHeader()` therefore always returned false and the entire `304` branch was unreachable — every request re-sent the full body. The generated init function now calls `server->collectAllHeaders()`. (Calling `server->collectHeaders(...)` yourself afterwards re-initialises the header list and will disable ETag again.)
+
+### Changed
+
+- **psychic: `POST`/`PUT`/`DELETE` to a static file path now returns `405 Method Not Allowed`** with an `Allow: GET, HEAD` header. Previously these fell through psychic's 404 path into `defaultEndpoint`, so e.g. `POST /app.js` answered `200` with the contents of `index.html`.
+- **psychic: `SVELTEESP32_MAX_URI_HANDLERS` is informational only.** PsychicHttp 3.x registers one wildcard esp-idf handler per HTTP method and routes endpoints internally, overwriting `server.config.max_uri_handlers` in `start()` — so assigning the define was already a no-op. The defines are still emitted (and remain load-bearing for `espidf`), but the psychic demo and README no longer tell you to assign them.
+
 ## [3.1.3] - 2026-07-05
 
 ### Fixed
