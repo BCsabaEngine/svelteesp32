@@ -33,7 +33,8 @@ void setup()
 
   Serial.println(WiFi.localIP());
 
-  server.config.max_uri_handlers = SVELTEESP32_MAX_URI_HANDLERS + 2;
+  // No max_uri_handlers here: PsychicHttp 3.x sizes the esp-idf handler table itself in start(),
+  // overwriting server.config.max_uri_handlers. Endpoints are routed inside PsychicHttpServer.
   server.begin();
   initSvelteStaticFiles(&server);
 

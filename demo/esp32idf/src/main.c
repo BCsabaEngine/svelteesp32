@@ -112,7 +112,7 @@ static httpd_handle_t start_http_server(void)
 {
   httpd_handle_t httpd = NULL;
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-  config.max_uri_handlers = SVELTEESP32_COUNT + 10;
+  config.max_uri_handlers = SVELTEESP32_MAX_URI_HANDLERS;
 
   ESP_LOGI(TAG, "Starting server on port %d", config.server_port);
   ESP_ERROR_CHECK(httpd_start(&httpd, &config));

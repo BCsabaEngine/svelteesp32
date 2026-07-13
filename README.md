@@ -88,6 +88,7 @@ void setup() {
 
 ## What's New
 
+- **v3.2.0** — **HTTP `HEAD` support** on the psychic and async engines (always on, no flag): `curl -I`, health checks and uptime monitors now get the same status and headers as `GET`, with no body. psychic file routes are registered as `HTTP_ANY` and return `405 Method Not Allowed` for non-GET/HEAD instead of falling through to `index.html`. Also fixes ETag/`304` on the **webserver** engine, which never fired because Arduino `WebServer` was not told to retain the `If-None-Match` header
 - **v3.1.0** — Removed `handlebars`, `picomatch`, and `mime-types` dependencies; C++ generation is now pure TypeScript with a built-in MIME type map and direct `tinyglobby` exclude handling. `--cachetime-html` → `--cachetimehtml`, `--cachetime-assets` → `--cachetimeassets` (CLI now matches RC file keys); `--dry-run` alias removed — use `--dryrun`. `SVELTEESP32_URI_HANDLERS`/`SVELTEESP32_MAX_URI_HANDLERS` (psychic/espidf) now reflect the exact registered route count, including the default `/` route and `--spa` catch-all
 - **v3.0.0** — **Vite plugin** (`import { svelteESP32 } from 'svelteesp32/vite'`) generates the header automatically after every build — call with no argument for RC file mode or pass an options object for plugin-options mode; `npx svelteesp32 init` interactive RC file wizard; Node.js >= 22 required
 - **v2.4.0** — `--analyze` for CI size budget checks (per-file table, exits 1 on over-budget); `--manifest` to write a companion JSON manifest alongside the header
@@ -379,7 +380,9 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 **Recommendation:** For ESP32-only projects, use PsychicHttpServer V2 (`-e psychic`) for the fastest, most stable experience.
 
-**Note:** For PsychicHttp and native ESP-IDF, configure `server.config.max_uri_handlers` / `httpd_config_t.max_uri_handlers`. The generated header provides `SVELTEESP32_URI_HANDLERS` (the exact number of routes registered, accounting for the default `/` route and the `--spa` catch-all handler) and `SVELTEESP32_MAX_URI_HANDLERS` (`SVELTEESP32_URI_HANDLERS` + 5 safety margin for your own custom routes) for use directly in your sketch.
+**Note:** For native ESP-IDF, configure `httpd_config_t.max_uri_handlers`. The generated header provides `SVELTEESP32_URI_HANDLERS` (the exact number of routes registered, accounting for the default `/` route and the `--spa` catch-all handler) and `SVELTEESP32_MAX_URI_HANDLERS` (`SVELTEESP32_URI_HANDLERS` + 5 safety margin for your own custom routes) for use directly in your sketch.
+
+PsychicHttp does **not** need this: since 3.x it registers one wildcard esp-idf handler per HTTP method and routes endpoints internally, overwriting `server.config.max_uri_handlers` in `start()`. Assigning it has no effect. The two defines are still emitted for the psychic engine, but they are informational only.
 
 ---
 
@@ -485,7 +488,7 @@ void setup() {
 
 ### SPA Routing (Client-Side Routers)
 
-Modern JS frameworks use client-side routing. Without a catch-all, refreshing `/settings` on your ESP32 returns nothing. Add `--spa` to make all unmatched GET requests fall through to `index.html`:
+Modern JS frameworks use client-side routing. Without a catch-all, refreshing `/settings` on your ESP32 returns nothing. Add `--spa` to make all unmatched `GET` (and, on psychic/async, `HEAD`) requests fall through to `index.html`:
 
 ```bash
 npx svelteesp32 -e async -s ./dist -o ./output.h --spa
@@ -494,14 +497,54 @@ npx svelteesp32 -e psychic -s ./dist -o ./output.h --spa --basepath=/app
 
 What gets generated per engine:
 
-| Engine      | Catch-all mechanism                                                                                                          |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `psychic`   | `server->on("/*", ...)` (no basePath) already handled by `defaultEndpoint`; `server->on("/app/*", ...)` when basePath is set |
-| `async`     | `server->onNotFound(...)` with optional basePath prefix check                                                                |
-| `webserver` | `server->onNotFound(...)` with optional basePath prefix check                                                                |
-| `espidf`    | `httpd_register_err_handler(HTTPD_404_NOT_FOUND, ...)`                                                                       |
+| Engine      | Catch-all mechanism                                                                                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `psychic`   | `server->on("/*", ...)` (no basePath) already handled by `defaultEndpoint`; `server->on("/app/*", ...)` registered for `HTTP_GET` and `HTTP_HEAD` when basePath is set |
+| `async`     | `server->onNotFound(...)` with optional basePath prefix check                                                                                                          |
+| `webserver` | `server->onNotFound(...)` with optional basePath prefix check                                                                                                          |
+| `espidf`    | `httpd_register_err_handler(HTTPD_404_NOT_FOUND, ...)`                                                                                                                 |
 
 **Note:** `--spa` requires `index.html` or `index.htm` in the source directory — a warning is printed if it is missing.
+
+### HEAD Request Support
+
+`curl -I`, health checks and most uptime monitors send `HEAD`, not `GET`. Routes generated for the **psychic** and **async** engines answer `HEAD` alongside `GET` — same status code, same headers (`Content-Type`, `Content-Encoding`, `ETag`, `Cache-Control`), no body. There is no flag: it is always on, and it costs no extra route on either engine.
+
+| Engine      | HEAD | How                                                                                              |
+| ----------- | ---- | ------------------------------------------------------------------------------------------------ |
+| `psychic`   | yes  | Routes registered as `HTTP_ANY`; the handler serves GET/HEAD and returns `405` for anything else |
+| `async`     | yes  | Routes registered as `HTTP_GET \| HTTP_HEAD` (one handler, method is a bitmask)                  |
+| `webserver` | no   | Registering HEAD would need a second handler per file — see below                                |
+| `espidf`    | no   | `httpd_uri_t.method` holds a single method, so HEAD would double the handler table — see below   |
+
+Two behaviours worth knowing about:
+
+- **`Content-Length` is `0` on HEAD responses.** ESP-IDF's `httpd_resp_send()` derives `Content-Length` from the buffer it is given, and there is no way to override it, so a body-less response necessarily reports zero. Async reports `0` too, for consistency. This is technically at odds with RFC 9110 §8.6, which wants the length the `GET` _would_ have returned. In practice `curl -I` and uptime monitors read the status line, so it does not matter — but if you are diffing headers between `GET` and `HEAD`, that is the field that will differ.
+- **psychic returns `405 Method Not Allowed`** (with an `Allow: GET, HEAD` header) for `POST`/`PUT`/`DELETE` to a static file path. Previously such requests fell through psychic's 404 path and were answered by `defaultEndpoint` — i.e. `POST /app.js` served `index.html` with a `200`.
+
+For **webserver** and **espidf**, HEAD still returns `404`. Add it yourself next to the generated routes:
+
+```cpp
+// Arduino WebServer — reuse the generated route's URI, send headers with no body
+server->on("/index.html", HTTP_HEAD, [server]() {
+  server->setContentLength(sizeof(datagzip_index_html));
+  server->sendHeader("Content-Encoding", "gzip");
+  server->send(200, "text/html", "");
+});
+```
+
+```c
+/* ESP-IDF — a second httpd_uri_t reusing the generated handler.
+   Remember to raise httpd_config_t.max_uri_handlers to cover the extra entries. */
+static const httpd_uri_t head_INDEX_HTML = {
+    .uri = "/index.html",
+    .method = HTTP_HEAD,
+    .handler = file_handler_INDEX_HTML,
+};
+httpd_register_uri_handler(server, &head_INDEX_HTML);
+```
+
+Note that the ESP-IDF handler above will still write a body, since `esp_http_server` does not suppress it for HEAD. Guard the `httpd_resp_send()` call on `req->method != HTTP_HEAD` if that matters to you.
 
 ### Analyze Mode (CI Size Budget Checks)
 

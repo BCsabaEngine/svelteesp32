@@ -81,9 +81,10 @@ export const computeRouteCount = (
   const numberDefault = sources.filter((s) => s.filename === 'index.html' || s.filename === 'index.htm').length;
   const hasDefault = numberDefault > 0;
   if (engine === 'psychic') {
-    // psychic aliases the default route onto the existing handler when basePath is empty, so no extra handler is registered
+    // psychic aliases the default route onto the existing handler when basePath is empty, so no extra handler is registered.
+    // File routes are HTTP_ANY (one endpoint serves GET and HEAD), but the SPA catch-all is registered once per method.
     const defaultExtra = basePath ? numberDefault : 0;
-    const spaExtra = isSpa && hasDefault && basePath ? 1 : 0;
+    const spaExtra = isSpa && hasDefault && basePath ? 2 : 0;
     return sources.length + defaultExtra + spaExtra;
   }
   // espidf/async/webserver always register a separate default-route handler and a separate SPA/404 handler
@@ -128,6 +129,8 @@ export const genCommonHeader = (d: TemplateData): string => {
   );
   if (d.isPsychic)
     lines.push(
+      `// Informational: PsychicHttp 3.x sizes the esp-idf handler table itself in start(), so`,
+      `// assigning these to server.config.max_uri_handlers has no effect.`,
       `#define ${d.definePrefix}_URI_HANDLERS ${d.uriHandlers}`,
       `#define ${d.definePrefix}_MAX_URI_HANDLERS ${d.maxUriHandlers}`
     );

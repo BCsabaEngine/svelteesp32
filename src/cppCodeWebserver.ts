@@ -96,7 +96,14 @@ export const genWebserverCpp = (d: TemplateData): string => {
     `}`,
     '//',
     '// Http Handlers',
-    `void ${d.methodName}(WebServer * server) {`
+    `void ${d.methodName}(WebServer * server) {`,
+    // WebServer only retains request headers it was told to collect, so hasHeader("If-None-Match")
+    // is false - and the 304 branch below unreachable - unless we opt in here. Note that a later
+    // server->collectHeaders(...) call re-initialises the list and would disable ETag again.
+    sw(d.etag, {
+      always: `  server->collectAllHeaders();`,
+      compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, `  server->collectAllHeaders();`, `  #endif`].join('\n')
+    })
   ];
   for (const source of d.sources) {
     const path = `${d.basePath}/${source.filename}`;
