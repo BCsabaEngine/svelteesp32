@@ -3,25 +3,24 @@ import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genM
 
 const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
   const lines: string[] = [];
+  // RFC 7232 4.1: a 304 must repeat the Cache-Control and ETag a 200 would have carried, otherwise
+  // the client cannot refresh the stored response's freshness lifetime and revalidates every time.
+  // request->send(304) builds and sends in one call, leaving no handle to add headers to - the
+  // 304 has to go through beginResponse() instead.
+  const etagBody = [
+    `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
+    `    if (h && strstr(h->value().c_str(), etag_${source.dataname}) != nullptr) {`,
+    `      AsyncWebServerResponse *notModified = request->beginResponse(304);`,
+    `      notModified->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
+    `      notModified->addHeader("ETag", etag_${source.dataname});`,
+    `      ${d.definePrefix}_onFileServed("${path}", 304);`,
+    `      request->send(notModified);`,
+    `      return;`,
+    `    }`
+  ].join('\n');
   const etagCheck = sw(d.etag, {
-    always: [
-      `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
-      `    if (h && strstr(h->value().c_str(), etag_${source.dataname}) != nullptr) {`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      request->send(304);`,
-      `      return;`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
-      `    if (h && strstr(h->value().c_str(), etag_${source.dataname}) != nullptr) {`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      request->send(304);`,
-      `      return;`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
+    always: etagBody,
+    compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagBody, `  #endif`].join('\n')
   });
   if (etagCheck) lines.push(etagCheck);
   // HEAD: same status and headers as GET, but no body. The empty-content beginResponse() overload

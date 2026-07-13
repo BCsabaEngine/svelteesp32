@@ -3,23 +3,21 @@ import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genM
 
 const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
   const lines: string[] = [];
+  // RFC 7232 4.1: a 304 must repeat the Cache-Control and ETag a 200 would have carried, otherwise
+  // the client cannot refresh the stored response's freshness lifetime and revalidates every time.
+  // send() flushes the accumulated header block, so both sendHeader calls have to precede it.
+  const etagBody = [
+    `    if (server->hasHeader("If-None-Match") && strstr(server->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
+    `      server->sendHeader("Cache-Control", "${cacheCtrl(source)}");`,
+    `      server->sendHeader("ETag", etag_${source.dataname});`,
+    `      server->send(304);`,
+    `      ${d.definePrefix}_onFileServed("${path}", 304);`,
+    `      return;`,
+    `    }`
+  ].join('\n');
   const etagCheck = sw(d.etag, {
-    always: [
-      `    if (server->hasHeader("If-None-Match") && strstr(server->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
-      `      server->send(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return;`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    if (server->hasHeader("If-None-Match") && strstr(server->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
-      `      server->send(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return;`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
+    always: etagBody,
+    compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagBody, `  #endif`].join('\n')
   });
   if (etagCheck) lines.push(etagCheck);
   const cacheHeaders = sw(d.etag, {

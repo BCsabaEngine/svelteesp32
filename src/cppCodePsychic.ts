@@ -19,23 +19,20 @@ const genPsychicHandlerBody = (
         `    }`
       ].join('\n')
     );
+  // RFC 7232 4.1: a 304 must repeat the Cache-Control and ETag a 200 would have carried, otherwise
+  // the client cannot refresh the stored response's freshness lifetime and revalidates every time.
+  const etagBody = [
+    `    if (request->hasHeader("If-None-Match") && strstr(request->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
+    `      response->setCode(304);`,
+    `      response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
+    `      response->addHeader("ETag", etag_${source.dataname});`,
+    `      ${d.definePrefix}_onFileServed("${path}", 304);`,
+    `      return response->send();`,
+    `    }`
+  ].join('\n');
   const etagCheck = sw(d.etag, {
-    always: [
-      `    if (request->hasHeader("If-None-Match") && strstr(request->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
-      `      response->setCode(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return response->send();`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    if (request->hasHeader("If-None-Match") && strstr(request->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
-      `      response->setCode(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return response->send();`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
+    always: etagBody,
+    compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagBody, `  #endif`].join('\n')
   });
   if (etagCheck) lines.push(etagCheck);
   lines.push(`    response->setContentType("${source.mime}");`);
