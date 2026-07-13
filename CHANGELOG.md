@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`Cache-Control` is no longer coupled to the ETag mode.** In every engine the cache header block was emitted inside a `switch` over `etag` that had `always` and `compiler` arms but no `never` arm, so the `Cache-Control` header disappeared along with the `ETag` whenever ETag validation was off:
+
+  - `--etag=never --cachetimeassets=31536000` emitted **no `Cache-Control` header at all** — the cache flags were silently inert. This is the combination the README's Arduino `WebServer` recipe recommended.
+  - `--etag=compiler` compiled _without_ `-D SVELTEESP32_ENABLE_ETAG` also dropped caching, as a side effect of a compile-time _ETag_ switch.
+
+  The two headers are independent: `Cache-Control` sets a freshness lifetime, `ETag` provides the validator used to revalidate afterwards. `Cache-Control` is now emitted on every `200` in every etag mode, and only the `ETag` line stays gated. Note the consequence for `--etag=never` builds with no cache time set: they now carry `Cache-Control: no-cache`, the honest directive for an uncacheable response (it also stops proxies applying heuristic freshness), where previously they carried nothing.
+
 - **`304 Not Modified` responses now repeat the `ETag` and `Cache-Control` headers that the matching `200` would carry.** A 304 previously went out as a bare status line with no headers at all, violating RFC 7232 §4.1 (now RFC 9110 §15.4.5): _"The server generating a 304 response MUST generate any of the following header fields that would have been sent in a 200 (OK) response to the same request: Cache-Control, Content-Location, Date, ETag, Expires, and Vary."_
 
   The practical cost is spelled out in RFC 7234 §4.3.4 (now RFC 9111 §4.3.4): a client refreshes its stored response's freshness lifetime from the headers on the 304. With none present, the lifetime was never refreshed — so a browser revalidated on _every_ load, and `--cachetime`, `--cachetimehtml` and `--cachetimeassets` had no effect at all on any client that already held the file. All four engines are fixed.

@@ -457,6 +457,8 @@ This emits `Cache-Control: no-cache` for every `text/html` file and `Cache-Contr
 | `--cachetimeassets` | everything else                  | `--cachetime`  |
 | `--cachetime`       | all files (when no override set) | `0` (no-cache) |
 
+`Cache-Control` is independent of `--etag`: it is emitted on every response in every etag mode. `--cachetime*` therefore still applies with `--etag=never`, and an `--etag=compiler` build compiled _without_ `-D SVELTEESP32_ENABLE_ETAG` keeps its caching — only the `ETag` header itself is gated. The two headers do different jobs: `Cache-Control` sets how long a response stays fresh, `ETag` is the validator used to revalidate it once it goes stale.
+
 ### Automatic Index Handling
 
 Your `index.html` is automatically served at the root URL — just like any web server. Visit `http://esp32.local/` and your app loads.
@@ -778,10 +780,10 @@ npm run build
 
 # 2. Generate the header
 npx svelteesp32 -e webserver -s ./dist -o ./MyProject/svelteesp32.h \
-  --gzip=always --etag=never
+  --gzip=always --etag=always
 ```
 
-> **Note:** The Arduino `WebServer` library does not support ETag validation, so `--etag=never` is the correct setting here. Remember to call `server.handleClient()` in your `loop()`.
+> **Note:** ETag validation works on Arduino `WebServer` — the generated header calls `server->collectAllHeaders()` for you, which is what makes the incoming `If-None-Match` available to the 304 check. (`WebServer` only retains request headers it has been told to collect.) Remember to call `server.handleClient()` in your `loop()`.
 
 ```c
 #include <WebServer.h>
