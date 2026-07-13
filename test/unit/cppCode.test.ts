@@ -73,7 +73,8 @@ describe('computeRouteCount (issue #120)', () => {
 
   it('psychic: counts the extra default-route and SPA catch-all only when basePath is set', () => {
     expect(computeRouteCount(sourcesWithIndex, 'psychic', '/ui', false)).toBe(3);
-    expect(computeRouteCount(sourcesWithIndex, 'psychic', '/ui', true)).toBe(4);
+    // the SPA catch-all is registered once for HTTP_GET and once for HTTP_HEAD
+    expect(computeRouteCount(sourcesWithIndex, 'psychic', '/ui', true)).toBe(5);
   });
 });
 
@@ -163,8 +164,8 @@ describe('cppCode', () => {
 
       const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, basePath: '/ui', spa: true });
 
-      expect(result).toContain('#define SVELTEESP32_URI_HANDLERS 4');
-      expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 9');
+      expect(result).toContain('#define SVELTEESP32_URI_HANDLERS 5');
+      expect(result).toContain('#define SVELTEESP32_MAX_URI_HANDLERS 10');
     });
 
     it('should generate file defines for each source', () => {
@@ -215,7 +216,7 @@ describe('cppCode', () => {
 
       const result = getCppCode(sources, mockFilesByExtension, mockOptions);
 
-      expect(result).toContain('server->on("/test.html", HTTP_GET');
+      expect(result).toContain('server->on("/test.html", HTTP_ANY');
     });
 
     it('should detect default route for index.html', () => {
@@ -670,7 +671,7 @@ describe('cppCode', () => {
         cachetime: 0
       });
 
-      expect(result).toContain('server->on("/ui/index.html", HTTP_GET');
+      expect(result).toContain('server->on("/ui/index.html", HTTP_ANY');
       expect(result).toContain('SVELTEESP32_onFileServed("/ui/index.html", 200)');
       expect(result).toContain('SVELTEESP32_onFileServed("/ui/index.html", 304)');
     });
@@ -685,7 +686,7 @@ describe('cppCode', () => {
       });
 
       // Should have handler for /admin (without index.html)
-      expect(result).toContain('server->on("/admin", HTTP_GET');
+      expect(result).toContain('server->on("/admin", HTTP_ANY');
       expect(result).toContain('SVELTEESP32_onFileServed("/admin", 200)');
     });
 
@@ -1057,6 +1058,143 @@ describe('cppCode', () => {
 
       expect(result).toContain('max-age=31536000');
       expect(result).toContain('no-cache');
+    });
+  });
+
+  describe('HEAD support', () => {
+    describe('psychic', () => {
+      it('should register file routes as HTTP_ANY so one endpoint serves GET and HEAD', () => {
+        const sources: CppCodeSources = [createMockAssetSource('app.css', 'body{}')];
+
+        const result = getCppCode(sources, mockFilesByExtension, mockOptions);
+
+        expect(result).toContain('server->on("/app.css", HTTP_ANY');
+        expect(result).not.toContain('server->on("/app.css", HTTP_GET');
+      });
+
+      it('should reject methods other than GET and HEAD with a 405', () => {
+        const sources: CppCodeSources = [createMockAssetSource('app.css', 'body{}')];
+
+        const result = getCppCode(sources, mockFilesByExtension, mockOptions);
+
+        expect(result).toContain('if (request->method() != HTTP_GET && request->method() != HTTP_HEAD) {');
+        expect(result).toContain('response->setCode(405);');
+        expect(result).toContain('response->addHeader("Allow", "GET, HEAD");');
+      });
+
+      it('should skip the body on HEAD but keep the headers', () => {
+        const sources: CppCodeSources = [createMockAssetSource('app.css', 'body{}')];
+
+        const result = getCppCode(sources, mockFilesByExtension, mockOptions);
+
+        expect(result).toContain('if (request->method() != HTTP_HEAD) {');
+        expect(result).toContain('response->setContent(datagzip_app_css');
+        // headers are emitted unconditionally, outside the HEAD guard
+        expect(result).toContain('response->setContentType("text/css");');
+        expect(result).toContain('response->addHeader("ETag", etag_app_css);');
+      });
+
+      it('should register the SPA catch-all once per method, not as HTTP_ANY', () => {
+        const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+        const result = getCppCode(sources, mockFilesByExtension, {
+          ...mockOptions,
+          basePath: '/app',
+          spa: true
+        });
+
+        expect(result).toContain('server->on("/app/*", HTTP_GET');
+        expect(result).toContain('server->on("/app/*", HTTP_HEAD');
+        expect(result).not.toContain('server->on("/app/*", HTTP_ANY');
+      });
+    });
+
+    describe('async', () => {
+      const asyncOptions = { ...mockOptions, engine: 'async' as const };
+
+      it('should register routes for the HTTP_GET | HTTP_HEAD method bitmask', () => {
+        const sources: CppCodeSources = [createMockAssetSource('app.css', 'body{}')];
+
+        const result = getCppCode(sources, mockFilesByExtension, asyncOptions);
+
+        expect(result).toContain('server->on("/app.css", HTTP_GET | HTTP_HEAD');
+      });
+
+      it('should pick a body-less response for HEAD', () => {
+        const sources: CppCodeSources = [createMockAssetSource('app.css', 'body{}')];
+
+        const result = getCppCode(sources, mockFilesByExtension, asyncOptions);
+
+        expect(result).toContain('AsyncWebServerResponse *response = request->method() == HTTP_HEAD');
+        expect(result).toContain('? request->beginResponse(200, "text/css")');
+        expect(result).toContain(': request->beginResponse(200, "text/css", datagzip_app_css');
+      });
+
+      it('should let HEAD through the SPA catch-all guard', () => {
+        const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+        const result = getCppCode(sources, mockFilesByExtension, { ...asyncOptions, spa: true });
+
+        expect(result).toContain(
+          'if (request->method() != HTTP_GET && request->method() != HTTP_HEAD) { request->send(404); return; }'
+        );
+      });
+    });
+
+    describe('webserver and espidf stay GET-only', () => {
+      it('should not register HEAD routes for webserver', () => {
+        const sources: CppCodeSources = [createMockAssetSource('app.css', 'body{}')];
+
+        const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'webserver' as const });
+
+        expect(result).toContain('server->on("/app.css", HTTP_GET, [server]()');
+        expect(result).not.toContain('HTTP_HEAD');
+      });
+
+      it('should not register HEAD routes for espidf', () => {
+        const sources: CppCodeSources = [createMockAssetSource('app.css', 'body{}')];
+
+        const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'espidf' as const });
+
+        expect(result).toContain('.method = HTTP_GET');
+        expect(result).not.toContain('HTTP_HEAD');
+      });
+    });
+  });
+
+  describe('webserver ETag header collection', () => {
+    const webserverOptions = { ...mockOptions, engine: 'webserver' as const };
+
+    // WebServer discards request headers it was not told to collect, so without this the
+    // If-None-Match check below it can never match and the 304 branch is unreachable
+    it('should collect all headers when etag is always', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension, webserverOptions);
+
+      expect(result).toContain('server->collectAllHeaders();');
+    });
+
+    it('should guard header collection behind the etag define when etag is compiler', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension, {
+        ...webserverOptions,
+        etag: 'compiler' as const
+      });
+
+      expect(result).toContain('#ifdef SVELTEESP32_ENABLE_ETAG\n  server->collectAllHeaders();\n  #endif');
+    });
+
+    it('should not collect headers when etag is never', () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+      const result = getCppCode(sources, mockFilesByExtension, {
+        ...webserverOptions,
+        etag: 'never' as const
+      });
+
+      expect(result).not.toContain('collectAllHeaders');
     });
   });
 });
