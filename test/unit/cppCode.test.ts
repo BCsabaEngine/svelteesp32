@@ -1252,3 +1252,97 @@ describe('etag format (RFC 9110 quoted, truncated)', () => {
     expect(sourceWithRealHash[0]!.sha256).toHaveLength(64);
   });
 });
+
+// RFC 7232 4.1: a 304 must carry the Cache-Control and ETag a 200 would have. These assert the
+// whole 304 block - a bare toContain('Cache-Control') would pass off the 200 path alone.
+describe('304 repeats the ETag and Cache-Control headers (RFC 7232 4.1)', () => {
+  const mockFilesByExtension: ExtensionGroups = [{ extension: 'HTML', count: 1 }];
+  const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+  it('psychic: sets the headers on the response before sending the 304', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'psychic' });
+
+    expect(result).toContain(
+      [
+        '      response->setCode(304);',
+        '      response->addHeader("Cache-Control", "max-age=86400");',
+        '      response->addHeader("ETag", etag_index_html);'
+      ].join('\n')
+    );
+  });
+
+  it('async: builds the 304 via beginResponse so it has a handle to add headers to', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'async' });
+
+    expect(result).toContain(
+      [
+        '      AsyncWebServerResponse *notModified = request->beginResponse(304);',
+        '      notModified->addHeader("Cache-Control", "max-age=86400");',
+        '      notModified->addHeader("ETag", etag_index_html);'
+      ].join('\n')
+    );
+    // request->send(304) sends immediately and would leave no handle for the headers.
+    expect(result).not.toContain('request->send(304);');
+  });
+
+  it('webserver: queues both headers before send(304), which flushes the header block', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'webserver' });
+
+    expect(result).toContain(
+      [
+        '      server->sendHeader("Cache-Control", "max-age=86400");',
+        '      server->sendHeader("ETag", etag_index_html);',
+        '      server->send(304);'
+      ].join('\n')
+    );
+  });
+
+  it('espidf: sets both headers before httpd_resp_send', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'espidf' });
+
+    expect(result).toContain(
+      [
+        '                httpd_resp_set_status(req, "304 Not Modified");',
+        '                httpd_resp_set_hdr(req, "Cache-Control", "max-age=86400");',
+        '                httpd_resp_set_hdr(req, "ETag", etag_index_html);'
+      ].join('\n')
+    );
+  });
+
+  it('keeps the headers inside the #ifdef fence in compiler mode', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, etag: 'compiler' as const });
+
+    expect(result).toContain(
+      [
+        '  #ifdef SVELTEESP32_ENABLE_ETAG',
+        '    if (request->hasHeader("If-None-Match") && strstr(request->header("If-None-Match").c_str(), etag_index_html) != nullptr) {',
+        '      response->setCode(304);',
+        '      response->addHeader("Cache-Control", "max-age=86400");',
+        '      response->addHeader("ETag", etag_index_html);'
+      ].join('\n')
+    );
+  });
+
+  it('echoes the per-source cache time, so an HTML 304 uses cachetimeHtml', () => {
+    const result = getCppCode(sources, mockFilesByExtension, {
+      ...mockOptions,
+      cachetime: 86_400,
+      cachetimeHtml: 60
+    });
+
+    expect(result).toContain(
+      ['      response->setCode(304);', '      response->addHeader("Cache-Control", "max-age=60");'].join('\n')
+    );
+    expect(result).not.toContain('max-age=86400');
+  });
+
+  it('omits Content-Encoding from the 304 - it is a representation header, and there is no body', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'psychic' });
+
+    const notModifiedBlock = result.slice(
+      result.indexOf('response->setCode(304);'),
+      result.indexOf('response->setContentType(')
+    );
+    expect(notModifiedBlock).not.toContain('Content-Encoding');
+  });
+});
