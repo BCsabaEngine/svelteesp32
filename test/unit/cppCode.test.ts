@@ -1346,3 +1346,60 @@ describe('304 repeats the ETag and Cache-Control headers (RFC 7232 4.1)', () => 
     expect(notModifiedBlock).not.toContain('Content-Encoding');
   });
 });
+
+// Cache-Control describes freshness, ETag provides a validator - they are independent, and only the
+// latter belongs behind the etag switch. Both used to live in the same sw(d.etag) block with no
+// 'never' arm, so --etag=never silently dropped caching altogether.
+describe('Cache-Control is emitted independently of the ETag mode', () => {
+  const mockFilesByExtension: ExtensionGroups = [{ extension: 'CSS', count: 1 }];
+  const sources: CppCodeSources = [createMockAssetSource('style.css', 'body{}')];
+  const neverOptions = { ...mockOptions, etag: 'never' as const, cachetime: 0, cachetimeAssets: 31_536_000 };
+
+  it.each([
+    ['psychic', '    response->addHeader("Cache-Control", "max-age=31536000");'],
+    ['async', '    response->addHeader("Cache-Control", "max-age=31536000");'],
+    ['webserver', '    server->sendHeader("Cache-Control", "max-age=31536000");'],
+    ['espidf', '    httpd_resp_set_hdr(req, "Cache-Control", "max-age=31536000");']
+  ] as const)('%s: --cachetime survives --etag=never', (engine, cacheLine) => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...neverOptions, engine });
+
+    expect(result).toContain(cacheLine);
+    // No validator anywhere: no ETag header, and genEtagArrays emits no etag_ array to reference.
+    expect(result).not.toContain('etag_');
+    expect(result).not.toContain('"ETag"');
+  });
+
+  it('falls back to no-cache with etag=never and no cache time', () => {
+    const result = getCppCode(sources, mockFilesByExtension, {
+      ...mockOptions,
+      etag: 'never' as const,
+      cachetime: 0
+    });
+
+    expect(result).toContain('response->addHeader("Cache-Control", "no-cache");');
+  });
+
+  it('leaves Cache-Control outside the #ifdef fence in compiler mode, so ENABLE_ETAG cannot disable caching', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...neverOptions, etag: 'compiler' as const });
+
+    expect(result).toContain(
+      [
+        '    response->addHeader("Cache-Control", "max-age=31536000");',
+        '  #ifdef SVELTEESP32_ENABLE_ETAG',
+        '    response->addHeader("ETag", etag_style_css);',
+        '  #endif'
+      ].join('\n')
+    );
+  });
+
+  it('still pairs Cache-Control with the ETag on the 200 path when etag=always', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...neverOptions, etag: 'always' as const });
+
+    expect(result).toContain(
+      [
+        '    response->addHeader("Cache-Control", "max-age=31536000");',
+        '    response->addHeader("ETag", etag_style_css);'
+      ].join('\n')
+    );
+  });
+});
