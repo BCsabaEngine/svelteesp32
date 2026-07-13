@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **psychic: `POST`/`PUT`/`DELETE` to a static file path now returns `405 Method Not Allowed`** with an `Allow: GET, HEAD` header. Previously these fell through psychic's 404 path into `defaultEndpoint`, so e.g. `POST /app.js` answered `200` with the contents of `index.html`.
 - **psychic: `SVELTEESP32_MAX_URI_HANDLERS` is informational only.** PsychicHttp 3.x registers one wildcard esp-idf handler per HTTP method and routes endpoints internally, overwriting `server.config.max_uri_handlers` in `start()` — so assigning the define was already a no-op. The defines are still emitted (and remain load-bearing for `espidf`), but the psychic demo and README no longer tell you to assign them.
+- Updated dev dependencies: `eslint-plugin-unicorn` 71 (major), `eslint` 10.7, `@typescript-eslint/*` 8.64, `vitest` and `@vitest/coverage-v8` 4.1.10, `memfs` 4.64, `prettier` 3.9.5, `tsx` 4.23.1, `@types/node` 26.1.1
 
 ## [3.1.3] - 2026-07-05
 
