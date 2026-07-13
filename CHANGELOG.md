@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2026-07-13
+
+### Changed
+
+- **ETags are now quoted and truncated to 16 hex characters.** The generated tag was the raw 64-character SHA256 hex with no quotes, which is not a valid entity-tag: RFC 9110 defines `opaque-tag = DQUOTE *etagc DQUOTE`, and some proxies and stricter clients mishandle an unquoted value. Headers now emit `static const char etag_index_html[] = "\"387b88e345cc56ef\"";` and send `ETag: "387b88e345cc56ef"`.
+
+  16 hex characters is 64 bits of collision resistance — far beyond what the few dozen files that fit in flash need — and costs 18 bytes per file instead of 64, on every response header and every conditional request. The **full 64-character hash is still written to the `--manifest` JSON**, so change detection between builds is unaffected.
+
+  Clients holding an ETag from an older build will miss once and get a fresh `200`; there is no other migration.
+
+- **`If-None-Match` is matched with `strstr()` instead of exact string equality** (`.equals()` on the Arduino engines, `strcmp()` on espidf). A browser may send a comma-separated list (`If-None-Match: "a", "b"`) or a weak validator (`W/"a"`), and both previously failed to match — silently costing a full `200` where a `304` was correct. Because `etagc` excludes `"`, the quoted tag can only match a complete entity-tag within a list, and matching through a `W/` prefix is exactly the weak comparison RFC 9110 mandates for `If-None-Match`.
+
 ## [3.2.0] - 2026-07-13
 
 ### Added

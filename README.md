@@ -88,7 +88,7 @@ void setup() {
 
 ## What's New
 
-- **v3.2.0** — **HTTP `HEAD` support** on the psychic and async engines (always on, no flag): `curl -I`, health checks and uptime monitors now get the same status and headers as `GET`, with no body. psychic file routes are registered as `HTTP_ANY` and return `405 Method Not Allowed` for non-GET/HEAD instead of falling through to `index.html`. Also fixes ETag/`304` on the **webserver** engine, which never fired because Arduino `WebServer` was not told to retain the `If-None-Match` header
+- **v3.2.0** — **HTTP `HEAD` support** on the psychic and async engines (always on, no flag): `curl -I`, health checks and uptime monitors now get the same status and headers as `GET`, with no body. psychic file routes are registered as `HTTP_ANY` and return `405 Method Not Allowed` for non-GET/HEAD instead of falling through to `index.html`. Also fixes ETag/`304` on the **webserver** engine, which never fired because Arduino `WebServer` was not told to retain the `If-None-Match` header. **RFC-compliant ETags**: the tag is now quoted (`ETag: "387b88e345cc56ef"`) as RFC 9110 requires and truncated to 16 hex characters — 18 bytes per file instead of 64, on every response header and every conditional request — and `If-None-Match` is matched with `strstr()`, so browsers sending a comma-separated list or a weak `W/"…"` validator now get their `304` instead of a full `200`
 - **v3.1.0** — Removed `handlebars`, `picomatch`, and `mime-types` dependencies; C++ generation is now pure TypeScript with a built-in MIME type map and direct `tinyglobby` exclude handling. `--cachetime-html` → `--cachetimehtml`, `--cachetime-assets` → `--cachetimeassets` (CLI now matches RC file keys); `--dry-run` alias removed — use `--dryrun`. `SVELTEESP32_URI_HANDLERS`/`SVELTEESP32_MAX_URI_HANDLERS` (psychic/espidf) now reflect the exact registered route count, including the default `/` route and `--spa` catch-all
 - **v3.0.0** — **Vite plugin** (`import { svelteESP32 } from 'svelteesp32/vite'`) generates the header automatically after every build — call with no argument for RC file mode or pass an options object for plugin-options mode; `npx svelteesp32 init` interactive RC file wizard; Node.js >= 22 required
 - **v2.4.0** — `--analyze` for CI size budget checks (per-file table, exits 1 on over-budget); `--manifest` to write a companion JSON manifest alongside the header
@@ -323,8 +323,8 @@ The generated header file includes everything your ESP needs:
 
 static const uint8_t datagzip_assets_index_KwubEIf__js[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
 static const uint8_t datagzip_assets_index_Soe6cpLA_css[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
-static const char etag_assets_index_KwubEIf__js[] = "387b88e345cc56ef9091...";
-static const char etag_assets_index_Soe6cpLA_css[] = "d4f23bc45ef67890ab12...";
+static const char etag_assets_index_KwubEIf__js[] = "\"387b88e345cc56ef\"";
+static const char etag_assets_index_Soe6cpLA_css[] = "\"d4f23bc45ef67890\"";
 
 // File manifest for runtime introspection
 struct SVELTEESP32_FileInfo {
@@ -348,7 +348,7 @@ extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path,
 void initSvelteStaticFiles(PsychicHttpServer * server) {
   server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
     if (request->hasHeader("If-None-Match") &&
-        request->header("If-None-Match").equals(etag_assets_index_KwubEIf__js)) {
+        strstr(request->header("If-None-Match").c_str(), etag_assets_index_KwubEIf__js) != nullptr) {
       response->setCode(304);
       SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 304);
       return response->send();
@@ -404,6 +404,21 @@ Reduce bandwidth dramatically with HTTP 304 "Not Modified" responses. When a bro
 - **Compiler mode** — use `--etag=compiler` and control via `-D SVELTEESP32_ENABLE_ETAG`
 
 All four engines support full ETag validation.
+
+The tag is the file's SHA256 truncated to 16 hex characters and wrapped in quotes, exactly as RFC 9110 requires (`opaque-tag = DQUOTE *etagc DQUOTE`) — unquoted tags are mishandled by some proxies and stricter clients:
+
+```http
+ETag: "387b88e345cc56ef"
+```
+
+16 hex characters is 64 bits of collision resistance, far more than enough for the few dozen files that fit in flash, and it costs 18 bytes per file instead of 64 — on every response header and every conditional request. The full 64-character hash is still written to the `--manifest` JSON, so change detection between builds is unaffected.
+
+Validation uses a substring match rather than string equality, so a browser sending a comma-separated list or a weak validator still gets its `304`:
+
+```http
+If-None-Match: W/"387b88e345cc56ef"
+If-None-Match: "0badcafe0badcafe", "387b88e345cc56ef"
+```
 
 > **Browser compatibility note:** ETags and `Cache-Control: max-age` are universally supported in all modern browsers. Very old clients (IE6/7, early Android 2.x WebViews) may ignore `must-revalidate` or mishandle 304 responses. If you target these environments, set `--etag=never` and `--cachetime=0` to force full downloads on every request.
 
