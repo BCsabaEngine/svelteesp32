@@ -27,7 +27,7 @@ npm run dev:init       # run the init wizard via tsx (dev mode)
 
 # PlatformIO integration tests (requires PlatformIO installed)
 npm run test:esp32     # ./package.script, then build all 27 demo/esp32 envs
-npm run test:esp32idf  # ./package.script, then build all 9 demo/esp32idf envs
+npm run test:esp32idf  # ./package.script, then build all 10 demo/esp32idf envs
 npm run test:all       # run both PlatformIO integration tests
 ./package.script       # regenerate every demo header variant (no build)
 ```
@@ -86,7 +86,7 @@ File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → T
 
 `demo/svelte` is a small Svelte app (LED toggle + uptime card) whose `dist` output is embedded via `dev:psychic`/`dev:async`/`dev:webserver`. `demo/esp32` (PlatformIO, all three Arduino-based engines) and `demo/esp32idf` implement `GET /api/status` / `POST /api/toggle` handlers alongside the generated static-file routes — demonstrating the generated header coexisting with hand-written API routes on the same server. Useful reference when changing route-registration code (e.g. `computeRouteCount`, `--spa`).
 
-**Header variants.** `./package.script` regenerates one header per etag/gzip combination into `demo/{esp32,esp32idf}/include/<variant>/`, where the variant dir encodes the flags: `_` (neither), `e` (etag=always), `g` (gzip=always), `c` (…=compiler) — so `ecgc` is `--etag=compiler --gzip=compiler`, `eg` is `--etag=always --gzip=always`. Each PlatformIO env `-I`s one variant dir, which is how all etag × gzip × engine combinations get compiled. **These headers are gitignored** (`include/**/*.h`), so they never show up in `git diff` — regenerate, don't hand-edit. `demo/esp32/include/svelteesp32.h` (top level, not a variant dir) is the `dev:*` output target.
+**Header variants.** `./package.script` regenerates one header per etag/gzip combination into `demo/{esp32,esp32idf}/include/<variant>/`, where the variant dir encodes the flags: `_` (neither), `e` (etag=always), `g` (gzip=always), `c` (…=compiler) — so `ecgc` is `--etag=compiler --gzip=compiler`, `eg` is `--etag=always --gzip=always`. Each PlatformIO env `-I`s one variant dir, which is how all etag × gzip × engine combinations get compiled. The one exception is `demo/esp32idf/include/spa/` (env `idf_SPA`), whose name encodes CLI flags rather than etag/gzip state: it is generated with `--spa --basepath=/ui` (on top of `--etag=always --gzip=always`) and is the **only** env that compiles the SPA catch-all (`httpd_register_err_handler`) and the basePath prefix guard — nothing else in either demo passes `--spa` or `--basepath`. **These headers are gitignored** (`include/**/*.h`), so they never show up in `git diff` — regenerate, don't hand-edit. `demo/esp32/include/svelteesp32.h` (top level, not a variant dir) is the `dev:*` output target.
 
 `demo/esp32/src/credentials.h` is also gitignored but required for the PlatformIO builds to compile — it must define `ssid` / `pass`.
 
