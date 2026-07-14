@@ -2,6 +2,25 @@ import * as fs from 'node:fs';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { ICopyFilesArguments } from '../../src/commandLine';
+
+// Empty strings/false are what formatConfig treats as "not set" for the optional parts
+const formatConfigDefaults: ICopyFilesArguments = {
+  engine: 'psychic',
+  sourcepath: '/test/dist',
+  outputfile: '/test/output.h',
+  configSource: 'cli',
+  etag: 'always',
+  gzip: 'always',
+  cachetime: 3600,
+  exclude: [],
+  created: false,
+  version: '',
+  espmethod: '',
+  define: '',
+  basePath: ''
+};
+
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => true),
   readFileSync: vi.fn(() => '{}'),
@@ -1547,8 +1566,8 @@ describe('commandLine', () => {
         it('should interpolate version field', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
             return '{}';
           });
 
@@ -1563,8 +1582,8 @@ describe('commandLine', () => {
         it('should interpolate multiple fields', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
 
             return '{}';
           });
@@ -1584,8 +1603,8 @@ describe('commandLine', () => {
         it('should interpolate exclude array patterns', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
 
             return '{}';
           });
@@ -1601,8 +1620,8 @@ describe('commandLine', () => {
         it('should interpolate basepath field', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
 
             return '{}';
           });
@@ -1618,8 +1637,8 @@ describe('commandLine', () => {
         it('should handle mixed static and variable content', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
 
             return '{}';
           });
@@ -1635,8 +1654,8 @@ describe('commandLine', () => {
         it('should leave unknown variables unchanged', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
 
             return '{}';
           });
@@ -1653,9 +1672,9 @@ describe('commandLine', () => {
           process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
           const fsModule = await import('node:fs');
-          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+          vi.mocked(fsModule.existsSync).mockImplementation((path) => {
             if (path === '/test/dist') return true; // sourcepath exists
-            if (path.includes('package.json')) return false; // package.json does not exist
+            if (path.toString().includes('package.json')) return false; // package.json does not exist
             return false;
           });
           vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -1674,9 +1693,9 @@ describe('commandLine', () => {
           process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
           const fsModule = await import('node:fs');
-          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+          vi.mocked(fsModule.existsSync).mockImplementation((path) => {
             if (path === '/test/dist') return true; // sourcepath exists
-            if (path.includes('package.json')) return false; // package.json does not exist
+            if (path.toString().includes('package.json')) return false; // package.json does not exist
             return false;
           });
           vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -1694,9 +1713,9 @@ describe('commandLine', () => {
           process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
           const fsModule = await import('node:fs');
-          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+          vi.mocked(fsModule.existsSync).mockImplementation((path) => {
             if (path === '/test/dist') return true;
-            if (path.includes('package.json')) return false;
+            if (path.toString().includes('package.json')) return false;
             return false;
           });
           vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -1713,9 +1732,9 @@ describe('commandLine', () => {
           process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
 
           const fsModule = await import('node:fs');
-          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
+          vi.mocked(fsModule.existsSync).mockImplementation((path) => {
             if (path === '/test/dist') return true;
-            if (path.includes('package.json')) return false;
+            if (path.toString().includes('package.json')) return false;
             return false;
           });
           vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -1733,8 +1752,8 @@ describe('commandLine', () => {
         it('should handle nested package.json fields', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json'))
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json'))
               return JSON.stringify({
                 name: 'testapp',
                 repository: { type: 'git', url: 'https://github.com/test/repo.git' }
@@ -1754,8 +1773,8 @@ describe('commandLine', () => {
         it('should throw error when package.json has invalid JSON', async () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return '{ invalid json }';
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return '{ invalid json }';
             return '{}';
           });
 
@@ -1785,15 +1804,15 @@ describe('commandLine', () => {
           });
 
           const fsModule = await import('node:fs');
-          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return true;
-            if (path.includes('.svelteesp32rc')) return true;
+          vi.mocked(fsModule.existsSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return true;
+            if (path.toString().includes('.svelteesp32rc')) return true;
             return path === '/test/dist';
           });
 
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return mockPackageJson;
-            if (path.includes('.svelteesp32rc')) return mockRcContent;
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return mockPackageJson;
+            if (path.toString().includes('.svelteesp32rc')) return mockRcContent;
             return '{}';
           });
 
@@ -1814,13 +1833,13 @@ describe('commandLine', () => {
           });
 
           const fsModule = await import('node:fs');
-          vi.mocked(fsModule.existsSync).mockImplementation((path: string) => {
-            if (path.includes('package.json')) return false; // package.json doesn't exist
-            return Boolean(path.includes('.svelteesp32rc'));
+          vi.mocked(fsModule.existsSync).mockImplementation((path) => {
+            if (path.toString().includes('package.json')) return false; // package.json doesn't exist
+            return Boolean(path.toString().includes('.svelteesp32rc'));
           });
 
-          vi.mocked(fsModule.readFileSync).mockImplementation((path: string) => {
-            if (path.includes('.svelteesp32rc')) return mockRcContent;
+          vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
+            if (path.toString().includes('.svelteesp32rc')) return mockRcContent;
             return '{}';
           });
 
@@ -1949,16 +1968,10 @@ describe('commandLine', () => {
     });
 
     it('should format basic configuration', async () => {
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
-        exclude: [],
-        noindexcheck: false
+        exclude: []
       };
 
       const { formatConfig } = await import('../../src/commandLine');
@@ -1975,16 +1988,10 @@ describe('commandLine', () => {
 
     it('should include created when true', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: [],
-        noindexcheck: false,
         created: true
       };
 
@@ -1995,16 +2002,10 @@ describe('commandLine', () => {
 
     it('should omit created when false or undefined', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
-        exclude: [],
-        noindexcheck: false
+        exclude: []
       };
 
       const { formatConfig } = await import('../../src/commandLine');
@@ -2014,16 +2015,10 @@ describe('commandLine', () => {
 
     it('should include version when present', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: [],
-        noindexcheck: false,
         version: 'v1.2.3'
       };
 
@@ -2034,16 +2029,10 @@ describe('commandLine', () => {
 
     it('should omit version when empty or undefined', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
-        exclude: [],
-        noindexcheck: false
+        exclude: []
       };
 
       const { formatConfig } = await import('../../src/commandLine');
@@ -2053,16 +2042,10 @@ describe('commandLine', () => {
 
     it('should include espmethod when present', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: [],
-        noindexcheck: false,
         espmethod: 'GET'
       };
 
@@ -2073,16 +2056,10 @@ describe('commandLine', () => {
 
     it('should include define when present', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: [],
-        noindexcheck: false,
         define: 'MY_DEFINE'
       };
 
@@ -2093,16 +2070,10 @@ describe('commandLine', () => {
 
     it('should include basePath when present', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: [],
-        noindexcheck: false,
         basePath: '/admin'
       };
 
@@ -2113,16 +2084,10 @@ describe('commandLine', () => {
 
     it('should omit basePath when empty', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: [],
-        noindexcheck: false,
         basePath: ''
       };
 
@@ -2133,16 +2098,10 @@ describe('commandLine', () => {
 
     it('should format exclude array correctly', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
-        exclude: ['*.map', '*.md'],
-        noindexcheck: false
+        exclude: ['*.map', '*.md']
       };
 
       const { formatConfig } = await import('../../src/commandLine');
@@ -2152,16 +2111,10 @@ describe('commandLine', () => {
 
     it('should omit exclude when empty array', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
-        exclude: [],
-        noindexcheck: false
+        exclude: []
       };
 
       const { formatConfig } = await import('../../src/commandLine');
@@ -2171,16 +2124,10 @@ describe('commandLine', () => {
 
     it('should include maxSize when present', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: [],
-        noindexcheck: false,
         maxSize: 500_000
       };
 
@@ -2191,16 +2138,10 @@ describe('commandLine', () => {
 
     it('should include maxGzipSize when present', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: [],
-        noindexcheck: false,
         maxGzipSize: 200_000
       };
 
@@ -2211,16 +2152,10 @@ describe('commandLine', () => {
 
     it('should omit maxSize when undefined', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
-        exclude: [],
-        noindexcheck: false
+        exclude: []
       };
 
       const { formatConfig } = await import('../../src/commandLine');
@@ -2231,16 +2166,10 @@ describe('commandLine', () => {
 
     it('should handle all optional fields present', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: ['*.map'],
-        noindexcheck: false,
         created: true,
         version: 'v1.0.0',
         espmethod: 'GET',
@@ -2258,16 +2187,10 @@ describe('commandLine', () => {
 
     it('should handle all optional fields absent', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
-        exclude: [],
-        noindexcheck: false
+        exclude: []
       };
 
       const { formatConfig } = await import('../../src/commandLine');
@@ -2281,13 +2204,8 @@ describe('commandLine', () => {
 
     it('should include cachetimeHtml when set', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 0,
         cachetimeHtml: 0,
         exclude: []
@@ -2300,13 +2218,8 @@ describe('commandLine', () => {
 
     it('should include cachetimeAssets when set', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 0,
         cachetimeAssets: 31_536_000,
         exclude: []
@@ -2319,13 +2232,8 @@ describe('commandLine', () => {
 
     it('should omit cachetimeHtml and cachetimeAssets when undefined', async () => {
       vi.resetModules();
-      const mockConfig = {
-        engine: 'psychic' as const,
-        sourcepath: '/test/dist',
-        outputfile: '/test/output.h',
-        configSource: 'cli' as const,
-        etag: 'always' as const,
-        gzip: 'always' as const,
+      const mockConfig: ICopyFilesArguments = {
+        ...formatConfigDefaults,
         cachetime: 3600,
         exclude: []
       };

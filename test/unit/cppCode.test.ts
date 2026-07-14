@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ICopyFilesArguments } from '../../src/commandLine';
 import {
   computeRouteCount,
   type CppCodeSource,
@@ -8,12 +9,12 @@ import {
   getCppCode
 } from '../../src/cppCode';
 
-const mockOptions = {
+const mockOptions: ICopyFilesArguments = {
   sourcepath: '/test/path',
   outputfile: '/test/output.h',
-  engine: 'psychic' as const,
-  etag: 'always' as const,
-  gzip: 'always' as const,
+  engine: 'psychic',
+  etag: 'always',
+  gzip: 'always',
   cachetime: 86_400,
   cachetimeHtml: undefined,
   cachetimeAssets: undefined,
@@ -23,7 +24,8 @@ const mockOptions = {
   define: 'SVELTEESP32',
   exclude: [],
   basePath: '',
-  spa: false
+  spa: false,
+  configSource: 'cli'
 };
 
 const createMockSource = (filename: string, content: string): CppCodeSource => ({
@@ -379,8 +381,7 @@ describe('cppCode', () => {
         sourcepath: '/test/path',
         outputfile: '/test/output.h',
         gzip: 'never' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When etag=true, should have SHA256 hash definition
@@ -395,8 +396,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         etag: 'never' as const,
         gzip: 'never' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When etag=false, should not check etag headers
@@ -411,8 +411,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         engine: 'async' as const,
         etag: 'never' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When gzip=true, should have content-encoding header
@@ -427,8 +426,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         etag: 'never' as const,
         gzip: 'never' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When gzip=false, should not have gzip-specific code
@@ -443,8 +441,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         etag: 'compiler' as const,
         gzip: 'compiler' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When etag/gzip=compiler, should have #ifdef directives
@@ -458,8 +455,7 @@ describe('cppCode', () => {
         sourcepath: '/test/path',
         outputfile: '/test/output.h',
         engine: 'espidf' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // espidf should have specific handler structure
@@ -476,8 +472,7 @@ describe('cppCode', () => {
           engine: engine as 'psychic' | 'async' | 'espidf',
           sourcepath: '/test/path',
           outputfile: '/test/output.h',
-          cachetime: 0,
-          noindexcheck: false
+          cachetime: 0
         });
 
         expect(result).toBeTruthy();
@@ -493,8 +488,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         etag: 'compiler' as const,
         gzip: 'compiler' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // Should handle psychic engine with compiler directives

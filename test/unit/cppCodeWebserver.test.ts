@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ICopyFilesArguments } from '../../src/commandLine';
 import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from '../../src/cppCode';
 
-const mockOptions = {
+const mockOptions: ICopyFilesArguments = {
   sourcepath: '/test/path',
   outputfile: '/test/output.h',
-  engine: 'webserver' as const,
-  etag: 'always' as const,
-  gzip: 'always' as const,
+  engine: 'webserver',
+  etag: 'always',
+  gzip: 'always',
   cachetime: 86_400,
   cachetimeHtml: undefined,
   cachetimeAssets: undefined,
@@ -17,7 +18,8 @@ const mockOptions = {
   define: 'SVELTEESP32',
   exclude: [],
   basePath: '',
-  spa: false
+  spa: false,
+  configSource: 'cli'
 };
 
 const createMockSource = (filename: string, content: string): CppCodeSource => ({

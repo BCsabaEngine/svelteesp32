@@ -10,6 +10,8 @@
     "declaration": true,
     "declarationMap": false,
     "strict": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "noUnusedLocals": true,
@@ -25,7 +27,6 @@
     "extendedDiagnostics": false,
     "incremental": false,
     "allowJs": false,
-    "typeRoots": ["./node_modules/@types"],
     "rootDir": "./src",
     "outDir": "dist"
   },

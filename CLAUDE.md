@@ -9,7 +9,8 @@ TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Ang
 ## Commands
 
 ```bash
-npm run all            # fix + build + test (full validation)
+npm run all            # fix + build + typecheck + test (full validation)
+npm run typecheck      # tsc -p tsconfig.test.json — the only thing that type-checks test/
 npm run test           # vitest run (also test:watch, test:coverage)
 npx vitest run test/unit/file.test.ts -t "test name"   # single file / single test
 npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./out.h --etag=always --gzip=always
@@ -89,10 +90,12 @@ Tests in `test/unit/`, fixtures in `test/fixtures/sample-files/`.
 - Mock fs with `vi.mock('node:fs')` + memfs. Dynamic imports for commandLine tests (side effects), with `vi.resetModules()` in `beforeEach`.
 - `cppCodeEspIdf.ts` and `cppCodeWebserver.ts` have dedicated test files; **psychic and async do not** — assert their output in `test/unit/cppCode.test.ts`, which drives every engine through the public `getCppCode(sources, filesByExtension, options)` rather than `gen*Cpp` directly.
 - No `pipeline.test.ts` — `runPipeline()` is covered indirectly via `index.test.ts` and `changesummary.test.ts`.
+- **Vitest does not type-check** (esbuild strips types). `tsconfig.json` excludes `test/`, so `tsconfig.test.json` covers it — `bundler` resolution, because the tests import extensionlessly. Run `npm run typecheck`; it is in `npm run all` and in CI.
+- Coverage thresholds are 90/90/80/90 (lines/functions/branches/statements) vs actual ~96/98/88/95. Enforced in CI — both workflows run `npm run test:coverage`, not `npm run test`, because vitest only checks thresholds under `--coverage`.
 
 ## Conventions
 
-- **TypeScript**: ES2023, module/moduleResolution Node16, strict.
+- **TypeScript**: ES2025, module/moduleResolution nodenext, strict + `isolatedModules`, `noUncheckedIndexedAccess`.
 - **ESLint**: TypeScript + Prettier + Unicorn (all rules) + simple-import-sort. **`curly: "multi"`** — braces only for multi-statement blocks; single-statement `if`/`else`/`for` must **not** have braces.
 - **Prettier**: 120 char width, single quotes, no trailing commas.
 - **README "What's New"**: minor and major versions only — no patch versions; fold them into the parent minor entry.

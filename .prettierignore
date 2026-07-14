@@ -1,12 +1,7 @@
-.DS_Store
-node_modules
-dist
-demo
-.env
-.env.*
-!.env.example
+# Prettier also reads .gitignore by default, so node_modules, dist, coverage
+# and .env* need no entry here. Only tracked paths belong below.
 
-# Ignore files for PNPM, NPM and YARN
-pnpm-lock.yaml
+# Demos have their own toolchain (demo/svelte) or are not JS (demo/esp32*)
+demo
+
 package-lock.json
-yarn.lock
