@@ -30,8 +30,12 @@ vi.mock('../../src/cppCode', async (importOriginal) => ({
   getCppCode: vi.fn(() => 'mock-cpp-code')
 }));
 
-vi.mock('../../src/commandLine', () => ({
-  parseArguments: vi.fn(() => ({
+// parseArguments() reads commandLineState.current at call time rather than closing over a config,
+// so setCommandLine()/mockCommandLine() take effect no matter which module instance main() is bound
+// to. Re-registering the mock with vi.doMock() instead only wins if vi.resetModules() happens to
+// rebind src/index to the newest factory, which depends on the state left by preceding tests.
+const commandLineState = vi.hoisted(() => {
+  const defaults: Record<string, unknown> = {
     engine: 'psychic',
     sourcepath: '/test/dist',
     outputfile: '/test/output.h',
@@ -40,8 +44,18 @@ vi.mock('../../src/commandLine', () => ({
     exclude: [],
     noindexcheck: false,
     espmethod: 'initSvelteStaticFiles'
-  }))
+  };
+  return { defaults, current: { ...defaults } };
+});
+
+vi.mock('../../src/commandLine', () => ({
+  parseArguments: vi.fn(() => commandLineState.current)
 }));
+
+// Every test starts from the default config; opt in to a different one with setCommandLine()
+beforeEach(() => {
+  commandLineState.current = { ...commandLineState.defaults };
+});
 
 describe('index.ts helper functions', () => {
   describe('shouldUseGzip', () => {
@@ -231,10 +245,14 @@ const baseCommandLine = {
   espmethod: 'initSvelteStaticFiles'
 };
 
+// Full config, used as-is
+const setCommandLine = (config: Record<string, unknown>): void => {
+  commandLineState.current = config;
+};
+
+// baseCommandLine plus the given overrides
 const mockCommandLine = (overrides: Record<string, unknown> = {}): void => {
-  vi.doMock('../../src/commandLine', () => ({
-    parseArguments: vi.fn(() => ({ ...baseCommandLine, ...overrides }))
-  }));
+  setCommandLine({ ...baseCommandLine, ...overrides });
 };
 
 const loggedLines = (spy: typeof console.log): string[] =>
@@ -973,21 +991,19 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should not write file in dry-run mode', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: true,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: true,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
 
       vi.resetModules();
       const { main } = await import('../../src/index');
@@ -997,21 +1013,19 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should log header line with engine, etag, gzip, base, spa info', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'compiler',
-          basePath: '/ui',
-          spa: true,
-          dryRun: true,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'compiler',
+        basePath: '/ui',
+        spa: true,
+        dryRun: true,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
 
       vi.resetModules();
       const { main } = await import('../../src/index');
@@ -1029,21 +1043,19 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should log "[DRY RUN] Routes:" line', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: true,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: true,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
 
       vi.resetModules();
       const { main } = await import('../../src/index');
@@ -1053,21 +1065,19 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should log route lines containing "GET /"', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: true,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: true,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
 
       vi.resetModules();
       const { main } = await import('../../src/index');
@@ -1080,21 +1090,19 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should show "Base: (none)" when basePath is empty', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'async',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'false',
-          gzip: 'false',
-          basePath: '',
-          spa: false,
-          dryRun: true,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'async',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'false',
+        gzip: 'false',
+        basePath: '',
+        spa: false,
+        dryRun: true,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
 
       vi.resetModules();
       const { main } = await import('../../src/index');
@@ -1110,21 +1118,19 @@ describe('index.ts main pipeline integration', () => {
   describe('--spa warning', () => {
     it('should warn when --spa is set but no index.html or index.htm exists', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('console.log()')]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: true,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: true,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1135,21 +1141,19 @@ describe('index.ts main pipeline integration', () => {
 
     it('should not warn when --spa is set and index.html exists', async () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: true,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: true,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1158,21 +1162,19 @@ describe('index.ts main pipeline integration', () => {
 
     it('should not warn when --spa is set and index.htm exists', async () => {
       mockGetFiles.mockReturnValue(new Map([['index.htm', makeFileData('<html></html>')]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: true,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: true,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1181,21 +1183,19 @@ describe('index.ts main pipeline integration', () => {
 
     it('should not warn when --spa is false even if no index.html exists', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('console.log()')]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1206,22 +1206,20 @@ describe('index.ts main pipeline integration', () => {
   describe('size budget enforcement', () => {
     it('should exit with code 1 when total uncompressed size exceeds maxSize', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('x'.repeat(100))]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles',
-          maxSize: 50
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles',
+        maxSize: 50
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1231,22 +1229,20 @@ describe('index.ts main pipeline integration', () => {
 
     it('should not exit when total uncompressed size is within maxSize', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('x'.repeat(100))]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles',
-          maxSize: 200
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles',
+        maxSize: 200
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1256,22 +1252,20 @@ describe('index.ts main pipeline integration', () => {
 
     it('should not exit when total uncompressed size exactly equals maxSize (boundary: > not >=)', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('x'.repeat(100))]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles',
-          maxSize: 100
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles',
+        maxSize: 100
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1280,22 +1274,20 @@ describe('index.ts main pipeline integration', () => {
 
     it('should exit with code 1 when total gzip size exceeds maxGzipSize', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('x'.repeat(100))]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles',
-          maxGzipSize: 50
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles',
+        maxGzipSize: 50
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1305,22 +1297,20 @@ describe('index.ts main pipeline integration', () => {
 
     it('should not exit when total gzip size is within maxGzipSize', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('x'.repeat(100))]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles',
-          maxGzipSize: 200
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles',
+        maxGzipSize: 200
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1330,23 +1320,21 @@ describe('index.ts main pipeline integration', () => {
 
     it('should exit with code 1 when maxSize is exceeded (first budget check wins)', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('x'.repeat(100))]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles',
-          maxSize: 50,
-          maxGzipSize: 50
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles',
+        maxSize: 50,
+        maxGzipSize: 50
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1357,21 +1345,19 @@ describe('index.ts main pipeline integration', () => {
 
     it('should not check size budget when maxSize is undefined', async () => {
       mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData('x'.repeat(10_000))]]));
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          dryRun: false,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        dryRun: false,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1387,21 +1373,19 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should not write file in analyze mode', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          analyze: true,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        analyze: true,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1409,21 +1393,19 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should not call process.exit(1) when no budget defined', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          analyze: true,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        analyze: true,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1431,23 +1413,21 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should not call process.exit(1) when within budget', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          analyze: true,
-          maxSize: 100_000,
-          maxGzipSize: 100_000,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        analyze: true,
+        maxSize: 100_000,
+        maxGzipSize: 100_000,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1455,22 +1435,20 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should exit 1 when maxSize exceeded', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          analyze: true,
-          maxSize: 1,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        analyze: true,
+        maxSize: 1,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1478,22 +1456,20 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should exit 1 when maxGzipSize exceeded', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          analyze: true,
-          maxGzipSize: 1,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        analyze: true,
+        maxGzipSize: 1,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1501,21 +1477,19 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should output a line containing "Total" in console.log', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          analyze: true,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        analyze: true,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
@@ -1525,22 +1499,20 @@ describe('index.ts main pipeline integration', () => {
     });
 
     it('should not reach budget validation that calls console.error when over budget', async () => {
-      vi.doMock('../../src/commandLine', () => ({
-        parseArguments: vi.fn(() => ({
-          engine: 'psychic',
-          sourcepath: '/test/dist',
-          outputfile: '/test/output.h',
-          etag: 'true',
-          gzip: 'true',
-          basePath: '',
-          spa: false,
-          analyze: true,
-          maxSize: 1,
-          exclude: [],
-          noindexcheck: false,
-          espmethod: 'initSvelteStaticFiles'
-        }))
-      }));
+      setCommandLine({
+        engine: 'psychic',
+        sourcepath: '/test/dist',
+        outputfile: '/test/output.h',
+        etag: 'true',
+        gzip: 'true',
+        basePath: '',
+        spa: false,
+        analyze: true,
+        maxSize: 1,
+        exclude: [],
+        noindexcheck: false,
+        espmethod: 'initSvelteStaticFiles'
+      });
       vi.resetModules();
       const { main } = await import('../../src/index');
       main();
