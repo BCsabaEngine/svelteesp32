@@ -1,140 +1,98 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## Project Overview
 
-TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines. Requires Node.js >= 22, npm >= 10 (see `engines` in `package.json`).
+TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines. Node.js >= 22, npm >= 10.
 
 ## Commands
 
 ```bash
-npm run build          # Build TypeScript (clean + force rebuild)
-npm run fix            # Fix formatting and linting (prettier + eslint + prettier)
-npm run test           # Run unit tests (vitest run)
-npm run test:watch     # Run tests in watch mode
-npm run test:coverage  # Coverage report
-npm run all            # Fix + build + test (full validation)
-npx vitest run test/unit/file.test.ts              # Run a single test file
-npx vitest run test/unit/file.test.ts -t "test name" # Run a specific test by name
-npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./output.h --etag=always --gzip=always
+npm run all            # fix + build + test (full validation)
+npm run test           # vitest run (also test:watch, test:coverage)
+npx vitest run test/unit/file.test.ts -t "test name"   # single file / single test
+npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./out.h --etag=always --gzip=always
 
-# Dev mode (nodemon, watches src/index.ts, targets demo/esp32)
-npm run dev:psychic    # psychic engine, no etag/gzip
-npm run dev:async      # async engine, etag+gzip+cachetime
-npm run dev:webserver  # webserver engine, etag+gzip+cachetime
-npm run dev:init       # run the init wizard via tsx (dev mode)
-
-# PlatformIO integration tests (requires PlatformIO installed)
-npm run test:esp32     # ./package.script, then build all 27 demo/esp32 envs
-npm run test:esp32idf  # ./package.script, then build all 10 demo/esp32idf envs
-npm run test:all       # run both PlatformIO integration tests
+npm run dev:psychic | dev:async | dev:webserver   # nodemon → demo/esp32/include/svelteesp32.h
 ./package.script       # regenerate every demo header variant (no build)
+npm run test:esp32     # package.script, then build all 27 demo/esp32 envs
+npm run test:esp32idf  # package.script, then build all 10 demo/esp32idf envs
 ```
 
-These are the only tests that compile the generated C++. Unit tests assert on the header as a _string_ — they cannot catch a C++ type error, an overload ambiguity, or a broken `#ifdef` arm. Run `npm run test:esp32` after any change to an engine generator.
+The PlatformIO builds are the **only** tests that compile the generated C++ — unit tests assert on the header as a _string_ and cannot catch a type error, an overload ambiguity, or a broken `#ifdef` arm. Run `npm run test:esp32` after any change to an engine generator; the user runs these manually, so suggest the command rather than launching it.
 
 ## Architecture
 
-### Core Files
+- `src/index.ts` — CLI entry; delegates to `commandLine.ts` (parsing) and `pipeline.ts` (execution). Re-exports pipeline utilities as the programmatic/test API.
+- `src/pipeline.ts` — `runPipeline()`: compression, MIME types, `--dryrun`, `--analyze`, `--manifest`. Exports `OverBudgetError` (`--maxsize`/`--maxgzipsize`).
+- `src/commandLine.ts` — parsing (native `process.argv`), RC files, `$npm_package_*` interpolation, C++ identifier validation.
+- `src/vitePlugin.ts` — Vite plugin (`./vite` entry), runs `runPipeline()` in `closeBundle()`. Two **exclusive** modes that never merge: `svelteESP32()` / `svelteESP32('/path/rc.json')` loads everything from the RC file (`outputfile` required); `svelteESP32({ output, … })` uses the options object and ignores the RC file entirely.
+- `src/file.ts` — glob scan, SHA256, duplicate detection, index.html check. Returns `Map<string, FileData>` (`{ content: Buffer; hash: string }`). Skips pre-compressed `.gz`/`.br` when the original exists; no symlinks; rejects files > 50 MB; `--exclude` goes to tinyglobby's `ignore`.
+- `src/cppCode.ts` — shared C++ generation: data/ETag arrays, manifest, hook, `sw()`, `cacheCtrl()`, `genCacheHeaders()`, `computeRouteCount()`. Per-engine modules `cppCode{Psychic,Async,Webserver,EspIdf}.ts` export `gen*Cpp`.
+- Also `initCommand.ts`, `errorMessages.ts`, `consoleColor.ts`, `cliInit.mts`.
 
-- `src/index.ts` — CLI entry point; delegates to `commandLine.ts` for argument parsing and `pipeline.ts` for execution. Also re-exports pipeline utilities (`createSourceEntry`, `formatChangeSummary`, `formatCompressionLog`, `formatAnalyzeTable`, `formatDryRunRoutes`, `formatSize`, `formatSizePrecise`, `shouldUseGzip`, `calculateCompressionRatio`, `updateExtensionGroup`, `PreviousManifestFile`) as the programmatic/test API.
-- `src/pipeline.ts` — Core pipeline (`runPipeline()`): compression, MIME types, `--dryrun` mode, `--analyze` mode (per-file size table + budget exit code), `--manifest` (companion JSON file). Also exports `OverBudgetError` (thrown when `--maxsize`/`--maxgzipsize` is exceeded) and `PreviousManifestFile` type.
-- `src/commandLine.ts` — CLI parsing (native `process.argv`), RC files, npm variable interpolation, C++ identifier validation. Exports `IRcFileConfig`, `validateBasePath()`, `loadRcFileConfig()`, and `parseArguments()` for use by the Vite plugin and tests.
-- `src/initCommand.ts` — Interactive `npx svelteesp32 init` wizard that creates `.svelteesp32rc.json`
-- `src/vitePlugin.ts` — Vite plugin with two exclusive modes. Exported via the `./vite` package entry. Runs `runPipeline()` in `closeBundle()`. **RC file mode**: `svelteESP32()` or `svelteESP32('/path/to/rc.json')` — loads all settings from the RC file; `outputfile` in RC file is required. **Plugin options mode**: `svelteESP32({ output, ... })` — uses the options object exclusively; RC file is completely ignored; `output` is required. The two modes do not merge.
-- `src/file.ts` — Glob scanning, SHA256 hashing, duplicate detection, index.html validation. Returns `Map<string, FileData>` where `FileData = { content: Buffer; hash: string }`. Pre-compressed files (`.gz`, `.brotli`, `.br`) are skipped when an uncompressed original exists. Symlinks are not followed (`followSymbolicLinks: false`). Files over 50 MB are rejected before read/compress. `--exclude` patterns are passed to `tinyglobby`'s `ignore` option (no separate `picomatch` call).
-- `src/cppCode.ts` — Shared C++ code generation utilities: common header, data arrays, ETag arrays, manifest, hook section, `sw()` switch helper, `cacheCtrl()` (renders `max-age=...`/`no-cache`), `computeRouteCount()`; used by all engine modules
-- `src/cppCodePsychic.ts` — PsychicHttpServer engine code generation (`genPsychicCpp`)
-- `src/cppCodeAsync.ts` — ESPAsyncWebServer engine code generation (`genAsyncCpp`)
-- `src/cppCodeWebserver.ts` — Arduino WebServer engine code generation (`genWebserverCpp`)
-- `src/cppCodeEspIdf.ts` — ESP-IDF engine code generation (`genEspIdfCpp`)
-- `src/errorMessages.ts` — CLI validation error messages with actionable hints (missing index, invalid engine, bad sourcepath, size-budget-exceeded)
-- `src/consoleColor.ts` — ANSI terminal color helpers (`greenLog`, `yellowLog`, `redLog`, `cyanLog`) used by pipeline output
-- `src/cliInit.mts` — Thin ESM entry point for `npm run dev:init`; calls `runInit()` from `initCommand.ts`
+Pipeline: file collection → MIME/SHA256 → gzip (level 9, > 1024 B, > 15 % reduction) → per-engine codegen → C++ header.
 
-### Verifying engine behaviour against the real libraries
-
-Do not reason from memory about what PsychicHttp / ESPAsyncWebServer / Arduino `WebServer` / `esp_http_server` do — the sources are on disk after a PlatformIO build, and they routinely contradict what you'd assume:
-
-- `demo/esp32/.pio/libdeps/<env>/PsychicHttp/src/` (pinned 3.1.2) and `.../ESPAsyncWebServer/src/` (pinned v3.11.2) — versions come from `lib_deps` in `demo/esp32/platformio.ini`
-- `~/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src/` — Arduino `WebServer`
-- `~/.platformio/packages/framework-espidf/components/esp_http_server/src/` — `httpd_resp_send()` et al.
-
-The HEAD notes below were all derived this way, and several overturned the obvious assumption (e.g. psychic does _not_ put endpoints in the esp-idf handler table; no library suppresses a HEAD body for you).
+CLI options: see README / `--help`. RC files (`.svelteesp32rc[.json]` in cwd, home, or `--config=path`) need a **relative** `outputfile` (absolute throws) and take booleans as booleans or `"true"`/`"false"`.
 
 ### Engines
 
-- **psychic** — PsychicHttpServer V2-style API; pinned to PsychicHttp 3.x in the demo. ESP32 only. Serves GET+HEAD.
-- **async** — ESPAsyncWebServer, ESP32/ESP8266, PROGMEM. Serves GET+HEAD.
-- **espidf** — Native ESP-IDF, `unsigned char` data arrays with `(const char *)` casts. GET only.
-- **webserver** — Arduino WebServer, ESP32, PROGMEM, synchronous (requires `handleClient()` in loop). GET only.
+- **psychic** — PsychicHttpServer V2-style API, ESP32 only. GET+HEAD.
+- **async** — ESPAsyncWebServer, ESP32/ESP8266, PROGMEM. GET+HEAD.
+- **espidf** — native ESP-IDF, `unsigned char` arrays with `(const char *)` casts. GET only.
+- **webserver** — Arduino WebServer, ESP32, PROGMEM, synchronous (needs `handleClient()`). GET only.
+
+### Verifying engine behaviour against the real libraries
+
+Do not reason from memory about what these libraries do — the sources are on disk after a PlatformIO build and routinely contradict the obvious assumption (psychic does _not_ put endpoints in the esp-idf handler table; no library suppresses a HEAD body for you):
+
+- `demo/esp32/.pio/libdeps/<env>/{PsychicHttp,ESPAsyncWebServer}/src/` — pinned in `lib_deps` to 3.1.2 / v3.11.2
+- `~/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src/`
+- `~/.platformio/packages/framework-espidf/components/esp_http_server/src/`
+
+Both demos pin `platform` to a **pioarduino** `platform-espressif32` release zip (`55.03.39`), not the bare `espressif32` — that resolves from the PlatformIO registry to Espressif's _official_ platform (6.x, IDF 5.1.x), a different toolchain. The release fixes every package version `pio run` prints; they move as a set. To bump: edit the URL in **both** inis, then `pio pkg update -d demo/esp32 -d demo/esp32idf`.
 
 ### HTTP HEAD (psychic + async only, always on, no CLI flag)
 
-- **psychic**: file routes registered as `HTTP_ANY` — psychic matches `HTTP_ANY` against every method, so GET and HEAD share one `PsychicEndpoint`. The handler returns `405` + `Allow: GET, HEAD` for anything else, and skips `setContent()` on HEAD. The `--spa` catch-all is deliberately **not** `HTTP_ANY` (a wildcard would shadow API routes the user registers under `basePath` after `initSvelteStaticFiles()`, since psychic matches endpoints in registration order) — it gets one `HTTP_GET` and one `HTTP_HEAD` registration, which is why `computeRouteCount()` adds 2 for the psychic SPA case.
-- **async**: routes registered as `HTTP_GET | HTTP_HEAD` (the method is a bitmask, `HTTP_HEAD = 1u << 2`), so one handler covers both. The body is skipped via a ternary on `beginResponse()`.
-- **`Content-Length: 0` on HEAD is unavoidable**: `httpd_resp_send()` bakes Content-Length into a hardcoded format string from `buf_len`, and a custom header would duplicate it. Async matches this for consistency (a truthful length there would stall the response — `AsyncWebServerResponse` only completes once `_sentLength == _contentLength`).
-- No library suppresses the HEAD body for us — `esp_http_server`, ESPAsyncWebServer and Arduino `WebServer` all have zero HEAD handling in their response paths. The generated handler must skip the body itself.
-- **webserver ETag depends on `collectAllHeaders()`**: Arduino `WebServer` only retains headers it is told to collect (`_collectAllHeaders = false` by default), so `hasHeader("If-None-Match")` is false and the 304 branch is dead code without it. Use `collectAllHeaders()`, not `collectHeaders(keys, n)` — the latter re-initialises the list on every call and would clobber the user's own.
+- **psychic**: file routes are `HTTP_ANY`, so one endpoint covers GET and HEAD; the handler returns `405` + `Allow: GET, HEAD` otherwise and skips `setContent()` on HEAD. The `--spa` catch-all is deliberately **not** `HTTP_ANY` — a wildcard would shadow API routes registered under `basePath` after `initSvelteStaticFiles()` (psychic matches in registration order) — so it takes one `HTTP_GET` plus one `HTTP_HEAD` registration, hence `computeRouteCount()` adds 2 there.
+- **async**: bitmask `HTTP_GET | HTTP_HEAD`, one handler; body skipped by a ternary on `beginResponse()`.
+- No library suppresses the HEAD body for us — the generated handler must skip it itself.
+- `Content-Length: 0` on HEAD is unavoidable: `httpd_resp_send()` bakes the length into a hardcoded format string from `buf_len`. Async matches this for consistency (a truthful length stalls the response — `AsyncWebServerResponse` completes only once `_sentLength == _contentLength`).
+- **webserver ETag needs `collectAllHeaders()`**: Arduino `WebServer` retains only headers it was told to collect, so without it `hasHeader("If-None-Match")` is always false and the 304 branch is dead code. Not `collectHeaders(keys, n)` — it re-inits the list and clobbers the user's.
 
-### Pipeline
+## Generated C++
 
-File Collection → MIME/SHA256 → Gzip (level 9, >1024B, >15% reduction) → TypeScript code generation (per-engine modules) → C++ header
+- Tri-state `etag`/`gzip` → `always` / `never` / `compiler` (`#ifdef` arms). Data arrays `static const uint8_t data_*[]` / `datagzip_*[]`, ETags `static const char etag_*[]` — `static` avoids multiple-definition errors across TUs; a char array (not a pointer) avoids indirection.
+- **ETag value**: SHA256 truncated to 16 hex chars and **quoted** — `etagLiteral()` in `cppCode.ts` (RFC 9110 `DQUOTE *etagc DQUOTE`; some proxies mishandle unquoted). Truncate **only at this emission seam**: `file.ts` must keep the full hash, which also feeds duplicate detection, the `--manifest` JSON, and the change-summary diff against the previous manifest — a stored 64-char hash never equals a truncated one, so every file would read "modified" forever.
+- **`If-None-Match` uses `strstr(header, etag_*)`**, not `strcmp`/`.equals()` — browsers send comma-separated lists and weak `W/"…"` validators, which exact equality misses. Safe because `etagc` excludes `"`, so a quoted tag only matches a complete entity-tag; matching through `W/` is the weak comparison RFC 9110 mandates here. Compare to `nullptr` (C++ engines) / `NULL` (espidf — its header is C).
+- **`Cache-Control` is not gated on the etag mode.** On the 200 path all four engines go through `genCacheHeaders()`, which emits `Cache-Control` unconditionally and wraps **only** the `ETag` line in `sw(d.etag, …)`. Do not fold it back into that switch: the switch has no `never` arm, so `--etag=never` would silently emit no `Cache-Control` at all, voiding `--cachetime*`. It is a freshness lifetime, not a validator.
+- **The 304 branch repeats `ETag` and `Cache-Control`** (RFC 9110 §15.4.5 — a 304 must generate what a 200 would have carried; without them the client cannot freshen the stored lifetime and revalidates every load, voiding `--cachetime`). `Content-Encoding`/`Content-Type` are deliberately omitted: representation headers, and there is no body. Each engine builds its 304 **once** into an `etagBody` const that `sw()` wraps for the `compiler` arm — do not duplicate it across the `always`/`compiler` arms; drift between them is how the 304 lost its headers once already.
+- 304 constraints per engine: **async** must use `request->beginResponse(304)` (the `send(304)` overload sends immediately, leaving no handle for headers); **webserver**'s `send()` flushes the header block, so both `sendHeader()` calls must precede it; **espidf**'s `httpd_resp_set_hdr()` does not copy key/value — safe only because `etag_*` is a `static const char[]` and the cache value is a literal.
+- **`{{definePrefix}}_URI_HANDLERS` / `_MAX_URI_HANDLERS`** (psychic + espidf): `computeRouteCount()` counts real registrations — files, plus the default `/` route when `index.html`/`index.htm` exists, plus the `--spa` catch-all. Psychic counts the default-route/SPA extras only when `basePath` is set (it otherwise aliases the default via `defaultEndpoint`) and counts the SPA catch-all twice (once per method). `_MAX_` adds `+5` headroom. **Load-bearing for espidf only** (`httpd_config_t.max_uri_handlers`); psychic overwrites `server.config.max_uri_handlers` in `start()`, so there it is informational.
+- `--spa` catch-all: psychic `server->on("{{basePath}}/*", …)` only when basePath is set (otherwise handled by `defaultEndpoint`); async/webserver `onNotFound()` with an optional basePath prefix guard; espidf `httpd_register_err_handler(HTTPD_404_NOT_FOUND, …)`.
+- Per-file `cacheTime` in `transformSourceToTemplateData`: HTML → `cachetimeHtml ?? cachetime`, non-HTML → `cachetimeAssets ?? cachetime`.
+- Always emitted: `_FileInfo` / `_FILES[]` manifest, weak `_onFileServed(path, statusCode)` hook (fires on 200 and 304), `//config:` comment. `isDefault` is strict `=== 'index.html' || === 'index.htm'`. ESP-IDF ETag mallocs with a NULL check (HTTP 500 on failure).
 
-### Demo Apps
+## Demos
 
-`demo/svelte` is a small Svelte app (LED toggle + uptime card) whose `dist` output is embedded via `dev:psychic`/`dev:async`/`dev:webserver`. `demo/esp32` (PlatformIO, all three Arduino-based engines) and `demo/esp32idf` implement `GET /api/status` / `POST /api/toggle` handlers alongside the generated static-file routes — demonstrating the generated header coexisting with hand-written API routes on the same server. Useful reference when changing route-registration code (e.g. `computeRouteCount`, `--spa`).
+`demo/svelte` is the embedded frontend. `demo/esp32` (the three Arduino engines) and `demo/esp32idf` register hand-written `GET /api/status` / `POST /api/toggle` handlers alongside the generated routes — the reference for anything touching route registration (`computeRouteCount`, `--spa`).
 
-**Header variants.** `./package.script` regenerates one header per etag/gzip combination into `demo/{esp32,esp32idf}/include/<variant>/`, where the variant dir encodes the flags: `_` (neither), `e` (etag=always), `g` (gzip=always), `c` (…=compiler) — so `ecgc` is `--etag=compiler --gzip=compiler`, `eg` is `--etag=always --gzip=always`. Each PlatformIO env `-I`s one variant dir, which is how all etag × gzip × engine combinations get compiled. The one exception is `demo/esp32idf/include/spa/` (env `idf_SPA`), whose name encodes CLI flags rather than etag/gzip state: it is generated with `--spa --basepath=/ui` (on top of `--etag=always --gzip=always`) and is the **only** env that compiles the SPA catch-all (`httpd_register_err_handler`) and the basePath prefix guard — nothing else in either demo passes `--spa` or `--basepath`. **These headers are gitignored** (`include/**/*.h`), so they never show up in `git diff` — regenerate, don't hand-edit. `demo/esp32/include/svelteesp32.h` (top level, not a variant dir) is the `dev:*` output target.
+**Header variants.** `./package.script` regenerates one header per etag/gzip combination into `demo/{esp32,esp32idf}/include/<variant>/`, the dir name encoding the flags: `_` neither, `e` etag=always, `g` gzip=always, `c` …=compiler — so `eg` is `--etag=always --gzip=always`, `ecgc` is both `=compiler`. Each PlatformIO env `-I`s one variant dir; that is how every etag × gzip × engine combination gets compiled. Exception: `demo/esp32idf/include/spa/` (env `idf_SPA`) encodes CLI flags instead — `--spa --basepath=/ui` on top of `--etag=always --gzip=always` — and is the **only** env compiling the SPA catch-all and the basePath guard.
 
-`demo/esp32/src/credentials.h` is also gitignored but required for the PlatformIO builds to compile — it must define `ssid` / `pass`.
-
-### CLI Options
-
-`init` (interactive RC file wizard), `-s` (source), `-e` (engine), `-o` (output), `--etag` (always/never/compiler), `--gzip` (always/never/compiler), `--exclude` (glob patterns, **no defaults** — empty by default), `--basepath` (URL prefix, must start with `/`, no trailing `/`), `--noindexcheck`, `--dryrun`, `--analyze` (per-file size table + budget pass/fail, exits 1 on over-budget, mutually exclusive with `--dryrun`), `--spa` (catch-all for SPA client-side routing), `--manifest` (write companion `.manifest.json` alongside header), `--cachetime`, `--cachetimehtml` (HTML-only max-age, overrides `--cachetime`), `--cachetimeassets` (non-HTML max-age, overrides `--cachetime`), `--define`, `--espmethod`, `--maxsize` (total uncompressed size limit, e.g. `400k`), `--maxgzipsize` (total gzip size limit), `--created` (include creation timestamp), `--version` (embed version string in header)
-
-RC files: `.svelteesp32rc.json` or `.svelteesp32rc` in cwd, home, or `--config=path`. Supports `$npm_package_*` interpolation. Prints a warning when loaded from cwd. `outputfile` in RC files must be a relative path (absolute paths throw). Boolean fields (`noindexcheck`, `dryrun`, `analyze`, `spa`, `manifest`, `created`) accept native booleans or string `"true"`/`"false"` (matching `etag`/`gzip` string behaviour).
-
-## Generated C++ Details
-
-- Tri-state `etag`/`gzip`: "always", "never", or "compiler" (C++ `#ifdef` directives)
-- ESP-IDF ETag: malloc/free with NULL check (HTTP 500 on failure)
-- File manifest: `{{definePrefix}}_FileInfo` struct, `{{definePrefix}}_FILES[]` array, always generated
-- `onFileServed` hook: weak function `{{definePrefix}}_onFileServed(path, statusCode)`, called on 200 and 304
-- `//config:` comment for traceability
-- `isDefault` matching: strict `=== 'index.html' || === 'index.htm'`
-- `--spa` catch-all: psychic adds `server->on("{{basePath}}/*", ...)` only when basePath is set, once for `HTTP_GET` and once for `HTTP_HEAD` (no-basePath case handled by `defaultEndpoint`); async/webserver add `server->onNotFound(...)` with optional basePath prefix guard; espidf uses `httpd_register_err_handler(HTTPD_404_NOT_FOUND, spa_handler_*)`
-- Data arrays: `static const uint8_t data_*[]` / `static const uint8_t datagzip_*[]` — `static` prevents multiple-definition linker errors when included in more than one TU
-- ETag variables: `static const char etag_*[]` (char array, not pointer) — avoids pointer indirection and keeps `static` linkage
-- ETag value: the SHA256 truncated to 16 hex chars and **wrapped in quotes** — `etagLiteral()` in `src/cppCode.ts` emits `"\"387b88e345cc56ef\""` (RFC 9110: `opaque-tag = DQUOTE *etagc DQUOTE`; unquoted tags are mishandled by some proxies). Truncate **only at this emission seam** — `src/file.ts` must keep the full hash, because it also feeds duplicate detection, the `--manifest` JSON, and the change-summary diff against a previously written manifest (a stored 64-char hash would never equal a truncated one → every file reported "modified" forever).
-- `If-None-Match` comparison is `strstr(header, etag_*)`, not `.equals()`/`strcmp()` — a browser may send a comma-separated list or a weak `W/"…"` validator, and exact equality misses both. Safe because `etagc` excludes `"`, so the quoted tag only matches a complete entity-tag in the list; matching through `W/` is the weak comparison RFC 9110 mandates for `If-None-Match`. `strstr` needs no new include: espidf already emits `<string.h>`, and `Arduino.h` pulls it in for the other three. Compare against `nullptr` on the C++ engines, `NULL` on espidf (its header is C — it `malloc`s without a cast).
-- **`Cache-Control` is not gated on the etag mode.** On the 200 path all four engines emit their cache headers through `genCacheHeaders()` (`src/cppCode.ts`), which emits `Cache-Control` unconditionally and wraps **only** the `ETag` line in `sw(d.etag, …)`. Do not fold `Cache-Control` back into that switch: the switch has no `never` arm, so `--etag=never` (and `--etag=compiler` built without `ENABLE_ETAG`) would silently emit no `Cache-Control` at all, voiding `--cachetime*`. The header is a freshness lifetime, not a validator — it is independent of ETag. The 304 branch is the exception: it lives inside the etag guard by nature (there is no 304 without a validator), so its `cacheCtrl()` call stays where it is.
-- **The 304 branch repeats `ETag` and `Cache-Control`** (RFC 7232 §4.1 / RFC 9110 §15.4.5: a 304 MUST generate the `Cache-Control`, `ETag`, `Expires`, `Vary`… a 200 would have carried). Without them the client cannot freshen the stored response's lifetime (RFC 7234 §4.3.4) and revalidates on every load — which silently voids `--cachetime`. `Content-Encoding`/`Content-Type` are deliberately **omitted**: representation headers, not in the must-generate list, and there is no body. Each engine's 304 body is built **once** into an `etagBody` const that `sw()` then wraps in `#ifdef` for the `compiler` arm — do not re-duplicate it across the `always`/`compiler` arms; the arms silently drifting is exactly how the 304 lost its headers in the first place.
-- Engine-specific 304 constraints: **async** must build the response via `request->beginResponse(304)` — the `request->send(304)` convenience overload sends immediately, leaving no handle to add headers to. **webserver**'s `send()` flushes the accumulated header block, so both `sendHeader()` calls must precede `server->send(304)`. **espidf**'s `httpd_resp_set_hdr()` does not copy its key/value — safe here only because `etag_*` is a `static const char[]` and the cache value is a string literal.
-- `{{definePrefix}}_URI_HANDLERS` / `{{definePrefix}}_MAX_URI_HANDLERS`: emitted for psychic and espidf. `computeRouteCount()` in `src/cppCode.ts` computes the real number of registered handlers (file count, plus one for the default `/` route when `index.html`/`index.htm` is present, plus the `--spa` catch-all — psychic only counts the default-route/SPA extras when `basePath` is set, since it aliases the default route via `defaultEndpoint` otherwise, and counts the SPA catch-all twice because it is registered once per method). `_URI_HANDLERS` is that exact count; `_MAX_URI_HANDLERS` is `_URI_HANDLERS + 5` (safety margin for the user's own custom routes). **Load-bearing for espidf only** (`httpd_config_t.max_uri_handlers`). For psychic they are informational: PsychicHttp 3.x registers one wildcard esp-idf handler per HTTP method and routes endpoints internally, overwriting `server.config.max_uri_handlers` in `start()` — assigning the define does nothing.
-- Per-source cache time: `cacheTime` is computed per file in `transformSourceToTemplateData` — HTML files use `cachetimeHtml ?? cachetime`, non-HTML use `cachetimeAssets ?? cachetime`
+These headers are gitignored (`include/**/*.h`) and never appear in `git diff` — regenerate, don't hand-edit. `demo/esp32/include/svelteesp32.h` (top level) is the `dev:*` target. `demo/esp32/src/credentials.h` is gitignored too but must exist (`ssid` / `pass`) or the builds won't compile.
 
 ## Testing (Vitest)
 
-Test files in `test/unit/`. Fixtures in `test/fixtures/sample-files/`.
+Tests in `test/unit/`, fixtures in `test/fixtures/sample-files/`.
 
-**Key patterns:**
+- Mock fs with `vi.mock('node:fs')` + memfs. Dynamic imports for commandLine tests (side effects), with `vi.resetModules()` in `beforeEach`.
+- `cppCodeEspIdf.ts` and `cppCodeWebserver.ts` have dedicated test files; **psychic and async do not** — assert their output in `test/unit/cppCode.test.ts`, which drives every engine through the public `getCppCode(sources, filesByExtension, options)` rather than `gen*Cpp` directly.
+- No `pipeline.test.ts` — `runPipeline()` is covered indirectly via `index.test.ts` and `changesummary.test.ts`.
 
-- Mock fs with `vi.mock('node:fs')` and memfs
-- Dynamic imports for commandLine tests (side effects)
-- `test/unit/index.test.ts` uses `makeFileData()` helper at outer scope
-- `test/unit/changesummary.test.ts` tests `formatChangeSummary` and `createSourceEntry` via dynamic import of `src/index.ts` (uses `vi.resetModules()` in `beforeEach`)
-- `cppCodeEspIdf.ts` and `cppCodeWebserver.ts` have dedicated unit test files; `cppCodePsychic.ts` and `cppCodeAsync.ts` do not — their output is asserted in `test/unit/cppCode.test.ts` instead, which drives every engine through the public `getCppCode(sources, filesByExtension, options)` rather than calling `gen*Cpp` directly. Add psychic/async assertions there, and still confirm with `npm run test:esp32` (string assertions cannot catch a compile error)
-- No dedicated `pipeline.test.ts` — `runPipeline()` is exercised indirectly through `index.test.ts` and `changesummary.test.ts`
+## Conventions
 
-## Documentation Conventions
-
-- **README.md "What's New" section**: List only minor and major versions (e.g., v3.0.0, v2.4.0). Patch versions (e.g., v3.0.1, v3.0.2) must not appear — fold their content into the parent minor version entry or omit it.
-
-## Build Config
-
-- **TypeScript**: Target ES2023, module/moduleResolution Node16, strict mode
-- **ESLint**: TypeScript + Prettier + Unicorn (all rules) + simple-import-sort
-- **Prettier**: 120 char width, single quotes, no trailing commas
-- **ESLint `curly` rule**: `"multi"` — braces required only for multi-statement blocks. Single-statement `if`/`else`/`for` must NOT have braces.
+- **TypeScript**: ES2023, module/moduleResolution Node16, strict.
+- **ESLint**: TypeScript + Prettier + Unicorn (all rules) + simple-import-sort. **`curly: "multi"`** — braces only for multi-statement blocks; single-statement `if`/`else`/`for` must **not** have braces.
+- **Prettier**: 120 char width, single quotes, no trailing commas.
+- **README "What's New"**: minor and major versions only — no patch versions; fold them into the parent minor entry.
