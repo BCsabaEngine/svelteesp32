@@ -86,6 +86,34 @@ void setup() {
 
 ---
 
+## How It Works
+
+Your web UI is just another build artifact: build the frontend, turn `dist/` into a header, compile it into the firmware. But **svelteesp32 does not belong in your inner loop** — develop the UI with `vite dev` against the device's REST API as you always would, and only generate the header when the UI is ready to ship.
+
+```mermaid
+flowchart LR
+    subgraph inner["Inner loop — all day, no svelteesp32"]
+        direction LR
+        A["Develop frontend<br/>vite dev + hot reload"]
+        API["ESP32 REST API<br/>(real device or mock)"]
+        A <--> API
+    end
+
+    inner --> B["UI is ready<br/>npm run build → dist/"]
+    B --> C{"Generate header"}
+    C -->|"npx svelteesp32"| D["svelteesp32.h<br/>gzip + ETag + routes"]
+    C -->|"Vite plugin<br/>(automatic)"| D
+    D --> E["Firmware build<br/>PlatformIO / Arduino IDE / ESP-IDF"]
+    E --> F["Flash or OTA<br/>once or twice, not continuously"]
+    F --> A
+```
+
+**Inner loop (fast, repeated):** the frontend dev server serves your UI with hot reload while `fetch()` calls go straight to the ESP32 on the network — the same API the embedded UI will call in production. Flash the firmware once so the API is up, then stay in the browser. Point Vite's `server.proxy` at the device's IP to avoid CORS.
+
+**Release step (rare):** build the frontend, generate the header, compile it into the firmware, flash or OTA. Either the CLI (`npx svelteesp32 …`) or the [Vite plugin](#vite-plugin) — same pipeline, the plugin just runs it automatically after `vite build`.
+
+---
+
 ## What's New
 
 - **v3.2.0** — **HTTP `HEAD` support** on the psychic and async engines (always on, no flag): `curl -I`, health checks and uptime monitors now get the same status and headers as `GET`, with no body. psychic file routes are registered as `HTTP_ANY` and return `405 Method Not Allowed` for non-GET/HEAD instead of falling through to `index.html`. Also fixes ETag/`304` on the **webserver** engine, which never fired because Arduino `WebServer` was not told to retain the `If-None-Match` header. **RFC-compliant ETags**: the tag is now quoted (`ETag: "387b88e345cc56ef"`) as RFC 9110 requires and truncated to 16 hex characters — 18 bytes per file instead of 64, on every response header and every conditional request — and `If-None-Match` is matched with `strstr()`, so browsers sending a comma-separated list or a weak `W/"…"` validator now get their `304` instead of a full `200`
