@@ -217,8 +217,8 @@ const makeFileData = (content: string, hash = 'mock-sha256-hash') => ({
 });
 
 describe('formatDryRunRoutes', () => {
-  let createSourceEntry: IndexModule['createSourceEntry'];
-  let formatDryRunRoutes: IndexModule['formatDryRunRoutes'];
+  let createSourceEntry: typeof IndexModule.createSourceEntry;
+  let formatDryRunRoutes: typeof IndexModule.formatDryRunRoutes;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -411,7 +411,7 @@ describe('formatDryRunRoutes', () => {
 });
 
 describe('formatSizePrecise', () => {
-  let formatSizePrecise: IndexModule['formatSizePrecise'];
+  let formatSizePrecise: typeof IndexModule.formatSizePrecise;
 
   beforeEach(async () => {
     const module_ = await import('../../src/index');
@@ -432,8 +432,8 @@ describe('formatSizePrecise', () => {
 const makeAnalyzeSummary = (size: number, gzipsize: number) => ({ filecount: 1, size, gzipsize });
 
 describe('formatAnalyzeTable', () => {
-  let createSourceEntry: IndexModule['createSourceEntry'];
-  let formatAnalyzeTable: IndexModule['formatAnalyzeTable'];
+  let createSourceEntry: typeof IndexModule.createSourceEntry;
+  let formatAnalyzeTable: typeof IndexModule.formatAnalyzeTable;
 
   beforeEach(async () => {
     const module_ = await import('../../src/index');
@@ -451,7 +451,7 @@ describe('formatAnalyzeTable', () => {
       'abc',
       true
     );
-    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2000, 2));
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2000, 2), undefined, undefined);
     expect(result).toContain('File');
     expect(result).toContain('Original');
     expect(result).toContain('Gzip');
@@ -468,7 +468,7 @@ describe('formatAnalyzeTable', () => {
       'abc',
       false
     );
-    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2, 2));
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2, 2), undefined, undefined);
     expect(result).toContain('[no gzip]');
   });
 
@@ -482,7 +482,7 @@ describe('formatAnalyzeTable', () => {
       'abc',
       true
     );
-    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2000, 2));
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(2000, 2), undefined, undefined);
     expect(result).not.toContain('[no gzip]');
   });
 
@@ -496,7 +496,7 @@ describe('formatAnalyzeTable', () => {
       'abc',
       false
     );
-    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100), 200);
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100), 200, undefined);
     expect(result).toContain('Budget (maxsize)');
     expect(result).toContain('✓ PASS');
   });
@@ -511,7 +511,7 @@ describe('formatAnalyzeTable', () => {
       'abc',
       false
     );
-    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100), 50);
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100), 50, undefined);
     expect(result).toContain('Budget (maxsize)');
     expect(result).toContain('✗ FAIL');
   });
@@ -556,7 +556,7 @@ describe('formatAnalyzeTable', () => {
       'abc',
       false
     );
-    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100));
+    const result = formatAnalyzeTable([source], makeAnalyzeSummary(100, 100), undefined, undefined);
     expect(result).not.toContain('Budget');
   });
 });
@@ -672,7 +672,7 @@ describe('index.ts main pipeline integration', () => {
       main();
 
       expect(mockGetCppCode).toHaveBeenCalled();
-      const sources = mockGetCppCode.mock.calls[0][0];
+      const sources = mockGetCppCode.mock.calls[0]?.[0] ?? [];
       expect(sources).toHaveLength(3);
     });
 
@@ -684,8 +684,8 @@ describe('index.ts main pipeline integration', () => {
       main();
 
       expect(mockGetCppCode).toHaveBeenCalled();
-      const sources = mockGetCppCode.mock.calls[0][0];
-      expect(sources[0].sha256).toBe('pre-computed-hash');
+      const sources = mockGetCppCode.mock.calls[0]?.[0] ?? [];
+      expect(sources[0]?.sha256).toBe('pre-computed-hash');
     });
 
     it('should apply gzip compression with level 9', async () => {
@@ -706,8 +706,8 @@ describe('index.ts main pipeline integration', () => {
       const { main } = await import('../../src/index');
       main();
 
-      const sources = mockGetCppCode.mock.calls[0][0];
-      expect(sources[0].dataname).toBe('_1app_js');
+      const sources = mockGetCppCode.mock.calls[0]?.[0] ?? [];
+      expect(sources[0]?.dataname).toBe('_1app_js');
     });
 
     it('should not prepend underscore to dataname when filename starts with a letter', async () => {
@@ -717,8 +717,8 @@ describe('index.ts main pipeline integration', () => {
       const { main } = await import('../../src/index');
       main();
 
-      const sources = mockGetCppCode.mock.calls[0][0];
-      expect(sources[0].dataname).toBe('app_js');
+      const sources = mockGetCppCode.mock.calls[0]?.[0] ?? [];
+      expect(sources[0]?.dataname).toBe('app_js');
     });
   });
 
@@ -731,7 +731,7 @@ describe('index.ts main pipeline integration', () => {
       main();
 
       expect(mockMkdirSync).toHaveBeenCalled();
-      expect(mockMkdirSync.mock.calls[0][1]).toEqual({ recursive: true });
+      expect(mockMkdirSync.mock.calls[0]?.[1]).toEqual({ recursive: true });
     });
 
     it('should write C++ header file with correct encoding', async () => {
@@ -805,7 +805,7 @@ describe('index.ts main pipeline integration', () => {
       const { main } = await import('../../src/index');
       main();
 
-      const filesByExtension = mockGetCppCode.mock.calls[0][1];
+      const filesByExtension = mockGetCppCode.mock.calls[0]?.[1] ?? [];
       expect(filesByExtension).toContainEqual({ extension: 'HTML', count: 1 });
       expect(filesByExtension).toContainEqual({ extension: 'CSS', count: 1 });
       expect(filesByExtension).toContainEqual({ extension: 'JS', count: 1 });
@@ -824,7 +824,7 @@ describe('index.ts main pipeline integration', () => {
       const { main } = await import('../../src/index');
       main();
 
-      const filesByExtension = mockGetCppCode.mock.calls[0][1];
+      const filesByExtension = mockGetCppCode.mock.calls[0]?.[1] ?? [];
       const extensions = filesByExtension.map((group: ExtensionGroup) => group.extension);
       expect(extensions).toEqual(['CSS', 'HTML', 'JS']);
     });

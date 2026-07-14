@@ -1,28 +1,34 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genManifest, sw } from './cppCode';
+import {
+  cacheCtrl,
+  gateEtag,
+  genCacheHeaders,
+  genCommonHeader,
+  genDataArrays,
+  genEtagArrays,
+  genHook,
+  genManifest,
+  sw
+} from './cppCode';
 
 const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
   const lines: string[] = [];
-  const etagCheck = sw(d.etag, {
-    always: [
-      `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
-      `    if (h && h->value().equals(etag_${source.dataname})) {`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      request->send(304);`,
-      `      return;`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
-      `    if (h && h->value().equals(etag_${source.dataname})) {`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      request->send(304);`,
-      `      return;`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
-  });
+  // RFC 7232 4.1: a 304 must repeat the Cache-Control and ETag a 200 would have carried, otherwise
+  // the client cannot refresh the stored response's freshness lifetime and revalidates every time.
+  // request->send(304) builds and sends in one call, leaving no handle to add headers to - the
+  // 304 has to go through beginResponse() instead.
+  const etagBody = [
+    `    const AsyncWebHeader* h = request->getHeader("If-None-Match");`,
+    `    if (h && strstr(h->value().c_str(), etag_${source.dataname}) != nullptr) {`,
+    `      AsyncWebServerResponse *notModified = request->beginResponse(304);`,
+    `      notModified->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
+    `      notModified->addHeader("ETag", etag_${source.dataname});`,
+    `      ${d.definePrefix}_onFileServed("${path}", 304);`,
+    `      request->send(notModified);`,
+    `      return;`,
+    `    }`
+  ].join('\n');
+  const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   // HEAD: same status and headers as GET, but no body. The empty-content beginResponse() overload
   // reports Content-Length: 0 - a truthful length would stall the response, because
@@ -48,22 +54,12 @@ const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: s
         beginResponse('data', source.length),
         `  #endif`
       ].join('\n')
-    })
+    }),
+    // Must follow beginResponse(): there is no `response` to hang the headers on before it.
+    genCacheHeaders(d, source, (h, v) => `    response->addHeader("${h}", ${v});`),
+    `    ${d.definePrefix}_onFileServed("${path}", 200);`,
+    `    request->send(response);`
   );
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
-  lines.push(`    ${d.definePrefix}_onFileServed("${path}", 200);`, `    request->send(response);`);
   return lines.join('\n');
 };
 

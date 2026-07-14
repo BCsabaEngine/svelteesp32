@@ -13,5 +13,17 @@ coverage/
 # Optional npm cache directory
 .npm
 
+# Lint cache
+.eslintcache
+
+# npm pack output
+*.tgz
+
+# Logs
+npm-debug.log*
+
+# OS files
+.DS_Store
+
 # dotenv environment variables file
 .env

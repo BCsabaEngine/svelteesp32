@@ -88,7 +88,7 @@ void setup() {
 
 ## What's New
 
-- **v3.2.0** — **HTTP `HEAD` support** on the psychic and async engines (always on, no flag): `curl -I`, health checks and uptime monitors now get the same status and headers as `GET`, with no body. psychic file routes are registered as `HTTP_ANY` and return `405 Method Not Allowed` for non-GET/HEAD instead of falling through to `index.html`. Also fixes ETag/`304` on the **webserver** engine, which never fired because Arduino `WebServer` was not told to retain the `If-None-Match` header
+- **v3.2.0** — **HTTP `HEAD` support** on the psychic and async engines (always on, no flag): `curl -I`, health checks and uptime monitors now get the same status and headers as `GET`, with no body. psychic file routes are registered as `HTTP_ANY` and return `405 Method Not Allowed` for non-GET/HEAD instead of falling through to `index.html`. Also fixes ETag/`304` on the **webserver** engine, which never fired because Arduino `WebServer` was not told to retain the `If-None-Match` header. **RFC-compliant ETags**: the tag is now quoted (`ETag: "387b88e345cc56ef"`) as RFC 9110 requires and truncated to 16 hex characters — 18 bytes per file instead of 64, on every response header and every conditional request — and `If-None-Match` is matched with `strstr()`, so browsers sending a comma-separated list or a weak `W/"…"` validator now get their `304` instead of a full `200`
 - **v3.1.0** — Removed `handlebars`, `picomatch`, and `mime-types` dependencies; C++ generation is now pure TypeScript with a built-in MIME type map and direct `tinyglobby` exclude handling. `--cachetime-html` → `--cachetimehtml`, `--cachetime-assets` → `--cachetimeassets` (CLI now matches RC file keys); `--dry-run` alias removed — use `--dryrun`. `SVELTEESP32_URI_HANDLERS`/`SVELTEESP32_MAX_URI_HANDLERS` (psychic/espidf) now reflect the exact registered route count, including the default `/` route and `--spa` catch-all
 - **v3.0.0** — **Vite plugin** (`import { svelteESP32 } from 'svelteesp32/vite'`) generates the header automatically after every build — call with no argument for RC file mode or pass an options object for plugin-options mode; `npx svelteesp32 init` interactive RC file wizard; Node.js >= 22 required
 - **v2.4.0** — `--analyze` for CI size budget checks (per-file table, exits 1 on over-budget); `--manifest` to write a companion JSON manifest alongside the header
@@ -323,8 +323,8 @@ The generated header file includes everything your ESP needs:
 
 static const uint8_t datagzip_assets_index_KwubEIf__js[12547] = {0x1f, 0x8b, 0x8, 0x0, ...
 static const uint8_t datagzip_assets_index_Soe6cpLA_css[5368] = {0x1f, 0x8b, 0x8, 0x0, 0x0, ...
-static const char etag_assets_index_KwubEIf__js[] = "387b88e345cc56ef9091...";
-static const char etag_assets_index_Soe6cpLA_css[] = "d4f23bc45ef67890ab12...";
+static const char etag_assets_index_KwubEIf__js[] = "\"387b88e345cc56ef\"";
+static const char etag_assets_index_Soe6cpLA_css[] = "\"d4f23bc45ef67890\"";
 
 // File manifest for runtime introspection
 struct SVELTEESP32_FileInfo {
@@ -346,10 +346,20 @@ const size_t SVELTEESP32_FILE_COUNT = sizeof(SVELTEESP32_FILES) / sizeof(SVELTEE
 extern "C" void __attribute__((weak)) SVELTEESP32_onFileServed(const char* path, int statusCode) {}
 
 void initSvelteStaticFiles(PsychicHttpServer * server) {
-  server->on("/assets/index-KwubEIf-.js", HTTP_GET, [](PsychicRequest * request, PsychicResponse * response) {
+  server->on("/assets/index-KwubEIf-.js", HTTP_ANY, [](PsychicRequest * request, PsychicResponse * response) {
+    if (request->method() != HTTP_GET && request->method() != HTTP_HEAD) {
+      response->setCode(405);
+      response->addHeader("Allow", "GET, HEAD");
+      return response->send();
+    }
+
+    // A 304 repeats the ETag and Cache-Control of the 200 it replaces (RFC 7232 4.1), so the
+    // client can refresh the cached entry's freshness lifetime instead of revalidating every load.
     if (request->hasHeader("If-None-Match") &&
-        request->header("If-None-Match").equals(etag_assets_index_KwubEIf__js)) {
+        strstr(request->header("If-None-Match").c_str(), etag_assets_index_KwubEIf__js) != nullptr) {
       response->setCode(304);
+      response->addHeader("Cache-Control", "no-cache");
+      response->addHeader("ETag", etag_assets_index_KwubEIf__js);
       SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 304);
       return response->send();
     }
@@ -358,7 +368,9 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
     response->addHeader("Content-Encoding", "gzip");
     response->addHeader("Cache-Control", "no-cache");
     response->addHeader("ETag", etag_assets_index_KwubEIf__js);
-    response->setContent(datagzip_assets_index_KwubEIf__js, 12547);
+    if (request->method() != HTTP_HEAD) {
+      response->setContent(datagzip_assets_index_KwubEIf__js, 12547);
+    }
     SVELTEESP32_onFileServed("/assets/index-KwubEIf-.js", 200);
     return response->send();
   });
@@ -405,6 +417,21 @@ Reduce bandwidth dramatically with HTTP 304 "Not Modified" responses. When a bro
 
 All four engines support full ETag validation.
 
+The tag is the file's SHA256 truncated to 16 hex characters and wrapped in quotes, exactly as RFC 9110 requires (`opaque-tag = DQUOTE *etagc DQUOTE`) — unquoted tags are mishandled by some proxies and stricter clients:
+
+```http
+ETag: "387b88e345cc56ef"
+```
+
+16 hex characters is 64 bits of collision resistance, far more than enough for the few dozen files that fit in flash, and it costs 18 bytes per file instead of 64 — on every response header and every conditional request. The full 64-character hash is still written to the `--manifest` JSON, so change detection between builds is unaffected.
+
+Validation uses a substring match rather than string equality, so a browser sending a comma-separated list or a weak validator still gets its `304`:
+
+```http
+If-None-Match: W/"387b88e345cc56ef"
+If-None-Match: "0badcafe0badcafe", "387b88e345cc56ef"
+```
+
 > **Browser compatibility note:** ETags and `Cache-Control: max-age` are universally supported in all modern browsers. Very old clients (IE6/7, early Android 2.x WebViews) may ignore `must-revalidate` or mishandle 304 responses. If you target these environments, set `--etag=never` and `--cachetime=0` to force full downloads on every request.
 
 ### Browser Cache Control
@@ -429,6 +456,8 @@ This emits `Cache-Control: no-cache` for every `text/html` file and `Cache-Contr
 | `--cachetimehtml`   | `text/html` only                 | `--cachetime`  |
 | `--cachetimeassets` | everything else                  | `--cachetime`  |
 | `--cachetime`       | all files (when no override set) | `0` (no-cache) |
+
+`Cache-Control` is independent of `--etag`: it is emitted on every response in every etag mode. `--cachetime*` therefore still applies with `--etag=never`, and an `--etag=compiler` build compiled _without_ `-D SVELTEESP32_ENABLE_ETAG` keeps its caching — only the `ETag` header itself is gated. The two headers do different jobs: `Cache-Control` sets how long a response stays fresh, `ETag` is the validator used to revalidate it once it goes stale.
 
 ### Automatic Index Handling
 
@@ -751,10 +780,10 @@ npm run build
 
 # 2. Generate the header
 npx svelteesp32 -e webserver -s ./dist -o ./MyProject/svelteesp32.h \
-  --gzip=always --etag=never
+  --gzip=always --etag=always
 ```
 
-> **Note:** The Arduino `WebServer` library does not support ETag validation, so `--etag=never` is the correct setting here. Remember to call `server.handleClient()` in your `loop()`.
+> **Note:** ETag validation works on Arduino `WebServer` — the generated header calls `server->collectAllHeaders()` for you, which is what makes the incoming `If-None-Match` available to the 304 check. (`WebServer` only retains request headers it has been told to collect.) Remember to call `server.handleClient()` in your `loop()`.
 
 ```c
 #include <WebServer.h>
@@ -788,7 +817,7 @@ platform = espressif32
 board = esp32dev
 framework = arduino
 lib_deps =
-    https://github.com/ESP32Async/ESPAsyncWebServer#v3.11.1
+    https://github.com/ESP32Async/ESPAsyncWebServer#v3.11.2
 extra_scripts = pre:scripts/build_frontend.py
 ```
 

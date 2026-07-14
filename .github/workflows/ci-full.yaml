@@ -36,8 +36,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Run Typecheck
+        run: npm run typecheck
+
       - name: Run Tests
-        run: npm run test
+        run: npm run test:coverage
 
   tag:
     name: Version tag

@@ -1,4 +1,4 @@
 {
   "js/ts.tsserver.experimental.enableProjectDiagnostics": true,
-  "cmake.sourceDirectory": "/Users/balazscsaba/development/svelteesp32/demo/esp32idf"
+  "cmake.sourceDirectory": "${workspaceFolder}/demo/esp32idf"
 }

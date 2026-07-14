@@ -1,47 +1,32 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, sw } from './cppCode';
+import { cacheCtrl, etagLiteral, gateEtag, genCacheHeaders, sw } from './cppCode';
 
 const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): string => {
   const path = `${d.basePath}/${source.filename}`;
   const lines: string[] = [`static esp_err_t file_handler_${source.datanameUpperCase} (httpd_req_t *req)`, '{'];
-  const etagCheck = sw(d.etag, {
-    always: [
-      `    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");`,
-      `    if (hdr_len > 0) {`,
-      `        char* hdr_value = malloc(hdr_len + 1);`,
-      `        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }`,
-      `        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {`,
-      `            if (strcmp(hdr_value, etag_${source.dataname}) == 0) {`,
-      `                free(hdr_value);`,
-      `                httpd_resp_set_status(req, "304 Not Modified");`,
-      `                ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `                httpd_resp_send(req, NULL, 0);`,
-      `                return ESP_OK;`,
-      `            }`,
-      `        }`,
-      `        free(hdr_value);`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");`,
-      `    if (hdr_len > 0) {`,
-      `        char* hdr_value = malloc(hdr_len + 1);`,
-      `        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }`,
-      `        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {`,
-      `            if (strcmp(hdr_value, etag_${source.dataname}) == 0) {`,
-      `                free(hdr_value);`,
-      `                httpd_resp_set_status(req, "304 Not Modified");`,
-      `                ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `                httpd_resp_send(req, NULL, 0);`,
-      `                return ESP_OK;`,
-      `            }`,
-      `        }`,
-      `        free(hdr_value);`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
-  });
+  // RFC 7232 4.1: a 304 must repeat the Cache-Control and ETag a 200 would have carried, otherwise
+  // the client cannot refresh the stored response's freshness lifetime and revalidates every time.
+  // httpd_resp_set_hdr() does not copy its key/value - both point at static storage here.
+  const etagBody = [
+    `    size_t hdr_len = httpd_req_get_hdr_value_len(req, "If-None-Match");`,
+    `    if (hdr_len > 0) {`,
+    `        char* hdr_value = malloc(hdr_len + 1);`,
+    `        if (hdr_value == NULL) { httpd_resp_send_500(req); return ESP_FAIL; }`,
+    `        if (httpd_req_get_hdr_value_str(req, "If-None-Match", hdr_value, hdr_len + 1) == ESP_OK) {`,
+    `            if (strstr(hdr_value, etag_${source.dataname}) != NULL) {`,
+    `                free(hdr_value);`,
+    `                httpd_resp_set_status(req, "304 Not Modified");`,
+    `                httpd_resp_set_hdr(req, "Cache-Control", "${cacheCtrl(source)}");`,
+    `                httpd_resp_set_hdr(req, "ETag", etag_${source.dataname});`,
+    `                ${d.definePrefix}_onFileServed("${path}", 304);`,
+    `                httpd_resp_send(req, NULL, 0);`,
+    `                return ESP_OK;`,
+    `            }`,
+    `        }`,
+    `        free(hdr_value);`,
+    `    }`
+  ].join('\n');
+  const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   lines.push(`    httpd_resp_set_type(req, "${source.mime}");`);
   const gzipEncoding = sw(d.gzip, {
@@ -55,20 +40,8 @@ const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): strin
       : ''
   });
   if (gzipEncoding) lines.push(gzipEncoding);
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    httpd_resp_set_hdr(req, "Cache-Control", "${cacheCtrl(source)}");`,
-      `    httpd_resp_set_hdr(req, "ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    httpd_resp_set_hdr(req, "Cache-Control", "${cacheCtrl(source)}");`,
-      `    httpd_resp_set_hdr(req, "ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
   lines.push(
+    genCacheHeaders(d, source, (h, v) => `    httpd_resp_set_hdr(req, "${h}", ${v});`),
     sw(d.gzip, {
       always: [
         `    ${d.definePrefix}_onFileServed("${path}", 200);`,
@@ -176,11 +149,11 @@ export const genEspIdfCpp = (d: TemplateData): string => {
     }),
     '//'
   );
-  const etagItems = d.sources.map((s) => `static const char etag_${s.dataname}[] = "${s.sha256}";`).join('\n');
-  const etagBlock = sw(d.etag, {
-    always: etagItems,
-    compiler: [`#ifdef ${d.definePrefix}_ENABLE_ETAG`, etagItems, '#endif'].join('\n')
-  });
+  const etagBlock = gateEtag(
+    d,
+    d.sources.map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`).join('\n'),
+    ''
+  );
   if (etagBlock) lines.push(etagBlock);
   lines.push(
     `// File manifest struct (C-compatible typedef)`,

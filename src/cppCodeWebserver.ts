@@ -1,41 +1,34 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genManifest, sw } from './cppCode';
+import {
+  cacheCtrl,
+  gateEtag,
+  genCacheHeaders,
+  genCommonHeader,
+  genDataArrays,
+  genEtagArrays,
+  genHook,
+  genManifest,
+  sw
+} from './cppCode';
 
 const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
   const lines: string[] = [];
-  const etagCheck = sw(d.etag, {
-    always: [
-      `    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_${source.dataname})) {`,
-      `      server->send(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return;`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    if (server->hasHeader("If-None-Match") && server->header("If-None-Match").equals(etag_${source.dataname})) {`,
-      `      server->send(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return;`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
-  });
+  // RFC 7232 4.1: a 304 must repeat the Cache-Control and ETag a 200 would have carried, otherwise
+  // the client cannot refresh the stored response's freshness lifetime and revalidates every time.
+  // send() flushes the accumulated header block, so both sendHeader calls have to precede it.
+  const etagBody = [
+    `    if (server->hasHeader("If-None-Match") && strstr(server->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
+    `      server->sendHeader("Cache-Control", "${cacheCtrl(source)}");`,
+    `      server->sendHeader("ETag", etag_${source.dataname});`,
+    `      server->send(304);`,
+    `      ${d.definePrefix}_onFileServed("${path}", 304);`,
+    `      return;`,
+    `    }`
+  ].join('\n');
+  const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    server->sendHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    server->sendHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    server->sendHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    server->sendHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
   lines.push(
+    genCacheHeaders(d, source, (h, v) => `    server->sendHeader("${h}", ${v});`),
     sw(d.gzip, {
       always: [
         ...(source.isGzip ? [`    server->sendHeader("Content-Encoding", "gzip");`] : []),
@@ -100,10 +93,7 @@ export const genWebserverCpp = (d: TemplateData): string => {
     // WebServer only retains request headers it was told to collect, so hasHeader("If-None-Match")
     // is false - and the 304 branch below unreachable - unless we opt in here. Note that a later
     // server->collectHeaders(...) call re-initialises the list and would disable ETag again.
-    sw(d.etag, {
-      always: `  server->collectAllHeaders();`,
-      compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, `  server->collectAllHeaders();`, `  #endif`].join('\n')
-    })
+    gateEtag(d, `  server->collectAllHeaders();`)
   ];
   for (const source of d.sources) {
     const path = `${d.basePath}/${source.filename}`;

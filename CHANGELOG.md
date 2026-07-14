@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2026-07-13
+
+### Fixed
+
+- **`Cache-Control` is no longer coupled to the ETag mode.** In every engine the cache header block was emitted inside a `switch` over `etag` that had `always` and `compiler` arms but no `never` arm, so the `Cache-Control` header disappeared along with the `ETag` whenever ETag validation was off:
+
+  - `--etag=never --cachetimeassets=31536000` emitted **no `Cache-Control` header at all** — the cache flags were silently inert. This is the combination the README's Arduino `WebServer` recipe recommended.
+  - `--etag=compiler` compiled _without_ `-D SVELTEESP32_ENABLE_ETAG` also dropped caching, as a side effect of a compile-time _ETag_ switch.
+
+  The two headers are independent: `Cache-Control` sets a freshness lifetime, `ETag` provides the validator used to revalidate afterwards. `Cache-Control` is now emitted on every `200` in every etag mode, and only the `ETag` line stays gated. Note the consequence for `--etag=never` builds with no cache time set: they now carry `Cache-Control: no-cache`, the honest directive for an uncacheable response (it also stops proxies applying heuristic freshness), where previously they carried nothing.
+
+- **`304 Not Modified` responses now repeat the `ETag` and `Cache-Control` headers that the matching `200` would carry.** A 304 previously went out as a bare status line with no headers at all, violating RFC 7232 §4.1 (now RFC 9110 §15.4.5): _"The server generating a 304 response MUST generate any of the following header fields that would have been sent in a 200 (OK) response to the same request: Cache-Control, Content-Location, Date, ETag, Expires, and Vary."_
+
+  The practical cost is spelled out in RFC 7234 §4.3.4 (now RFC 9111 §4.3.4): a client refreshes its stored response's freshness lifetime from the headers on the 304. With none present, the lifetime was never refreshed — so a browser revalidated on _every_ load, and `--cachetime`, `--cachetimehtml` and `--cachetimeassets` had no effect at all on any client that already held the file. All four engines are fixed.
+
+  `Content-Encoding` and `Content-Type` are deliberately left off the 304: they describe a representation, and a 304 has no body.
+
+### Changed
+
+- **ETags are now quoted and truncated to 16 hex characters.** The generated tag was the raw 64-character SHA256 hex with no quotes, which is not a valid entity-tag: RFC 9110 defines `opaque-tag = DQUOTE *etagc DQUOTE`, and some proxies and stricter clients mishandle an unquoted value. Headers now emit `static const char etag_index_html[] = "\"387b88e345cc56ef\"";` and send `ETag: "387b88e345cc56ef"`.
+
+  16 hex characters is 64 bits of collision resistance — far beyond what the few dozen files that fit in flash need — and costs 18 bytes per file instead of 64, on every response header and every conditional request. The **full 64-character hash is still written to the `--manifest` JSON**, so change detection between builds is unaffected.
+
+  Clients holding an ETag from an older build will miss once and get a fresh `200`; there is no other migration.
+
+- **`If-None-Match` is matched with `strstr()` instead of exact string equality** (`.equals()` on the Arduino engines, `strcmp()` on espidf). A browser may send a comma-separated list (`If-None-Match: "a", "b"`) or a weak validator (`W/"a"`), and both previously failed to match — silently costing a full `200` where a `304` was correct. Because `etagc` excludes `"`, the quoted tag can only match a complete entity-tag within a list, and matching through a `W/` prefix is exactly the weak comparison RFC 9110 mandates for `If-None-Match`.
+
 ## [3.2.0] - 2026-07-13
 
 ### Added

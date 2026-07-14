@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ICopyFilesArguments } from '../../src/commandLine';
 import {
   computeRouteCount,
   type CppCodeSource,
@@ -8,12 +9,12 @@ import {
   getCppCode
 } from '../../src/cppCode';
 
-const mockOptions = {
+const mockOptions: ICopyFilesArguments = {
   sourcepath: '/test/path',
   outputfile: '/test/output.h',
-  engine: 'psychic' as const,
-  etag: 'always' as const,
-  gzip: 'always' as const,
+  engine: 'psychic',
+  etag: 'always',
+  gzip: 'always',
   cachetime: 86_400,
   cachetimeHtml: undefined,
   cachetimeAssets: undefined,
@@ -23,7 +24,8 @@ const mockOptions = {
   define: 'SVELTEESP32',
   exclude: [],
   basePath: '',
-  spa: false
+  spa: false,
+  configSource: 'cli'
 };
 
 const createMockSource = (filename: string, content: string): CppCodeSource => ({
@@ -208,7 +210,7 @@ describe('cppCode', () => {
 
       const result = getCppCode(sources, mockFilesByExtension, mockOptions);
 
-      expect(result).toContain('static const char etag_index_html[] = "abc123"');
+      expect(result).toContain(String.raw`static const char etag_index_html[] = "\"abc123\"";`);
     });
 
     it('should generate route handlers for each file', () => {
@@ -379,8 +381,7 @@ describe('cppCode', () => {
         sourcepath: '/test/path',
         outputfile: '/test/output.h',
         gzip: 'never' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When etag=true, should have SHA256 hash definition
@@ -395,8 +396,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         etag: 'never' as const,
         gzip: 'never' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When etag=false, should not check etag headers
@@ -411,8 +411,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         engine: 'async' as const,
         etag: 'never' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When gzip=true, should have content-encoding header
@@ -427,8 +426,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         etag: 'never' as const,
         gzip: 'never' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When gzip=false, should not have gzip-specific code
@@ -443,8 +441,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         etag: 'compiler' as const,
         gzip: 'compiler' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // When etag/gzip=compiler, should have #ifdef directives
@@ -458,8 +455,7 @@ describe('cppCode', () => {
         sourcepath: '/test/path',
         outputfile: '/test/output.h',
         engine: 'espidf' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // espidf should have specific handler structure
@@ -476,8 +472,7 @@ describe('cppCode', () => {
           engine: engine as 'psychic' | 'async' | 'espidf',
           sourcepath: '/test/path',
           outputfile: '/test/output.h',
-          cachetime: 0,
-          noindexcheck: false
+          cachetime: 0
         });
 
         expect(result).toBeTruthy();
@@ -493,8 +488,7 @@ describe('cppCode', () => {
         outputfile: '/test/output.h',
         etag: 'compiler' as const,
         gzip: 'compiler' as const,
-        cachetime: 0,
-        noindexcheck: false
+        cachetime: 0
       });
 
       // Should handle psychic engine with compiler directives
@@ -1196,5 +1190,210 @@ describe('cppCode', () => {
 
       expect(result).not.toContain('collectAllHeaders');
     });
+  });
+});
+
+describe('etag format (RFC 9110 quoted, truncated)', () => {
+  const mockFilesByExtension: ExtensionGroups = [{ extension: 'HTML', count: 1 }];
+  // A realistic full-length SHA256 - only the first 16 hex chars may reach the generated header.
+  const sha256 = '387b88e3ef16c0a7d4f9b2c1a0e5d8f36b2a4c9e1d7f0a3b5c8e2d6f4a1b9c0e';
+  const sourceWithRealHash: CppCodeSources = [{ ...createMockSource('index.html', '<html></html>'), sha256 }];
+
+  const engines = ['psychic', 'async', 'espidf', 'webserver'] as const;
+
+  it.each(engines)('%s: emits the tag as 16 hex chars wrapped in quotes', (engine) => {
+    const result = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine });
+
+    expect(result).toContain(String.raw`static const char etag_index_html[] = "\"387b88e3ef16c0a7\"";`);
+    // The remaining 48 hex chars must not leak into the header.
+    expect(result).not.toContain('d4f9b2c1a0e5d8f3');
+  });
+
+  it.each(engines)('%s: matches If-None-Match with strstr, not exact equality', (engine) => {
+    const result = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine });
+
+    // strstr lets a comma-separated list and a W/ weak validator still match the tag.
+    expect(result).toContain('strstr(');
+    expect(result).not.toContain('.equals(etag_');
+    expect(result).not.toContain('strcmp(hdr_value');
+  });
+
+  it('espidf compares the malloc-ed header buffer against the tag with NULL, not nullptr', () => {
+    const result = getCppCode(sourceWithRealHash, mockFilesByExtension, {
+      ...mockOptions,
+      engine: 'espidf' as const
+    });
+
+    expect(result).toContain('if (strstr(hdr_value, etag_index_html) != NULL) {');
+  });
+
+  it('psychic/async/webserver compare through String::c_str()', () => {
+    const psychic = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine: 'psychic' });
+    const async = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine: 'async' });
+    const webserver = getCppCode(sourceWithRealHash, mockFilesByExtension, { ...mockOptions, engine: 'webserver' });
+
+    expect(psychic).toContain('strstr(request->header("If-None-Match").c_str(), etag_index_html) != nullptr');
+    expect(async).toContain('strstr(h->value().c_str(), etag_index_html) != nullptr');
+    expect(webserver).toContain('strstr(server->header("If-None-Match").c_str(), etag_index_html) != nullptr');
+  });
+
+  it('truncates in the generated header only - the source keeps the full hash', () => {
+    getCppCode(sourceWithRealHash, mockFilesByExtension, mockOptions);
+
+    // The C++ emission must not mutate the source: the full hash still feeds the JSON
+    // manifest and the change-summary diff, which compare against previously stored hashes.
+    expect(sourceWithRealHash[0]!.sha256).toBe(sha256);
+    expect(sourceWithRealHash[0]!.sha256).toHaveLength(64);
+  });
+});
+
+// RFC 7232 4.1: a 304 must carry the Cache-Control and ETag a 200 would have. These assert the
+// whole 304 block - a bare toContain('Cache-Control') would pass off the 200 path alone.
+describe('304 repeats the ETag and Cache-Control headers (RFC 7232 4.1)', () => {
+  const mockFilesByExtension: ExtensionGroups = [{ extension: 'HTML', count: 1 }];
+  const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+  it('psychic: sets the headers on the response before sending the 304', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'psychic' });
+
+    expect(result).toContain(
+      [
+        '      response->setCode(304);',
+        '      response->addHeader("Cache-Control", "max-age=86400");',
+        '      response->addHeader("ETag", etag_index_html);'
+      ].join('\n')
+    );
+  });
+
+  it('async: builds the 304 via beginResponse so it has a handle to add headers to', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'async' });
+
+    expect(result).toContain(
+      [
+        '      AsyncWebServerResponse *notModified = request->beginResponse(304);',
+        '      notModified->addHeader("Cache-Control", "max-age=86400");',
+        '      notModified->addHeader("ETag", etag_index_html);'
+      ].join('\n')
+    );
+    // request->send(304) sends immediately and would leave no handle for the headers.
+    expect(result).not.toContain('request->send(304);');
+  });
+
+  it('webserver: queues both headers before send(304), which flushes the header block', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'webserver' });
+
+    expect(result).toContain(
+      [
+        '      server->sendHeader("Cache-Control", "max-age=86400");',
+        '      server->sendHeader("ETag", etag_index_html);',
+        '      server->send(304);'
+      ].join('\n')
+    );
+  });
+
+  it('espidf: sets both headers before httpd_resp_send', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'espidf' });
+
+    expect(result).toContain(
+      [
+        '                httpd_resp_set_status(req, "304 Not Modified");',
+        '                httpd_resp_set_hdr(req, "Cache-Control", "max-age=86400");',
+        '                httpd_resp_set_hdr(req, "ETag", etag_index_html);'
+      ].join('\n')
+    );
+  });
+
+  it('keeps the headers inside the #ifdef fence in compiler mode', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, etag: 'compiler' as const });
+
+    expect(result).toContain(
+      [
+        '  #ifdef SVELTEESP32_ENABLE_ETAG',
+        '    if (request->hasHeader("If-None-Match") && strstr(request->header("If-None-Match").c_str(), etag_index_html) != nullptr) {',
+        '      response->setCode(304);',
+        '      response->addHeader("Cache-Control", "max-age=86400");',
+        '      response->addHeader("ETag", etag_index_html);'
+      ].join('\n')
+    );
+  });
+
+  it('echoes the per-source cache time, so an HTML 304 uses cachetimeHtml', () => {
+    const result = getCppCode(sources, mockFilesByExtension, {
+      ...mockOptions,
+      cachetime: 86_400,
+      cachetimeHtml: 60
+    });
+
+    expect(result).toContain(
+      ['      response->setCode(304);', '      response->addHeader("Cache-Control", "max-age=60");'].join('\n')
+    );
+    expect(result).not.toContain('max-age=86400');
+  });
+
+  it('omits Content-Encoding from the 304 - it is a representation header, and there is no body', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine: 'psychic' });
+
+    const notModifiedBlock = result.slice(
+      result.indexOf('response->setCode(304);'),
+      result.indexOf('response->setContentType(')
+    );
+    expect(notModifiedBlock).not.toContain('Content-Encoding');
+  });
+});
+
+// Cache-Control describes freshness, ETag provides a validator - they are independent, and only the
+// latter belongs behind the etag switch. Both used to live in the same sw(d.etag) block with no
+// 'never' arm, so --etag=never silently dropped caching altogether.
+describe('Cache-Control is emitted independently of the ETag mode', () => {
+  const mockFilesByExtension: ExtensionGroups = [{ extension: 'CSS', count: 1 }];
+  const sources: CppCodeSources = [createMockAssetSource('style.css', 'body{}')];
+  const neverOptions = { ...mockOptions, etag: 'never' as const, cachetime: 0, cachetimeAssets: 31_536_000 };
+
+  it.each([
+    ['psychic', '    response->addHeader("Cache-Control", "max-age=31536000");'],
+    ['async', '    response->addHeader("Cache-Control", "max-age=31536000");'],
+    ['webserver', '    server->sendHeader("Cache-Control", "max-age=31536000");'],
+    ['espidf', '    httpd_resp_set_hdr(req, "Cache-Control", "max-age=31536000");']
+  ] as const)('%s: --cachetime survives --etag=never', (engine, cacheLine) => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...neverOptions, engine });
+
+    expect(result).toContain(cacheLine);
+    // No validator anywhere: no ETag header, and genEtagArrays emits no etag_ array to reference.
+    expect(result).not.toContain('etag_');
+    expect(result).not.toContain('"ETag"');
+  });
+
+  it('falls back to no-cache with etag=never and no cache time', () => {
+    const result = getCppCode(sources, mockFilesByExtension, {
+      ...mockOptions,
+      etag: 'never' as const,
+      cachetime: 0
+    });
+
+    expect(result).toContain('response->addHeader("Cache-Control", "no-cache");');
+  });
+
+  it('leaves Cache-Control outside the #ifdef fence in compiler mode, so ENABLE_ETAG cannot disable caching', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...neverOptions, etag: 'compiler' as const });
+
+    expect(result).toContain(
+      [
+        '    response->addHeader("Cache-Control", "max-age=31536000");',
+        '  #ifdef SVELTEESP32_ENABLE_ETAG',
+        '    response->addHeader("ETag", etag_style_css);',
+        '  #endif'
+      ].join('\n')
+    );
+  });
+
+  it('still pairs Cache-Control with the ETag on the 200 path when etag=always', () => {
+    const result = getCppCode(sources, mockFilesByExtension, { ...neverOptions, etag: 'always' as const });
+
+    expect(result).toContain(
+      [
+        '    response->addHeader("Cache-Control", "max-age=31536000");',
+        '    response->addHeader("ETag", etag_style_css);'
+      ].join('\n')
+    );
   });
 });

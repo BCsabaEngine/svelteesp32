@@ -1,5 +1,15 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, genCommonHeader, genDataArrays, genEtagArrays, genHook, genManifest, sw } from './cppCode';
+import {
+  cacheCtrl,
+  gateEtag,
+  genCacheHeaders,
+  genCommonHeader,
+  genDataArrays,
+  genEtagArrays,
+  genHook,
+  genManifest,
+  sw
+} from './cppCode';
 
 // isAnyMethod: the route is registered as HTTP_ANY, so the handler must reject methods other than GET/HEAD itself
 const genPsychicHandlerBody = (
@@ -19,24 +29,18 @@ const genPsychicHandlerBody = (
         `    }`
       ].join('\n')
     );
-  const etagCheck = sw(d.etag, {
-    always: [
-      `    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_${source.dataname})) {`,
-      `      response->setCode(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return response->send();`,
-      `    }`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    if (request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag_${source.dataname})) {`,
-      `      response->setCode(304);`,
-      `      ${d.definePrefix}_onFileServed("${path}", 304);`,
-      `      return response->send();`,
-      `    }`,
-      `  #endif`
-    ].join('\n')
-  });
+  // RFC 7232 4.1: a 304 must repeat the Cache-Control and ETag a 200 would have carried, otherwise
+  // the client cannot refresh the stored response's freshness lifetime and revalidates every time.
+  const etagBody = [
+    `    if (request->hasHeader("If-None-Match") && strstr(request->header("If-None-Match").c_str(), etag_${source.dataname}) != nullptr) {`,
+    `      response->setCode(304);`,
+    `      response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
+    `      response->addHeader("ETag", etag_${source.dataname});`,
+    `      ${d.definePrefix}_onFileServed("${path}", 304);`,
+    `      return response->send();`,
+    `    }`
+  ].join('\n');
+  const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   lines.push(`    response->setContentType("${source.mime}");`);
   const gzipEncoding = sw(d.gzip, {
@@ -50,22 +54,10 @@ const genPsychicHandlerBody = (
       : ''
   });
   if (gzipEncoding) lines.push(gzipEncoding);
-  const cacheHeaders = sw(d.etag, {
-    always: [
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`
-    ].join('\n'),
-    compiler: [
-      `  #ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `    response->addHeader("Cache-Control", "${cacheCtrl(source)}");`,
-      `    response->addHeader("ETag", etag_${source.dataname});`,
-      `  #endif`
-    ].join('\n')
-  });
-  if (cacheHeaders) lines.push(cacheHeaders);
   // HEAD: same status and headers as GET, but no body. esp-idf's httpd_resp_send() derives
   // Content-Length from the buffer length, so a body-less send always reports Content-Length: 0.
   lines.push(
+    genCacheHeaders(d, source, (h, v) => `    response->addHeader("${h}", ${v});`),
     `    if (request->method() != HTTP_HEAD) {`,
     sw(d.gzip, {
       always: `      response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
