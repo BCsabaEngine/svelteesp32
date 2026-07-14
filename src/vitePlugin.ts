@@ -13,6 +13,8 @@ interface ResolvedViteConfig {
 
 interface VitePlugin {
   name: string;
+  apply: 'build';
+  enforce: 'post';
   configResolved: (config: ResolvedViteConfig) => void;
   closeBundle: () => void;
 }
@@ -78,6 +80,14 @@ export function svelteESP32(optionsOrRcPath?: SvelteESP32PluginOptions | string)
 
   return {
     name: 'svelteesp32',
+
+    // The dev server's plugin container also fires closeBundle on shutdown, which would regenerate
+    // the header from a stale or partially written outDir; 'build' keeps the plugin out of it entirely.
+    apply: 'build',
+
+    // Run after plugins that emit into outDir during their own closeBundle (PWA service workers,
+    // compression, static copy) so their output is picked up regardless of plugin array order.
+    enforce: 'post',
 
     configResolved(config: ResolvedViteConfig): void {
       outDirectory = config.build.outDir;

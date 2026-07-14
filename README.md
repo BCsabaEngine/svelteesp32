@@ -134,6 +134,8 @@ It asks for engine, source path, output path, and ETag preference, writes the RC
 
 For Vite-based projects (SvelteKit, React, Vue, Vanilla) you can skip the manual CLI step entirely — the plugin hooks into the build pipeline and regenerates the C++ header automatically after every `vite build`.
 
+It runs on `vite build` only (`apply: 'build'`), so the dev server never triggers it and stopping `vite dev` cannot overwrite your header. It also runs last (`enforce: 'post'`), so files that other plugins emit into `outDir` — a PWA service worker, compressed assets, copied statics — are already on disk when the header is generated, whatever order the plugins appear in.
+
 The plugin has two exclusive modes — pick one:
 
 **RC file mode** — call with no argument (or a string path to a custom RC file). All settings come from `.svelteesp32rc.json`; `outputfile` in the RC file is required.

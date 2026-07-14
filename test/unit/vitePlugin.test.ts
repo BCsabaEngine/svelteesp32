@@ -42,6 +42,16 @@ describe('vitePlugin', () => {
     expect(typeof plugin.closeBundle).toBe('function');
   });
 
+  it('should only apply on build so the dev server never fires closeBundle', () => {
+    const plugin = svelteESP32({ output: './esp32/output.h' });
+    expect(plugin.apply).toBe('build');
+  });
+
+  it('should enforce post so it runs after plugins that emit into outDir', () => {
+    const plugin = svelteESP32({ output: './esp32/output.h' });
+    expect(plugin.enforce).toBe('post');
+  });
+
   describe('plugin options mode', () => {
     it('should call runPipeline with defaults after configResolved', async () => {
       const { runPipeline } = await import('../../src/pipeline');
