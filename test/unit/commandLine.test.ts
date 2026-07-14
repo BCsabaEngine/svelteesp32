@@ -31,6 +31,15 @@ vi.mock('node:os', () => ({
   homedir: vi.fn(() => '/home/user')
 }));
 
+// Loads the given body as the RC file, then hands back a parser primed to read it
+const parseWithRc = async (body: string) => {
+  const fsModule = await import('node:fs');
+  vi.mocked(fsModule.existsSync).mockReturnValue(true);
+  vi.mocked(fsModule.readFileSync).mockReturnValue(body);
+  const { parseArguments } = await import('../../src/commandLine');
+  return parseArguments;
+};
+
 describe('commandLine', () => {
   const originalArgv = process.argv;
   const originalExit = process.exit;
@@ -2444,6 +2453,306 @@ describe('commandLine', () => {
       const commandLine = parseArguments();
 
       expect(commandLine.cachetimeHtml).toBe(3600);
+    });
+  });
+
+  describe('boolean CLI flags', () => {
+    // No RC file: these cases are about the CLI parser alone
+    beforeEach(async () => {
+      vi.resetModules();
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(false);
+    });
+
+    it('should set dryRun with --dryrun', async () => {
+      process.argv = ['node', 'script.js', '-s', '/test/dist', '--dryrun'];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(parseArguments().dryRun).toBe(true);
+    });
+
+    it('should set analyze with --analyze', async () => {
+      process.argv = ['node', 'script.js', '-s', '/test/dist', '--analyze'];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(parseArguments().analyze).toBe(true);
+    });
+
+    it('should set spa with --spa', async () => {
+      process.argv = ['node', 'script.js', '-s', '/test/dist', '--spa'];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(parseArguments().spa).toBe(true);
+    });
+
+    it('should set manifest with --manifest', async () => {
+      process.argv = ['node', 'script.js', '-s', '/test/dist', '--manifest'];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(parseArguments().manifest).toBe(true);
+    });
+
+    it('should reject --dryrun together with --analyze', async () => {
+      process.argv = ['node', 'script.js', '-s', '/test/dist', '--dryrun', '--analyze'];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(() => parseArguments()).toThrow('--analyze and --dryrun are mutually exclusive');
+    });
+  });
+
+  describe('argv edge cases', () => {
+    beforeEach(async () => {
+      vi.resetModules();
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(false);
+    });
+
+    it('should skip empty-string arguments', async () => {
+      process.argv = ['node', 'script.js', '', '-s', '/test/dist', ''];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(parseArguments().sourcepath).toBe('/test/dist');
+    });
+
+    it('should reject a short flag with no following value', async () => {
+      process.argv = ['node', 'script.js', '-e'];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(() => parseArguments()).toThrow('Missing value for flag: -e');
+    });
+
+    it('should reject a negative --cachetime', async () => {
+      process.argv = ['node', 'script.js', '-s', '/test/dist', '--cachetime=-5'];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(() => parseArguments()).toThrow('must be non-negative');
+    });
+
+    it('should reject a version with characters outside [word . - +]', async () => {
+      process.argv = ['node', 'script.js', '-s', '/test/dist', '--version=1.0@beta'];
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(() => parseArguments()).toThrow('version must only contain word characters');
+    });
+  });
+
+  describe('validators', () => {
+    beforeEach(async () => {
+      vi.resetModules();
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(false);
+    });
+
+    it('should reject an identifier starting with a digit', async () => {
+      const { validateCppIdentifier } = await import('../../src/commandLine');
+      expect(() => validateCppIdentifier('1app', 'espmethod')).toThrow('must be a valid C++ identifier');
+    });
+
+    it('should accept an empty basePath as "no base path"', async () => {
+      const { validateBasePath } = await import('../../src/commandLine');
+      expect(validateBasePath('')).toBe('');
+    });
+  });
+
+  describe('loadRcFileConfig', () => {
+    beforeEach(() => {
+      vi.resetModules();
+    });
+
+    it('should return an empty config when no RC file exists', async () => {
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(false);
+
+      const { loadRcFileConfig } = await import('../../src/commandLine');
+      expect(loadRcFileConfig()).toEqual({});
+    });
+
+    it('should return the parsed RC file when one is found', async () => {
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(
+        JSON.stringify({ engine: 'async', sourcepath: './dist', outputfile: 'out.h' })
+      );
+
+      const { loadRcFileConfig } = await import('../../src/commandLine');
+      expect(loadRcFileConfig()).toMatchObject({ engine: 'async', sourcepath: './dist', outputfile: 'out.h' });
+    });
+
+    it('should load an explicitly given config path', async () => {
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(JSON.stringify({ engine: 'espidf' }));
+
+      const { loadRcFileConfig } = await import('../../src/commandLine');
+      expect(loadRcFileConfig('/custom/rc.json').engine).toBe('espidf');
+      expect(vi.mocked(fsModule.readFileSync)).toHaveBeenCalledWith('/custom/rc.json', 'utf8');
+    });
+
+    it('should throw when an explicitly given config path does not exist', async () => {
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(false);
+
+      const { loadRcFileConfig } = await import('../../src/commandLine');
+      expect(() => loadRcFileConfig('/missing/rc.json')).toThrow('Config file not found: /missing/rc.json');
+    });
+  });
+
+  describe('RC file merge', () => {
+    beforeEach(() => {
+      vi.resetModules();
+    });
+
+    it('should apply every RC key to the result, accepting booleans as strings', async () => {
+      const rc = {
+        engine: 'async',
+        sourcepath: '/rc/dist',
+        outputfile: 'out.h',
+        etag: 'always',
+        gzip: 'compiler',
+        cachetime: 60,
+        cachetimehtml: 10,
+        cachetimeassets: 20,
+        created: 'true',
+        version: '1.2.3',
+        espmethod: 'initFiles',
+        define: 'MYDEF',
+        basepath: '/ui',
+        maxsize: 1000,
+        maxgzipsize: 500,
+        noindexcheck: 'true',
+        dryrun: 'true',
+        analyze: false,
+        spa: 'true',
+        manifest: 'true'
+      };
+
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockReturnValue(JSON.stringify(rc));
+
+      process.argv = ['node', 'script.js'];
+      const { parseArguments } = await import('../../src/commandLine');
+      const commandLine = parseArguments();
+
+      expect(commandLine).toMatchObject({
+        engine: 'async',
+        sourcepath: '/rc/dist',
+        outputfile: 'out.h',
+        etag: 'always',
+        gzip: 'compiler',
+        cachetime: 60,
+        cachetimeHtml: 10,
+        cachetimeAssets: 20,
+        created: true,
+        version: '1.2.3',
+        espmethod: 'initFiles',
+        define: 'MYDEF',
+        basePath: '/ui',
+        maxSize: 1000,
+        maxGzipSize: 500,
+        noIndexCheck: true,
+        dryRun: true,
+        analyze: false,
+        spa: true,
+        manifest: true
+      });
+    });
+  });
+
+  describe('RC file validation errors', () => {
+    beforeEach(() => {
+      vi.resetModules();
+      process.argv = ['node', 'script.js'];
+    });
+
+    it('should reject an RC file that is not a JSON object', async () => {
+      const parseArguments = await parseWithRc('"just a string"');
+      expect(() => parseArguments()).toThrow('must contain a JSON object');
+    });
+
+    it('should reject an invalid gzip tri-state', async () => {
+      const parseArguments = await parseWithRc(JSON.stringify({ sourcepath: '/d', gzip: 'maybe' }));
+      expect(() => parseArguments()).toThrow('Invalid gzip: maybe');
+    });
+
+    it('should reject a negative cachetime', async () => {
+      const parseArguments = await parseWithRc(JSON.stringify({ sourcepath: '/d', cachetime: -1 }));
+      expect(() => parseArguments()).toThrow('Invalid cachetime in RC file');
+    });
+
+    it('should reject a non-string exclude pattern', async () => {
+      const parseArguments = await parseWithRc(JSON.stringify({ sourcepath: '/d', exclude: ['ok', 42] }));
+      expect(() => parseArguments()).toThrow('All exclude patterns must be strings');
+    });
+
+    it('should reject a non-string exclude pattern even when interpolation runs', async () => {
+      // Interpolation happens before validation, so it must survive the bad value
+      // long enough for validateRcConfig to produce the real error
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockImplementation((p) => {
+        if (p.toString().includes('package.json')) return JSON.stringify({ name: 'myapp' });
+        return JSON.stringify({ sourcepath: './$npm_package_name', exclude: ['ok', 42] });
+      });
+
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(() => parseArguments()).toThrow('All exclude patterns must be strings');
+    });
+
+    it('should reject an absolute outputfile', async () => {
+      const parseArguments = await parseWithRc(JSON.stringify({ sourcepath: '/d', outputfile: '/abs/out.h' }));
+      expect(() => parseArguments()).toThrow('must be a relative path');
+    });
+
+    for (const key of ['created', 'noindexcheck', 'dryrun', 'analyze', 'spa', 'manifest'])
+      it(`should reject a non-boolean ${key}`, async () => {
+        const parseArguments = await parseWithRc(JSON.stringify({ sourcepath: '/d', [key]: 'yes' }));
+        expect(() => parseArguments()).toThrow(`Invalid ${key} in RC file: yes (must be boolean)`);
+      });
+  });
+
+  describe('npm variable interpolation edge cases', () => {
+    beforeEach(() => {
+      vi.resetModules();
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist'];
+    });
+
+    it('should return undefined when the variable path walks into a non-object', async () => {
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(false);
+
+      const { getNpmPackageVariable } = await import('../../src/commandLine');
+      // version is a string, so "major" cannot be looked up inside it
+      expect(getNpmPackageVariable({ version: '1.2.3' }, '$npm_package_version_major')).toBeUndefined();
+    });
+
+    it('should list every affected field when package.json is missing', async () => {
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(false);
+
+      const { interpolateNpmVariables } = await import('../../src/commandLine');
+      expect(() =>
+        interpolateNpmVariables(
+          { sourcepath: './$npm_package_name/dist', outputfile: '$npm_package_name.h' },
+          '/test/.svelteesp32rc.json'
+        )
+      ).toThrow(/Variables found in fields: sourcepath, outputfile/);
+    });
+
+    it('should interpolate sourcepath and espmethod', async () => {
+      const fsModule = await import('node:fs');
+      vi.mocked(fsModule.existsSync).mockReturnValue(true);
+      vi.mocked(fsModule.readFileSync).mockImplementation((p) => {
+        if (p.toString().includes('package.json')) return JSON.stringify({ name: 'myapp' });
+        return '{}';
+      });
+
+      const { interpolateNpmVariables } = await import('../../src/commandLine');
+      const result = interpolateNpmVariables(
+        { sourcepath: './$npm_package_name/dist', espmethod: 'init_$npm_package_name' },
+        '/test/.svelteesp32rc.json'
+      );
+
+      expect(result.sourcepath).toBe('./myapp/dist');
+      expect(result.espmethod).toBe('init_myapp');
+    });
+  });
+
+  describe('formatConfig', () => {
+    it('should include analyze when set', async () => {
+      const { formatConfig } = await import('../../src/commandLine');
+      expect(formatConfig({ ...formatConfigDefaults, analyze: true })).toContain('analyze=true');
     });
   });
 });

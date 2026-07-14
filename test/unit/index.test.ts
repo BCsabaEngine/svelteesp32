@@ -13,6 +13,7 @@ vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => true),
   statSync: vi.fn(() => ({ isDirectory: () => true })),
   mkdirSync: vi.fn(),
+  readFileSync: vi.fn(),
   writeFileSync: vi.fn()
 }));
 
@@ -215,6 +216,44 @@ const makeFileData = (content: string, hash = 'mock-sha256-hash') => ({
   content: Buffer.from(content),
   hash
 });
+
+const baseCommandLine = {
+  engine: 'psychic',
+  sourcepath: '/test/dist',
+  outputfile: '/test/output.h',
+  configSource: 'cli',
+  etag: 'never',
+  gzip: 'always',
+  basePath: '',
+  spa: false,
+  exclude: [],
+  noindexcheck: false,
+  espmethod: 'initSvelteStaticFiles'
+};
+
+const mockCommandLine = (overrides: Record<string, unknown> = {}): void => {
+  vi.doMock('../../src/commandLine', () => ({
+    parseArguments: vi.fn(() => ({ ...baseCommandLine, ...overrides }))
+  }));
+};
+
+const loggedLines = (spy: typeof console.log): string[] =>
+  vi
+    .mocked(spy)
+    .mock.calls.map((call) => call[0])
+    .filter((line): line is string => typeof line === 'string');
+
+const MANIFEST_PATH = '/test/output.manifest.json';
+
+// The manifest is a sibling of the header, so both go through writeFileSync
+const writtenManifest = (): { path: string; body: string } | undefined => {
+  const call = vi.mocked(fs.writeFileSync).mock.calls.find((c) => String(c[0]).endsWith('.manifest.json'));
+  return call ? { path: String(call[0]), body: String(call[1]) } : undefined;
+};
+
+const withoutPreviousManifest = (): void => {
+  vi.mocked(fs.existsSync).mockImplementation((p) => !String(p).endsWith('.manifest.json'));
+};
 
 describe('formatDryRunRoutes', () => {
   let createSourceEntry: typeof IndexModule.createSourceEntry;
@@ -1506,6 +1545,188 @@ describe('index.ts main pipeline integration', () => {
       const { main } = await import('../../src/index');
       main();
       expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('budget exceeded'));
+    });
+  });
+
+  describe('--manifest', () => {
+    beforeEach(() => {
+      // clearAllMocks() keeps implementations, so restore the default before each case
+      vi.mocked(fs.existsSync).mockImplementation(() => true);
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>', 'sha-index')]]));
+      mockGzipSync.mockReturnValue(Buffer.from('gz'));
+      mockCommandLine({ manifest: true });
+    });
+
+    it('should write the manifest next to the output header', async () => {
+      withoutPreviousManifest();
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(writtenManifest()?.path).toBe(MANIFEST_PATH);
+      expect(console.log).toHaveBeenCalledWith(`${MANIFEST_PATH} manifest written`);
+    });
+
+    it('should record the config and totals in the manifest', async () => {
+      withoutPreviousManifest();
+      mockCommandLine({ manifest: true, engine: 'async', etag: 'always', gzip: 'compiler' });
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const manifest = JSON.parse(writtenManifest()?.body ?? '{}');
+      expect(manifest.engine).toBe('async');
+      expect(manifest.etag).toBe('always');
+      expect(manifest.gzip).toBe('compiler');
+      expect(manifest.filecount).toBe(1);
+      expect(manifest.size).toBe('<html></html>'.length);
+      expect(manifest.generated).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    });
+
+    it('should record one entry per file with the full (untruncated) sha256', async () => {
+      withoutPreviousManifest();
+      mockGetFiles.mockReturnValue(
+        new Map([
+          ['index.html', makeFileData('<html></html>', 'a'.repeat(64))],
+          ['style.css', makeFileData('body {}', 'b'.repeat(64))]
+        ])
+      );
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const manifest = JSON.parse(writtenManifest()?.body ?? '{}');
+      expect(manifest.files).toHaveLength(2);
+      expect(manifest.files[0]).toEqual({
+        path: 'index.html',
+        mime: 'text/html',
+        size: '<html></html>'.length,
+        gzipSize: '<html></html>'.length,
+        isGzip: false,
+        sha256: 'a'.repeat(64)
+      });
+      expect(manifest.files[1]?.sha256).toBe('b'.repeat(64));
+    });
+
+    it('should report gzipSize as the compressed length for a file that gzips', async () => {
+      withoutPreviousManifest();
+      // >1024 bytes and compressing to well under 85% is what makes shouldUseGzip() true
+      const big = 'x'.repeat(2048);
+      mockGetFiles.mockReturnValue(new Map([['app.js', makeFileData(big)]]));
+      mockGzipSync.mockReturnValue(Buffer.from('x'.repeat(64)));
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const manifest = JSON.parse(writtenManifest()?.body ?? '{}');
+      expect(manifest.files[0]).toMatchObject({ isGzip: true, size: 2048, gzipSize: 64 });
+      expect(manifest.gzipSize).toBe(64);
+    });
+
+    it('should not print a change summary when no previous manifest exists', async () => {
+      withoutPreviousManifest();
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(fs.readFileSync).not.toHaveBeenCalled();
+      expect(loggedLines(console.log).some((l) => l.includes('Change summary'))).toBe(false);
+    });
+
+    it('should diff against the previous manifest when one exists', async () => {
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({ files: [{ path: 'gone.css', size: 10, sha256: 'sha-gone' }] })
+      );
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const summary = loggedLines(console.log).find((l) => l.includes('Change summary'));
+      expect(summary).toBeDefined();
+      expect(summary).toContain('+ index.html');
+      expect(summary).toContain('- gone.css');
+    });
+
+    it('should ignore a corrupt previous manifest and still write the new one', async () => {
+      vi.mocked(fs.readFileSync).mockReturnValue('{ not json');
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(writtenManifest()).toBeDefined();
+      expect(loggedLines(console.log).some((l) => l.includes('Change summary'))).toBe(false);
+      expect(process.exit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('MIME type resolution', () => {
+    it('should fall back to text/plain and warn for an unknown extension', async () => {
+      mockGetFiles.mockReturnValue(new Map([['readme.xyz', makeFileData('hello')]]));
+      mockCommandLine();
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const sources = mockGetCppCode.mock.calls[0]?.[0] ?? [];
+      expect(sources[0]?.mime).toBe('text/plain');
+      const warning = loggedLines(console.log).find((l) => l.includes('unknown MIME type'));
+      expect(warning).toContain(`'.xyz'`);
+      expect(warning).toContain('using text/plain');
+    });
+
+    it('should group a file with no extension under the empty extension', async () => {
+      mockGetFiles.mockReturnValue(new Map([['LICENSE', makeFileData('MIT')]]));
+      mockCommandLine();
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const filesByExtension = mockGetCppCode.mock.calls[0]?.[1] ?? [];
+      expect(filesByExtension).toEqual([{ extension: '', count: 1 }]);
+    });
+  });
+
+  describe('error reporting', () => {
+    it('should stringify a non-Error thrown by the pipeline', async () => {
+      mockGetFiles.mockImplementation(() => {
+        throw 'raw string failure';
+      });
+      mockCommandLine();
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(console.error).toHaveBeenCalledWith('raw string failure');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('should exit without printing when the error has an empty message', async () => {
+      mockGetFiles.mockImplementation(() => {
+        // eslint-disable-next-line unicorn/error-message -- the empty message is the case under test
+        throw new Error('');
+      });
+      mockCommandLine();
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(console.error).not.toHaveBeenCalled();
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('dry-run with spa unset', () => {
+    it('should treat a missing spa option as false', async () => {
+      mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));
+      mockGzipSync.mockReturnValue(Buffer.from('gz'));
+      mockCommandLine({ dryRun: true, spa: undefined });
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const allLogs = loggedLines(console.log);
+      expect(allLogs.find((l) => l.includes('[DRY RUN] Engine:'))).toContain('SPA: no');
+      expect(allLogs.some((l) => l.includes('SPA catch-all'))).toBe(false);
     });
   });
 });
