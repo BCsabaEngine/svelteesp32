@@ -722,6 +722,103 @@ describe('index.ts main pipeline integration', () => {
     });
   });
 
+  describe('identifier collisions', () => {
+    it('should exit with code 1 when filenames differ only in punctuation', async () => {
+      mockGetFiles.mockReturnValue(
+        new Map([
+          ['app-v1.js', makeFileData('a')],
+          ['app_v1.js', makeFileData('b')]
+        ])
+      );
+
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+      expect(errorMessage).toContain('collide on the same C++ identifier');
+      expect(errorMessage).toContain('app_v1_js');
+      expect(errorMessage).toContain('app-v1.js');
+      expect(errorMessage).toContain('app_v1.js');
+      expect(mockGetCppCode).not.toHaveBeenCalled();
+    });
+
+    it('should exit with code 1 when a path separator collides with punctuation', async () => {
+      mockGetFiles.mockReturnValue(
+        new Map([
+          ['assets/app.js', makeFileData('a')],
+          ['assets-app.js', makeFileData('b')]
+        ])
+      );
+
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+      expect(errorMessage).toContain('assets_app_js');
+      expect(errorMessage).toContain('assets/app.js');
+      expect(errorMessage).toContain('assets-app.js');
+    });
+
+    it('should exit with code 1 when filenames differ only in letter case', async () => {
+      mockGetFiles.mockReturnValue(
+        new Map([
+          ['App.js', makeFileData('a')],
+          ['app.js', makeFileData('b')]
+        ])
+      );
+
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+      expect(errorMessage).toContain('collide on the same C++ identifier');
+      expect(errorMessage).toContain('App.js');
+      expect(errorMessage).toContain('app.js');
+    });
+
+    it('should report every colliding group', async () => {
+      mockGetFiles.mockReturnValue(
+        new Map([
+          ['app-v1.js', makeFileData('a')],
+          ['app_v1.js', makeFileData('b')],
+          ['main.css', makeFileData('c')],
+          ['main-css', makeFileData('d')]
+        ])
+      );
+
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const errorMessage = vi.mocked(console.error).mock.calls[0]?.[0];
+      expect(errorMessage).toContain('app_v1_js');
+      expect(errorMessage).toContain('main_css');
+    });
+
+    it('should not error when identifiers are unique', async () => {
+      mockGetFiles.mockReturnValue(
+        new Map([
+          ['index.html', makeFileData('<html></html>')],
+          ['app.js', makeFileData('a')],
+          ['assets/app.css', makeFileData('b')]
+        ])
+      );
+
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      expect(mockGetCppCode).toHaveBeenCalled();
+      expect(console.error).not.toHaveBeenCalledWith(expect.stringContaining('collide on the same C++ identifier'));
+    });
+  });
+
   describe('file writing', () => {
     it('should create output directory if missing', async () => {
       mockGetFiles.mockReturnValue(new Map([['index.html', makeFileData('<html></html>')]]));

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getIdentifierCollisionError,
   getInvalidEngineError,
   getMissingIndexError,
   getSizeBudgetExceededError,
@@ -232,6 +233,47 @@ describe('errorMessages', () => {
       expect(result).toContain('CI integration:');
       expect(result).toContain('non-zero exit code');
       expect(result).toContain('build pipelines');
+    });
+  });
+
+  describe('getIdentifierCollisionError', () => {
+    const collisions = [{ identifier: 'app_v1_js', files: ['app-v1.js', 'app_v1.js'] }];
+
+    it('should include error title', () => {
+      const result = getIdentifierCollisionError(collisions);
+      expect(result).toContain('[ERROR]');
+      expect(result).toContain('collide on the same C++ identifier');
+    });
+
+    it('should list the identifier and every colliding file', () => {
+      const result = getIdentifierCollisionError(collisions);
+      expect(result).toContain('app_v1_js');
+      expect(result).toContain('• app-v1.js');
+      expect(result).toContain('• app_v1.js');
+    });
+
+    it('should list every colliding group', () => {
+      const result = getIdentifierCollisionError([
+        ...collisions,
+        { identifier: 'main_css', files: ['main.css', 'main-css'] }
+      ]);
+      expect(result).toContain('app_v1_js');
+      expect(result).toContain('main_css');
+      expect(result).toContain('• main.css');
+      expect(result).toContain('• main-css');
+    });
+
+    it('should include why this matters section', () => {
+      const result = getIdentifierCollisionError(collisions);
+      expect(result).toContain('Why this matters:');
+      expect(result).toContain('redefinition error');
+      expect(result).toContain('case-insensitively');
+    });
+
+    it('should include how to fix suggestions', () => {
+      const result = getIdentifierCollisionError(collisions);
+      expect(result).toContain('How to fix:');
+      expect(result).toContain('Rename one of the files');
     });
   });
 });
