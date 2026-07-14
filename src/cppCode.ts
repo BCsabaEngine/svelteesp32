@@ -72,6 +72,15 @@ export type TemplateData = {
 export const cacheCtrl = (source: TransformedSource): string =>
   source.cacheTime ? `max-age=${source.cacheTime.value}` : 'no-cache';
 
+// Emit `body` only when ETag is on: verbatim in 'always' mode, fenced behind the ENABLE_ETAG #ifdef
+// in 'compiler' mode, and not at all in 'never' mode. Top-level declarations (the etag arrays) sit at
+// column 0; everything inside a handler body is indented two spaces.
+export const gateEtag = (d: TemplateData, body: string, indent = '  '): string =>
+  sw(d.etag, {
+    always: body,
+    compiler: [`${indent}#ifdef ${d.definePrefix}_ENABLE_ETAG`, body, `${indent}#endif`].join('\n')
+  });
+
 // Cache-Control is independent of the ETag switch: --cachetime must survive --etag=never, and an
 // ifdef'd-out ETag must not take caching down with it. Only the validator line is gated.
 // Emitting this from one place is the point - four engine copies drifting apart is how the 304
@@ -80,18 +89,10 @@ export const genCacheHeaders = (
   d: TemplateData,
   source: TransformedSource,
   emit: (header: string, value: string) => string
-): string => {
-  const etagLine = emit('ETag', `etag_${source.dataname}`);
-  return [
-    emit('Cache-Control', `"${cacheCtrl(source)}"`),
-    sw(d.etag, {
-      always: etagLine,
-      compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagLine, `  #endif`].join('\n')
-    })
-  ]
+): string =>
+  [emit('Cache-Control', `"${cacheCtrl(source)}"`), gateEtag(d, emit('ETag', `etag_${source.dataname}`))]
     .filter(Boolean)
     .join('\n');
-};
 
 const ETAG_HEX_LENGTH = 16;
 
@@ -183,13 +184,12 @@ export const genDataArrays = (d: TemplateData, isProgmem: boolean): string => {
   });
 };
 
-export const genEtagArrays = (d: TemplateData): string => {
-  const items = d.sources.map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`).join('\n');
-  return sw(d.etag, {
-    always: items,
-    compiler: [`#ifdef ${d.definePrefix}_ENABLE_ETAG`, items, '#endif'].join('\n')
-  });
-};
+export const genEtagArrays = (d: TemplateData): string =>
+  gateEtag(
+    d,
+    d.sources.map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`).join('\n'),
+    ''
+  );
 
 export const genManifest = (d: TemplateData): string =>
   [

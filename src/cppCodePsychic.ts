@@ -1,6 +1,7 @@
 import type { TemplateData, TransformedSource } from './cppCode';
 import {
   cacheCtrl,
+  gateEtag,
   genCacheHeaders,
   genCommonHeader,
   genDataArrays,
@@ -39,10 +40,7 @@ const genPsychicHandlerBody = (
     `      return response->send();`,
     `    }`
   ].join('\n');
-  const etagCheck = sw(d.etag, {
-    always: etagBody,
-    compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagBody, `  #endif`].join('\n')
-  });
+  const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   lines.push(`    response->setContentType("${source.mime}");`);
   const gzipEncoding = sw(d.gzip, {

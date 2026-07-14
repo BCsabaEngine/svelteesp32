@@ -1,6 +1,7 @@
 import type { TemplateData, TransformedSource } from './cppCode';
 import {
   cacheCtrl,
+  gateEtag,
   genCacheHeaders,
   genCommonHeader,
   genDataArrays,
@@ -24,10 +25,7 @@ const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, pat
     `      return;`,
     `    }`
   ].join('\n');
-  const etagCheck = sw(d.etag, {
-    always: etagBody,
-    compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagBody, `  #endif`].join('\n')
-  });
+  const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   lines.push(
     genCacheHeaders(d, source, (h, v) => `    server->sendHeader("${h}", ${v});`),
@@ -95,10 +93,7 @@ export const genWebserverCpp = (d: TemplateData): string => {
     // WebServer only retains request headers it was told to collect, so hasHeader("If-None-Match")
     // is false - and the 304 branch below unreachable - unless we opt in here. Note that a later
     // server->collectHeaders(...) call re-initialises the list and would disable ETag again.
-    sw(d.etag, {
-      always: `  server->collectAllHeaders();`,
-      compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, `  server->collectAllHeaders();`, `  #endif`].join('\n')
-    })
+    gateEtag(d, `  server->collectAllHeaders();`)
   ];
   for (const source of d.sources) {
     const path = `${d.basePath}/${source.filename}`;

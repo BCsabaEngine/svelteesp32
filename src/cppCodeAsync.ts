@@ -1,6 +1,7 @@
 import type { TemplateData, TransformedSource } from './cppCode';
 import {
   cacheCtrl,
+  gateEtag,
   genCacheHeaders,
   genCommonHeader,
   genDataArrays,
@@ -27,10 +28,7 @@ const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: s
     `      return;`,
     `    }`
   ].join('\n');
-  const etagCheck = sw(d.etag, {
-    always: etagBody,
-    compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagBody, `  #endif`].join('\n')
-  });
+  const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   // HEAD: same status and headers as GET, but no body. The empty-content beginResponse() overload
   // reports Content-Length: 0 - a truthful length would stall the response, because

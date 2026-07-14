@@ -1,5 +1,5 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, etagLiteral, genCacheHeaders, sw } from './cppCode';
+import { cacheCtrl, etagLiteral, gateEtag, genCacheHeaders, sw } from './cppCode';
 
 const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): string => {
   const path = `${d.basePath}/${source.filename}`;
@@ -26,10 +26,7 @@ const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): strin
     `        free(hdr_value);`,
     `    }`
   ].join('\n');
-  const etagCheck = sw(d.etag, {
-    always: etagBody,
-    compiler: [`  #ifdef ${d.definePrefix}_ENABLE_ETAG`, etagBody, `  #endif`].join('\n')
-  });
+  const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   lines.push(`    httpd_resp_set_type(req, "${source.mime}");`);
   const gzipEncoding = sw(d.gzip, {
@@ -152,13 +149,11 @@ export const genEspIdfCpp = (d: TemplateData): string => {
     }),
     '//'
   );
-  const etagItems = d.sources
-    .map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`)
-    .join('\n');
-  const etagBlock = sw(d.etag, {
-    always: etagItems,
-    compiler: [`#ifdef ${d.definePrefix}_ENABLE_ETAG`, etagItems, '#endif'].join('\n')
-  });
+  const etagBlock = gateEtag(
+    d,
+    d.sources.map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`).join('\n'),
+    ''
+  );
   if (etagBlock) lines.push(etagBlock);
   lines.push(
     `// File manifest struct (C-compatible typedef)`,
