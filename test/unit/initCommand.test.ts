@@ -198,6 +198,22 @@ describe('initCommand', () => {
 
       expect(vi.mocked(childProcess.spawnSync)).not.toHaveBeenCalled();
     });
+
+    it('does not call spawnSync when the binary path is unknown', async () => {
+      // process.argv[1] is what gets re-invoked; there is nothing to run without it
+      process.argv = ['node'];
+      mockRl.question
+        .mockResolvedValueOnce('')
+        .mockResolvedValueOnce('')
+        .mockResolvedValueOnce('')
+        .mockResolvedValueOnce('')
+        .mockResolvedValueOnce('y');
+
+      await runInit();
+
+      expect(vi.mocked(childProcess.spawnSync)).not.toHaveBeenCalled();
+      expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalledOnce();
+    });
   });
 
   describe('output file path', () => {

@@ -233,8 +233,9 @@ function getNpmPackageVariable(packageJson: Record<string, unknown>, variableNam
   return String(current);
 }
 
-function hasNpmVariable(value: string | undefined): boolean {
-  return value?.includes('$npm_package_') ?? false;
+// Runs before validateRcConfig, so the values are still whatever JSON.parse produced
+function hasNpmVariable(value: unknown): boolean {
+  return typeof value === 'string' && value.includes('$npm_package_');
 }
 
 function hasNpmVariables(config: IRcFileConfig): boolean {
@@ -294,7 +295,10 @@ function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRc
   if (result.define) result.define = interpolateString(result.define);
   if (result.version) result.version = interpolateString(result.version);
   if (result.basepath) result.basepath = interpolateString(result.basepath);
-  if (result.exclude) result.exclude = result.exclude.map((pattern) => interpolateString(pattern));
+  if (result.exclude)
+    result.exclude = result.exclude.map((pattern) =>
+      typeof pattern === 'string' ? interpolateString(pattern) : pattern
+    );
 
   return result;
 }

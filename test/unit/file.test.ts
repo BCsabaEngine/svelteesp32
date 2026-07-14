@@ -222,6 +222,23 @@ describe('file', () => {
       expect(result.has('index.html')).toBe(true);
     });
 
+    it('should warn when the exclude patterns match nothing', () => {
+      const mockFiles = ['index.html', 'script.js'];
+      const mockContent = Buffer.from('test content');
+
+      // Both globs return the same list: the patterns filtered nothing out, which
+      // usually means a typo in --exclude rather than a deliberate no-op
+      vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
+      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+
+      const result = getFiles({ ...defaultOptions, noIndexCheck: true, exclude: ['*.map', '*.bak'] });
+
+      expect(result.size).toBe(2);
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('Warning: --exclude patterns matched no files: *.map, *.bak')
+      );
+    });
+
     it('should not exclude when patterns array is empty', () => {
       const mockFiles = ['index.html', 'script.js', 'style.css'];
       const mockContent = Buffer.from('test content');

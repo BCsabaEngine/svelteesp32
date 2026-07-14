@@ -133,6 +133,41 @@ Attempted path: ${resolvedPath} (resolved)`
   );
 }
 
+export type IdentifierCollision = { identifier: string; files: string[] };
+
+/**
+Error: Two or more source files map to the same C++ identifier
+*/
+export function getIdentifierCollisionError(collisions: IdentifierCollision[]): string {
+  const groups = collisions
+    .map((c) => [`  ${cyanLog(c.identifier)}`, ...c.files.map((f) => `    • ${f}`)].join('\n'))
+    .join('\n\n');
+
+  return (
+    redLog('[ERROR] Source files collide on the same C++ identifier') +
+    `
+
+These files produce the same identifier:
+
+${groups}
+
+Why this matters:
+  Every file emits C++ symbols named after it: data_<name>, datagzip_<name>,
+  etag_<name>, the <PREFIX>_FILE_<NAME> define, and (ESP-IDF) file_handler_<NAME>
+  and route_<NAME>. Two files sharing a name emit duplicate definitions, so your
+  firmware fails to compile with a redefinition error in the generated header,
+  far from the real cause.
+
+  Identifiers keep letters, digits and '_'; every other character (including
+  '-', '.', '/' and spaces) becomes '_'. They are compared case-insensitively,
+  because some of the symbols above are uppercased.
+
+How to fix:
+  Rename one of the files in each group so they differ by more than punctuation
+  or letter case (e.g. 'app-v1.js' and 'app_v1.js' both become 'app_v1_js').`
+  );
+}
+
 /**
 Error: Size budget exceeded
 */

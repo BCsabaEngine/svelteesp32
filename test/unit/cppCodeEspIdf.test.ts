@@ -564,5 +564,27 @@ describe('cppCodeEspIdf', () => {
       expect(result).toContain('httpd_register_err_handler');
       expect(result).toContain('HTTPD_404_NOT_FOUND');
     });
+
+    it('should not guard the catch-all by prefix when there is no basePath', async () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, spa: true });
+
+      expect(result).toContain('spa_handler_INDEX_HTML');
+      expect(result).not.toContain('strncmp(req->uri');
+    });
+
+    it('should 404 outside the basePath before falling back to index.html', async () => {
+      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+      const result = getCppCode(sources, mockFilesByExtension, {
+        ...mockOptions,
+        spa: true,
+        basePath: '/ui'
+      });
+
+      // Without this guard the catch-all would swallow 404s for unrelated API routes
+      expect(result).toContain('const char* prefix = "/ui/";');
+      expect(result).toContain('if (strncmp(req->uri, prefix, strlen(prefix)) != 0 && strcmp(req->uri, "/ui") != 0) {');
+      expect(result).toContain('httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Not found");');
+    });
   });
 });

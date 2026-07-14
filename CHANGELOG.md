@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.2] - 2026-07-14
+
+### Fixed
+
+- **Source files that collide on the same C++ identifier are now rejected at generation time.** Filenames become C symbols by mapping every character outside `[A-Za-z0-9_]` to `_`, so `app-v1.js` and `app_v1.js` — or `assets/app.js` and `assets-app.js` — both produced `data_app_v1_js` / `assets_app_js`. The header then declared the same array twice and the firmware failed to compile with a redefinition error pointing at generated code, giving no hint that the real cause was a pair of filenames in `dist/`. The pipeline now names both files and exits before writing anything. Identifiers are compared case-insensitively, since the header also emits uppercased symbols (`{PREFIX}_FILE_<NAME>`, and ESP-IDF's `file_handler_`/`route_` functions), where `App.js` and `app.js` collide too.
+
+- **The Vite plugin no longer runs on the dev server.** Its only work happens in `closeBundle()`, a Rollup hook that Vite's dev server also fires on every plugin when it shuts down the plugin container. A dev session therefore regenerated the header from `build.outDir` — a directory that during development is stale from an earlier build, half-written, or missing altogether — silently overwriting a good header or throwing a "no index.html" error on exit. The plugin is now `apply: 'build'`, so Vite leaves it out of the dev-server plugin container entirely.
+
+  In practice the misfire hit hardest on a **config-file change**: editing `vite.config.ts` restarts the dev server, and the restart closes the plugin container, so the header was rewritten from a stale `dist/` in the middle of an ordinary editing session. A `SIGTERM` shutdown did the same. (Plain Ctrl-C did not — Vite leaves `SIGINT` on Node's default handling, so the process dies before any hook runs.)
+
+- **The Vite plugin now runs last (`enforce: 'post'`).** Its `closeBundle` is sorted after that of any other user plugin, so plugins that emit files into `outDir` from their own `closeBundle` — `vite-plugin-pwa`'s service worker, compression and static-copy plugins — have finished writing by the time the directory is scanned. Their output now lands in the header regardless of where `svelteESP32()` sits in the `plugins` array.
+
 ## [3.2.1] - 2026-07-13
 
 ### Fixed

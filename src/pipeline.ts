@@ -6,7 +6,7 @@ import { gzipSync } from 'node:zlib';
 import type { ICopyFilesArguments } from './commandLine';
 import { greenLog, redLog, yellowLog } from './consoleColor';
 import { type CppCodeSource, type CppCodeSources, type ExtensionGroups, getCppCode } from './cppCode';
-import { getSizeBudgetExceededError } from './errorMessages';
+import { getIdentifierCollisionError, getSizeBudgetExceededError, type IdentifierCollision } from './errorMessages';
 import { getFiles } from './file';
 
 const MIME_TYPES: Record<string, string> = {
@@ -84,6 +84,34 @@ const formatSize = (bytes: number): string => {
 const formatSizePrecise = (bytes: number): string => {
   if (bytes < 1024) return `${bytes}B`;
   return `${(bytes / 1024).toFixed(1)}kB`;
+};
+
+/**
+Sanitize a filename into a C++ identifier. Letters, digits and '_' survive; every
+other character becomes '_'. A leading digit gets a '_' prefix.
+*/
+const toDataName = (filename: string): string => {
+  const dataname = filename.replace(/\\/g, '/').replace(/\W/g, '_');
+  return /^\d/.test(dataname) ? '_' + dataname : dataname;
+};
+
+/**
+Group filenames that sanitize to the same C++ identifier. Compared case-insensitively,
+because the generated header also emits uppercased symbols (defines, ESP-IDF handlers).
+*/
+const findIdentifierCollisions = (filenames: string[]): IdentifierCollision[] => {
+  const byIdentifier = new Map<string, IdentifierCollision>();
+  for (const filename of filenames) {
+    const identifier = toDataName(filename);
+    const collision = byIdentifier.get(identifier.toUpperCase());
+    if (collision) collision.files.push(filename);
+    else byIdentifier.set(identifier.toUpperCase(), { identifier, files: [filename] });
+  }
+
+  return byIdentifier
+    .values()
+    .filter((c) => c.files.length > 1)
+    .toArray();
 };
 
 const createSourceEntry = (
@@ -282,6 +310,9 @@ export function runPipeline(options: ICopyFilesArguments): void {
   const files = getFiles(options);
   if (files.size === 0) throw new Error(`Directory ${options.sourcepath} is empty`);
 
+  const collisions = findIdentifierCollisions(files.keys().toArray());
+  if (collisions.length > 0) throw new Error(getIdentifierCollisionError(collisions));
+
   if (options.spa && files.keys().every((f) => !(f === 'index.html' || f === 'index.htm')))
     console.warn(
       yellowLog(
@@ -307,8 +338,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
 
     // Normalize filename and generate data name
     const filename = originalFilename.replace(/\\/g, '/');
-    let dataname = filename.replace(/\W/g, '_');
-    if (/^\d/.test(dataname)) dataname = '_' + dataname;
+    const dataname = toDataName(originalFilename);
 
     // Extract and update file extension statistics
     let extension = path.extname(filename).toUpperCase();
@@ -419,6 +449,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
 export {
   calculateCompressionRatio,
   createSourceEntry,
+  findIdentifierCollisions,
   formatAnalyzeTable,
   formatChangeSummary,
   formatCompressionLog,
@@ -426,5 +457,6 @@ export {
   formatSize,
   formatSizePrecise,
   shouldUseGzip,
+  toDataName,
   updateExtensionGroup
 };

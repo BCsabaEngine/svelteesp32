@@ -1397,3 +1397,51 @@ describe('Cache-Control is emitted independently of the ETag mode', () => {
     );
   });
 });
+
+describe('--created timestamp comment', () => {
+  const mockFilesByExtension: ExtensionGroups = [{ extension: 'HTML', count: 1 }];
+  const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+  for (const engine of ['psychic', 'async', 'espidf', 'webserver'] as const)
+    it(`emits //created for ${engine} when created is set`, () => {
+      const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine, created: true });
+
+      expect(result).toContain('//created:');
+    });
+
+  it('omits //created by default, so a rebuild of unchanged files produces an identical header', () => {
+    const result = getCppCode(sources, mockFilesByExtension, mockOptions);
+
+    expect(result).not.toContain('//created:');
+  });
+});
+
+describe('a file that does not compress', () => {
+  const mockFilesByExtension: ExtensionGroups = [{ extension: 'HTML', count: 1 }];
+  // createSourceEntry() points contentGzip at the raw content when gzip is not worth it,
+  // so the datagzip_ array holds uncompressed bytes and must not be labelled gzip
+  const sources: CppCodeSources = [
+    {
+      ...createMockSource('index.html', '<html></html>'),
+      isGzip: false,
+      contentGzip: Buffer.from('<html></html>')
+    }
+  ];
+
+  for (const engine of ['async', 'webserver', 'espidf'] as const)
+    for (const gzip of ['always', 'compiler'] as const)
+      it(`${engine}/gzip=${gzip}: serves the file without a Content-Encoding header`, () => {
+        const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, engine, gzip });
+
+        expect(result).toContain('datagzip_index_html');
+        expect(result).not.toContain('Content-Encoding');
+      });
+
+  it('still labels a compressible file as gzip, for contrast', () => {
+    const gzipped: CppCodeSources = [createMockSource('index.html', '<html></html>')];
+
+    const result = getCppCode(gzipped, mockFilesByExtension, { ...mockOptions, engine: 'async' });
+
+    expect(result).toContain('Content-Encoding');
+  });
+});
