@@ -817,7 +817,7 @@ platform = espressif32
 board = esp32dev
 framework = arduino
 lib_deps =
-    https://github.com/ESP32Async/ESPAsyncWebServer#v3.11.1
+    https://github.com/ESP32Async/ESPAsyncWebServer#v3.11.2
 extra_scripts = pre:scripts/build_frontend.py
 ```
 
