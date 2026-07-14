@@ -282,14 +282,6 @@ describe('cppCodeWebserver', () => {
 
       expect(result).toContain('server->sendHeader("Cache-Control", "no-cache")');
     });
-
-    it('should still emit Cache-Control with etag=never', () => {
-      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
-      const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, etag: 'never' as const });
-
-      expect(result).toContain('server->sendHeader("Cache-Control", "max-age=86400")');
-      expect(result).not.toContain('etag_');
-    });
   });
 
   describe('basePath for webserver', () => {

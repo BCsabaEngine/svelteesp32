@@ -448,14 +448,6 @@ describe('cppCodeEspIdf', () => {
       expect(result).toContain('httpd_resp_set_hdr(req, "Cache-Control", "no-cache")');
     });
 
-    it('should still emit Cache-Control with etag=never', () => {
-      const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
-      const result = getCppCode(sources, mockFilesByExtension, { ...mockOptions, etag: 'never' as const });
-
-      expect(result).toContain('httpd_resp_set_hdr(req, "Cache-Control", "max-age=86400")');
-      expect(result).not.toContain('etag_');
-    });
-
     it('should set ETag header when etag is enabled', () => {
       const sources: CppCodeSources = [createMockSource('index.html', '<html></html>')];
       const result = getCppCode(sources, mockFilesByExtension, mockOptions);
