@@ -1,8 +1,7 @@
-/* eslint-disable unicorn/prefer-module */
-/* eslint-disable unicorn/prefer-node-protocol */
+import path from 'node:path';
+
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
-import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -21,10 +20,10 @@ export default defineConfig({
 	base: '',
 	resolve: {
 		alias: {
-			$components: path.resolve(__dirname, './src/components'),
-			$lib: path.resolve(__dirname, './src/lib'),
-			$stores: path.resolve(__dirname, './src/stores'),
-			$types: path.resolve(__dirname, './src/types')
+			$components: path.resolve(import.meta.dirname, './src/components'),
+			$lib: path.resolve(import.meta.dirname, './src/lib'),
+			$stores: path.resolve(import.meta.dirname, './src/stores'),
+			$types: path.resolve(import.meta.dirname, './src/types')
 		}
 	}
 });

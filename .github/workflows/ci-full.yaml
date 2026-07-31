@@ -17,9 +17,9 @@ jobs:
         node-version: [26.x, 24.x, 22.x]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
@@ -51,9 +51,9 @@ jobs:
       version: ${{ steps.create_tag.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: jaywcjlove/create-tag-action@main
+      - uses: jaywcjlove/create-tag-action@v2.3.0
         id: create_tag
         with:
           package-path: ./package.json
@@ -65,8 +65,8 @@ jobs:
     if: needs.tag.outputs.status == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
