@@ -415,8 +415,8 @@ void initSvelteStaticFiles(PsychicHttpServer * server) {
 
 | Engine                   | Flag           | Best For                     | Platform        | Library                                                                      |
 | ------------------------ | -------------- | ---------------------------- | --------------- | ---------------------------------------------------------------------------- |
-| **PsychicHttpServer V2** | `-e psychic`   | Maximum performance          | ESP32 only      | [PsychicHttp 2.2.0, 3.1.1](https://github.com/hoeken/PsychicHttp)            |
-| **ESPAsyncWebServer**    | `-e async`     | Cross-platform compatibility | ESP32 + ESP8266 | [ESPAsyncWebServer v3.11.1](https://github.com/ESP32Async/ESPAsyncWebServer) |
+| **PsychicHttpServer V2** | `-e psychic`   | Maximum performance          | ESP32 only      | [PsychicHttp 2.2.0, 3.1.2](https://github.com/hoeken/PsychicHttp)            |
+| **ESPAsyncWebServer**    | `-e async`     | Cross-platform compatibility | ESP32 + ESP8266 | [ESPAsyncWebServer v3.12.0](https://github.com/ESP32Async/ESPAsyncWebServer) |
 | **Arduino WebServer**    | `-e webserver` | No dependencies, simplicity  | ESP32 only      | (built-in)                                                                   |
 | **Native ESP-IDF**       | `-e espidf`    | Pure ESP-IDF projects        | ESP32 only      | (built-in)                                                                   |
 
@@ -847,7 +847,7 @@ platform = espressif32
 board = esp32dev
 framework = arduino
 lib_deps =
-    https://github.com/ESP32Async/ESPAsyncWebServer#v3.11.2
+    https://github.com/ESP32Async/ESPAsyncWebServer#v3.12.0
 extra_scripts = pre:scripts/build_frontend.py
 ```
 
