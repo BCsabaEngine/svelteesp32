@@ -115,12 +115,24 @@ RC File:
   process.exit(0);
 }
 
+// Throws rather than exiting: validateRcConfig also runs inside the Vite plugin, where a
+// process.exit would take the whole build down instead of surfacing a plugin error. parseArguments
+// turns this back into the CLI's console.error + exit(1) at the boundary.
+class InvalidEngineError extends Error {
+  readonly value: string;
+
+  constructor(value: string) {
+    super(`Invalid engine: ${value}`);
+    this.name = 'InvalidEngineError';
+    this.value = value;
+  }
+}
+
 function validateEngine(value: string): 'psychic' | 'async' | 'espidf' | 'webserver' {
   if (['psychic', 'async', 'espidf', 'webserver'].includes(value))
     return value as 'psychic' | 'async' | 'espidf' | 'webserver';
 
-  console.error(getInvalidEngineError(value));
-  process.exit(1);
+  throw new InvalidEngineError(value);
 }
 
 function validateTriState(value: string, name: string): 'always' | 'never' | 'compiler' {
@@ -238,14 +250,14 @@ function hasNpmVariable(value: unknown): boolean {
   return typeof value === 'string' && value.includes('$npm_package_');
 }
 
+// The single list of string fields that may carry $npm_package_ variables: detection, the
+// "variables found in fields" error and the interpolation itself all read from it, so adding an
+// interpolatable option is a one-line change. Order is load-bearing for the error message.
+const INTERPOLATABLE_KEYS = ['sourcepath', 'outputfile', 'version', 'espmethod', 'define', 'basepath'] as const;
+
 function hasNpmVariables(config: IRcFileConfig): boolean {
   return (
-    hasNpmVariable(config.sourcepath) ||
-    hasNpmVariable(config.outputfile) ||
-    hasNpmVariable(config.espmethod) ||
-    hasNpmVariable(config.define) ||
-    hasNpmVariable(config.version) ||
-    hasNpmVariable(config.basepath) ||
+    INTERPOLATABLE_KEYS.some((key) => hasNpmVariable(config[key])) ||
     (Array.isArray(config.exclude) && config.exclude.some((pattern) => hasNpmVariable(pattern)))
   );
 }
@@ -257,13 +269,7 @@ function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRc
   // Find package.json
   const packageJsonPath = findPackageJson(rcFilePath);
   if (!packageJsonPath) {
-    const affectedFields: string[] = [];
-    if (config.sourcepath?.includes('$npm_package_')) affectedFields.push('sourcepath');
-    if (config.outputfile?.includes('$npm_package_')) affectedFields.push('outputfile');
-    if (config.version?.includes('$npm_package_')) affectedFields.push('version');
-    if (config.espmethod?.includes('$npm_package_')) affectedFields.push('espmethod');
-    if (config.define?.includes('$npm_package_')) affectedFields.push('define');
-    if (config.basepath?.includes('$npm_package_')) affectedFields.push('basepath');
+    const affectedFields: string[] = INTERPOLATABLE_KEYS.filter((key) => hasNpmVariable(config[key]));
     if (config.exclude)
       for (const [index, pattern] of config.exclude.entries())
         if (pattern.includes('$npm_package_')) affectedFields.push(`exclude[${index}]`);
@@ -289,12 +295,10 @@ function interpolateNpmVariables(config: IRcFileConfig, rcFilePath: string): IRc
   // Create new config with interpolated values
   const result: IRcFileConfig = { ...config };
 
-  if (result.sourcepath) result.sourcepath = interpolateString(result.sourcepath);
-  if (result.outputfile) result.outputfile = interpolateString(result.outputfile);
-  if (result.espmethod) result.espmethod = interpolateString(result.espmethod);
-  if (result.define) result.define = interpolateString(result.define);
-  if (result.version) result.version = interpolateString(result.version);
-  if (result.basepath) result.basepath = interpolateString(result.basepath);
+  for (const key of INTERPOLATABLE_KEYS) {
+    const value = result[key];
+    if (value) result[key] = interpolateString(value);
+  }
   if (result.exclude)
     result.exclude = result.exclude.map((pattern) =>
       typeof pattern === 'string' ? interpolateString(pattern) : pattern
@@ -337,6 +341,24 @@ function validateSizeOption(configObject: Record<string, unknown>, key: string):
     }
   else if (typeof value !== 'number' || Number.isNaN(value) || value <= 0)
     throw new TypeError(`Invalid ${key} in RC file: ${value} (must be a positive number)`);
+}
+
+// RC files accept booleans either as JSON booleans or as the strings "true"/"false".
+const RC_BOOLEAN_KEYS = ['created', 'noindexcheck', 'dryrun', 'analyze', 'spa', 'manifest'] as const;
+const RC_CACHETIME_KEYS = ['cachetime', 'cachetimehtml', 'cachetimeassets'] as const;
+
+function validateBooleanOption(configObject: Record<string, unknown>, key: string): void {
+  const value = configObject[key];
+  if (value === undefined) return;
+  if (typeof value !== 'boolean' && value !== 'true' && value !== 'false')
+    throw new TypeError(`Invalid ${key} in RC file: ${value} (must be boolean)`);
+}
+
+function validateCacheTimeOption(configObject: Record<string, unknown>, key: string): void {
+  const value = configObject[key];
+  if (value === undefined) return;
+  if (typeof value !== 'number' || Number.isNaN(value)) throw new TypeError(`Invalid ${key} in RC file: ${value}`);
+  if (value < 0) throw new TypeError(`Invalid ${key} in RC file: ${value} (must be non-negative)`);
 }
 
 function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
@@ -386,28 +408,7 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
 
   if (configObject['define'] !== undefined) validateCppIdentifier(configObject['define'] as string, 'define');
 
-  if (configObject['cachetime'] !== undefined) {
-    if (typeof configObject['cachetime'] !== 'number' || Number.isNaN(configObject['cachetime']))
-      throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']}`);
-    if (configObject['cachetime'] < 0)
-      throw new TypeError(`Invalid cachetime in RC file: ${configObject['cachetime']} (must be non-negative)`);
-  }
-
-  if (configObject['cachetimehtml'] !== undefined) {
-    if (typeof configObject['cachetimehtml'] !== 'number' || Number.isNaN(configObject['cachetimehtml']))
-      throw new TypeError(`Invalid cachetimehtml in RC file: ${configObject['cachetimehtml']}`);
-    if (configObject['cachetimehtml'] < 0)
-      throw new TypeError(`Invalid cachetimehtml in RC file: ${configObject['cachetimehtml']} (must be non-negative)`);
-  }
-
-  if (configObject['cachetimeassets'] !== undefined) {
-    if (typeof configObject['cachetimeassets'] !== 'number' || Number.isNaN(configObject['cachetimeassets']))
-      throw new TypeError(`Invalid cachetimeassets in RC file: ${configObject['cachetimeassets']}`);
-    if (configObject['cachetimeassets'] < 0)
-      throw new TypeError(
-        `Invalid cachetimeassets in RC file: ${configObject['cachetimeassets']} (must be non-negative)`
-      );
-  }
+  for (const key of RC_CACHETIME_KEYS) validateCacheTimeOption(configObject, key);
 
   if (configObject['exclude'] !== undefined) {
     if (!Array.isArray(configObject['exclude'])) throw new TypeError("'exclude' in RC file must be an array");
@@ -421,53 +422,7 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   validateSizeOption(configObject, 'maxsize');
   validateSizeOption(configObject, 'maxgzipsize');
 
-  if (
-    configObject['created'] !== undefined &&
-    typeof configObject['created'] !== 'boolean' &&
-    configObject['created'] !== 'true' &&
-    configObject['created'] !== 'false'
-  )
-    throw new TypeError(`Invalid created in RC file: ${configObject['created']} (must be boolean)`);
-
-  if (
-    configObject['noindexcheck'] !== undefined &&
-    typeof configObject['noindexcheck'] !== 'boolean' &&
-    configObject['noindexcheck'] !== 'true' &&
-    configObject['noindexcheck'] !== 'false'
-  )
-    throw new TypeError(`Invalid noindexcheck in RC file: ${configObject['noindexcheck']} (must be boolean)`);
-
-  if (
-    configObject['dryrun'] !== undefined &&
-    typeof configObject['dryrun'] !== 'boolean' &&
-    configObject['dryrun'] !== 'true' &&
-    configObject['dryrun'] !== 'false'
-  )
-    throw new TypeError(`Invalid dryrun in RC file: ${configObject['dryrun']} (must be boolean)`);
-
-  if (
-    configObject['analyze'] !== undefined &&
-    typeof configObject['analyze'] !== 'boolean' &&
-    configObject['analyze'] !== 'true' &&
-    configObject['analyze'] !== 'false'
-  )
-    throw new TypeError(`Invalid analyze in RC file: ${configObject['analyze']} (must be boolean)`);
-
-  if (
-    configObject['spa'] !== undefined &&
-    typeof configObject['spa'] !== 'boolean' &&
-    configObject['spa'] !== 'true' &&
-    configObject['spa'] !== 'false'
-  )
-    throw new TypeError(`Invalid spa in RC file: ${configObject['spa']} (must be boolean)`);
-
-  if (
-    configObject['manifest'] !== undefined &&
-    typeof configObject['manifest'] !== 'boolean' &&
-    configObject['manifest'] !== 'true' &&
-    configObject['manifest'] !== 'false'
-  )
-    throw new TypeError(`Invalid manifest in RC file: ${configObject['manifest']} (must be boolean)`);
+  for (const key of RC_BOOLEAN_KEYS) validateBooleanOption(configObject, key);
 
   if (configObject['outputfile'] !== undefined && path.isAbsolute(configObject['outputfile'] as string))
     throw new Error(
@@ -478,6 +433,16 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
 }
 
 export function parseArguments(): ICopyFilesArguments {
+  try {
+    return parseCommandLine();
+  } catch (error) {
+    if (!(error instanceof InvalidEngineError)) throw error;
+    console.error(getInvalidEngineError(error.value));
+    process.exit(1);
+  }
+}
+
+function parseCommandLine(): ICopyFilesArguments {
   const arguments_ = process.argv.slice(2);
 
   // STEP 1: Check for --config flag first

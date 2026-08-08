@@ -2,13 +2,13 @@ import type { TemplateData, TransformedSource } from './cppCode';
 import {
   cacheCtrl,
   gateEtag,
+  gateGzip,
   genCacheHeaders,
   genCommonHeader,
   genDataArrays,
   genEtagArrays,
   genHook,
-  genManifest,
-  sw
+  genManifest
 } from './cppCode';
 
 const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
@@ -29,31 +29,20 @@ const genWebserverHandlerBody = (d: TemplateData, source: TransformedSource, pat
   if (etagCheck) lines.push(etagCheck);
   lines.push(
     genCacheHeaders(d, source, (h, v) => `    server->sendHeader("${h}", ${v});`),
-    sw(d.gzip, {
-      always: [
+    gateGzip(
+      d,
+      [
         ...(source.isGzip ? [`    server->sendHeader("Content-Encoding", "gzip");`] : []),
         `    server->setContentLength(${source.lengthGzip});`,
         `    server->send(200, "${source.mime}", "");`,
         `    ${d.definePrefix}_sendChunked(server, datagzip_${source.dataname}, ${source.lengthGzip});`
       ].join('\n'),
-      never: [
+      [
         `    server->setContentLength(${source.length});`,
         `    server->send(200, "${source.mime}", "");`,
         `    ${d.definePrefix}_sendChunked(server, data_${source.dataname}, ${source.length});`
-      ].join('\n'),
-      compiler: [
-        `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-        ...(source.isGzip ? [`    server->sendHeader("Content-Encoding", "gzip");`] : []),
-        `    server->setContentLength(${source.lengthGzip});`,
-        `    server->send(200, "${source.mime}", "");`,
-        `    ${d.definePrefix}_sendChunked(server, datagzip_${source.dataname}, ${source.lengthGzip});`,
-        `  #else`,
-        `    server->setContentLength(${source.length});`,
-        `    server->send(200, "${source.mime}", "");`,
-        `    ${d.definePrefix}_sendChunked(server, data_${source.dataname}, ${source.length});`,
-        `  #endif`
       ].join('\n')
-    }),
+    ),
     `    ${d.definePrefix}_onFileServed("${path}", 200);`
   );
   return lines.join('\n');
@@ -65,12 +54,12 @@ export const genWebserverCpp = (d: TemplateData): string => {
     `//config:   ${d.config}`,
     ...(d.created ? [`//created:  ${d.now}`] : []),
     '//',
-    genCommonHeader(d),
+    genCommonHeader(d, 'none'),
     '//',
     '#include <Arduino.h>',
     '#include <WebServer.h>',
     '//',
-    genDataArrays(d, true),
+    genDataArrays(d, { elementType: 'uint8_t', isProgmem: true }),
     '//',
     genEtagArrays(d),
     '//',

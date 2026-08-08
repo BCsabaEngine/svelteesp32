@@ -32,13 +32,13 @@ const findSimilarFiles = (files: Map<string, FileData>): string[][] => {
 /**
 Check if a file should be skipped (e.g., pre-compressed files when original exists)
 */
-const shouldSkipFile = (filename: string, allFilenames: string[]): boolean => {
+const shouldSkipFile = (filename: string, allFilenames: ReadonlySet<string>): boolean => {
   const extension = path.extname(filename);
   const compressedExtensions = ['.gz', '.brotli', '.br'];
 
   if (compressedExtensions.includes(extension)) {
     const original = filename.slice(0, -extension.length);
-    if (allFilenames.includes(original)) {
+    if (allFilenames.has(original)) {
       console.log(redLog(` ${filename} skipped — likely a compressed version of ${original}`));
       return true;
     }
@@ -61,8 +61,10 @@ export const getFiles = (
     followSymbolicLinks: false
   });
 
-  // Filter pre-compressed files
-  const withoutCompressed = allFilenames.filter((filename) => !shouldSkipFile(filename, allFilenames));
+  // Filter pre-compressed files. The lookup set is built once: compression plugins emit a .gz
+  // beside every asset, so a per-file Array#includes over the same list is quadratic in practice.
+  const allFilenameSet = new Set(allFilenames);
+  const withoutCompressed = allFilenames.filter((filename) => !shouldSkipFile(filename, allFilenameSet));
 
   // Filter excluded files
   const excludePatterns = options.exclude;

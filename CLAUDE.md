@@ -31,10 +31,10 @@ The PlatformIO builds are the **only** tests that compile the generated C++ — 
 
 - `src/index.ts` — CLI entry; delegates to `commandLine.ts` (parsing) and `pipeline.ts` (execution). Re-exports pipeline utilities as the programmatic/test API.
 - `src/pipeline.ts` — `runPipeline()`: compression, MIME types, `--dryrun`, `--analyze`, `--manifest`. Exports `OverBudgetError` (`--maxsize`/`--maxgzipsize`).
-- `src/commandLine.ts` — parsing (native `process.argv`), RC files, `$npm_package_*` interpolation, C++ identifier validation.
+- `src/commandLine.ts` — parsing (native `process.argv`), RC files, `$npm_package_*` interpolation, C++ identifier validation. **Validators throw; they must not call `process.exit`** — `validateRcConfig` also runs inside the Vite plugin, where exiting kills the whole build instead of surfacing a plugin error. `parseArguments` is the only place that exits: it catches `InvalidEngineError` at the CLI boundary and turns it back into `console.error` + `exit(1)`. RC booleans arrive as booleans _or_ `"true"`/`"false"`, checked by key list (`RC_BOOLEAN_KEYS`, `RC_CACHETIME_KEYS`); the `$npm_package_*`-interpolatable fields live in one `INTERPOLATABLE_KEYS` list whose **order is load-bearing** for the "variables found in fields" error message.
 - `src/vitePlugin.ts` — Vite plugin (`./vite` entry), runs `runPipeline()` in `closeBundle()`. Two **exclusive** modes that never merge: `svelteESP32()` / `svelteESP32('/path/rc.json')` loads everything from the RC file (`outputfile` required); `svelteESP32({ output, … })` uses the options object and ignores the RC file entirely.
 - `src/file.ts` — glob scan, SHA256, duplicate detection, index.html check. Returns `Map<string, FileData>` (`{ content: Buffer; hash: string }`). Skips pre-compressed `.gz`/`.br` when the original exists; no symlinks; rejects files > 50 MB; `--exclude` goes to tinyglobby's `ignore`.
-- `src/cppCode.ts` — shared C++ generation: data/ETag arrays, manifest, hook, `sw()`, `cacheCtrl()`, `genCacheHeaders()`, `computeRouteCount()`. Per-engine modules `cppCode{Psychic,Async,Webserver,EspIdf}.ts` export `gen*Cpp`.
+- `src/cppCode.ts` — shared C++ generation: data/ETag arrays, manifest, hook, `sw()`, `cacheCtrl()`, `gateEtag()`, `gateGzip()`, `genCacheHeaders()`, `computeRouteCount()`. Per-engine modules `cppCode{Psychic,Async,Webserver,EspIdf}.ts` export `gen*Cpp` and **all four** build their header from these helpers — espidf included, parameterized by `genCommonHeader(d, uriHandlerMode)`, `genDataArrays(d, { elementType, isProgmem })`, `genManifest(d, isCStyle)`, `genHook(d, isExternC)`. Do not re-inline a copy into an engine. `genDataArrays` deliberately branches on `d.gzip` itself instead of using `gateGzip`: routing it through the `sw()`-based helper would eagerly build the discarded arm, which is ~4× the payload size.
 - Also `initCommand.ts`, `errorMessages.ts`, `consoleColor.ts`, `cliInit.mts`.
 
 Pipeline: file collection → MIME/SHA256 → gzip (level 9, > 1024 B, > 15 % reduction) → per-engine codegen → C++ header.
@@ -96,7 +96,7 @@ Tests in `test/unit/`, fixtures in `test/fixtures/sample-files/`.
 - `cppCodeEspIdf.ts` and `cppCodeWebserver.ts` have dedicated test files; **psychic and async do not** — assert their output in `test/unit/cppCode.test.ts`, which drives every engine through the public `getCppCode(sources, filesByExtension, options)` rather than `gen*Cpp` directly.
 - No `pipeline.test.ts` — `runPipeline()` is covered indirectly via `index.test.ts` and `changesummary.test.ts`.
 - **Vitest does not type-check** (esbuild strips types). `tsconfig.json` excludes `test/`, so `tsconfig.test.json` covers it — `bundler` resolution, because the tests import extensionlessly. Run `npm run typecheck`; it is in `npm run all` and in CI.
-- Coverage thresholds are 90/90/80/90 (lines/functions/branches/statements) vs actual ~96/98/88/95. Enforced in CI — both workflows run `npm run test:coverage`, not `npm run test`, because vitest only checks thresholds under `--coverage`.
+- Coverage thresholds are 90/90/80/90 (lines/functions/branches/statements) vs actual ~99.9/100/99.6/99.7. Enforced in CI — both workflows run `npm run test:coverage`, not `npm run test`, because vitest only checks thresholds under `--coverage`.
 
 ## Conventions
 

@@ -2,13 +2,13 @@ import type { TemplateData, TransformedSource } from './cppCode';
 import {
   cacheCtrl,
   gateEtag,
+  gateGzip,
   genCacheHeaders,
   genCommonHeader,
   genDataArrays,
   genEtagArrays,
   genHook,
-  genManifest,
-  sw
+  genManifest
 } from './cppCode';
 
 // isAnyMethod: the route is registered as HTTP_ANY, so the handler must reject methods other than GET/HEAD itself
@@ -43,33 +43,18 @@ const genPsychicHandlerBody = (
   const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   lines.push(`    response->setContentType("${source.mime}");`);
-  const gzipEncoding = sw(d.gzip, {
-    always: source.isGzip ? `    response->addHeader("Content-Encoding", "gzip");` : '',
-    compiler: source.isGzip
-      ? [
-          `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-          `    response->addHeader("Content-Encoding", "gzip");`,
-          `  #endif`
-        ].join('\n')
-      : ''
-  });
+  const gzipEncoding = gateGzip(d, source.isGzip ? `    response->addHeader("Content-Encoding", "gzip");` : '', '');
   if (gzipEncoding) lines.push(gzipEncoding);
   // HEAD: same status and headers as GET, but no body. esp-idf's httpd_resp_send() derives
   // Content-Length from the buffer length, so a body-less send always reports Content-Length: 0.
   lines.push(
     genCacheHeaders(d, source, (h, v) => `    response->addHeader("${h}", ${v});`),
     `    if (request->method() != HTTP_HEAD) {`,
-    sw(d.gzip, {
-      always: `      response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
-      never: `      response->setContent(data_${source.dataname}, ${source.length});`,
-      compiler: [
-        `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-        `      response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
-        `  #else`,
-        `      response->setContent(data_${source.dataname}, ${source.length});`,
-        `  #endif`
-      ].join('\n')
-    }),
+    gateGzip(
+      d,
+      `      response->setContent(datagzip_${source.dataname}, ${source.lengthGzip});`,
+      `      response->setContent(data_${source.dataname}, ${source.length});`
+    ),
     `    }`,
     `    ${d.definePrefix}_onFileServed("${path}", 200);`,
     `    return response->send();`
@@ -83,13 +68,13 @@ export const genPsychicCpp = (d: TemplateData): string => {
     `//config:   ${d.config}`,
     ...(d.created ? [`//created:  ${d.now}`] : []),
     '//',
-    genCommonHeader(d),
+    genCommonHeader(d, 'informational'),
     '//',
     '#include <Arduino.h>',
     '#include <PsychicHttp.h>',
     '#include <PsychicHttpsServer.h>',
     '//',
-    genDataArrays(d, false),
+    genDataArrays(d, { elementType: 'uint8_t', isProgmem: false }),
     '//',
     genEtagArrays(d),
     '//',
