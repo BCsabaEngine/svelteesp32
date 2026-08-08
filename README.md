@@ -950,7 +950,16 @@ Absolutely. Frontend builds the app, runs svelteesp32, commits the header. Firmw
 npm run build        # Build TypeScript
 npm run test         # Run unit tests
 npm run test:watch   # Watch mode
+npm run typecheck    # Type-check src + test
 npm run fix          # Fix formatting & linting
+npm run all          # All of the above, in the order CI runs them
+```
+
+The unit tests assert on the generated header as a string, so they cannot catch a C++ compile error. The PlatformIO demo builds are what feed the generated code to a real compiler — run them after changing any engine generator (requires a local [PlatformIO](https://platformio.org/) install):
+
+```bash
+npm run test:esp32     # 27 environments: async / psychic / webserver × 9 ETag+gzip variants
+npm run test:esp32idf  # 10 environments: ESP-IDF, including the --spa / --basepath build
 ```
 
 ---
