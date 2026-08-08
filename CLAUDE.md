@@ -9,16 +9,20 @@ TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Ang
 ## Commands
 
 ```bash
-npm run all            # fix + build + typecheck + test (full validation)
+npm run all            # fix + build + typecheck + test:coverage (full validation)
+npm run fix            # prettier → eslint --fix → prettier (CI checks format:check + lint:check)
+npm run build          # tsc --build --clean && tsc --build --force → dist/
 npm run typecheck      # tsc -p tsconfig.test.json — the only thing that type-checks test/
 npm run test           # vitest run (also test:watch, test:coverage)
 npx vitest run test/unit/file.test.ts -t "test name"   # single file / single test
 npx tsx src/index.ts -e psychic -s ./demo/svelte/dist -o ./out.h --etag=always --gzip=always
 
 npm run dev:psychic | dev:async | dev:webserver   # nodemon → demo/esp32/include/svelteesp32.h
+npm run dev:init       # tsx src/cliInit.mts — the `init` wizard
 ./package.script       # regenerate every demo header variant (no build)
 npm run test:esp32     # package.script, then build all 27 demo/esp32 envs
 npm run test:esp32idf  # package.script, then build all 10 demo/esp32idf envs
+npm run test:all       # both of the above
 ```
 
 The PlatformIO builds are the **only** tests that compile the generated C++ — unit tests assert on the header as a _string_ and cannot catch a type error, an overload ambiguity, or a broken `#ifdef` arm. Run `npm run test:esp32` after any change to an engine generator; the user runs these manually, so suggest the command rather than launching it.
@@ -48,11 +52,11 @@ CLI options: see README / `--help`. RC files (`.svelteesp32rc[.json]` in cwd, ho
 
 Do not reason from memory about what these libraries do — the sources are on disk after a PlatformIO build and routinely contradict the obvious assumption (psychic does _not_ put endpoints in the esp-idf handler table; no library suppresses a HEAD body for you):
 
-- `demo/esp32/.pio/libdeps/<env>/{PsychicHttp,ESPAsyncWebServer}/src/` — pinned in `lib_deps` to 3.1.2 / v3.11.2
+- `demo/esp32/.pio/libdeps/<env>/{PsychicHttp,ESPAsyncWebServer}/src/` — pinned in `lib_deps` to `hoeken/PsychicHttp#3.1.2` / `ESP32Async/ESPAsyncWebServer#v3.12.0`
 - `~/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src/`
 - `~/.platformio/packages/framework-espidf/components/esp_http_server/src/`
 
-Both demos pin `platform` to a **pioarduino** `platform-espressif32` release zip (`55.03.39`), not the bare `espressif32` — that resolves from the PlatformIO registry to Espressif's _official_ platform (6.x, IDF 5.1.x), a different toolchain. The release fixes every package version `pio run` prints; they move as a set. To bump: edit the URL in **both** inis, then `pio pkg update -d demo/esp32 -d demo/esp32idf`.
+Both demos pin `platform` to a **pioarduino** `platform-espressif32` release zip (`55.03.311`), not the bare `espressif32` — that resolves from the PlatformIO registry to Espressif's _official_ platform (6.x, IDF 5.1.x), a different toolchain. The release fixes every package version `pio run` prints; they move as a set. To bump: edit the URL in **both** inis, then `pio pkg update -d demo/esp32 -d demo/esp32idf`.
 
 ### HTTP HEAD (psychic + async only, always on, no CLI flag)
 
@@ -96,7 +100,18 @@ Tests in `test/unit/`, fixtures in `test/fixtures/sample-files/`.
 
 ## Conventions
 
-- **TypeScript**: ES2025, module/moduleResolution nodenext, strict + `isolatedModules`, `noUncheckedIndexedAccess`.
-- **ESLint**: TypeScript + Prettier + Unicorn (all rules) + simple-import-sort. **`curly: "multi"`** — braces only for multi-statement blocks; single-statement `if`/`else`/`for` must **not** have braces.
+- **TypeScript**: ES2025, module/moduleResolution nodenext, strict + `isolatedModules`. Also on: `noUncheckedIndexedAccess`, `noPropertyAccessFromIndexSignature` (index-signature reads must be `obj['key']`), `noUnusedLocals`/`noUnusedParameters`, `noImplicitReturns`, `noFallthroughCasesInSwitch`.
+- **ESLint**: TypeScript + Prettier + Unicorn (all rules) + simple-import-sort. Rules that bite when writing new code:
+  - **`curly: "multi"`** — braces only for multi-statement blocks; single-statement `if`/`else`/`for` must **not** have braces.
+  - **`consistent-type-imports` with `fixStyle: inline-type-imports`** — one import statement per module with `type` inline: `import { type CppCodeSource, getCppCode } from './cppCode'`, never a separate `import type { … }` line.
+  - **`method-signature-style: property`** — interface methods declared as `fn: (a: string) => void`, not `fn(a: string): void`.
+  - Typed rules apply to **`src/**` only** (that's where `projectService` is enabled): `switch-exhaustiveness-check`, `no-unnecessary-condition`, `prefer-readonly`, `no-floating-promises`, `require-array-sort-compare`, `no-unnecessary-type-assertion`. Tests are not held to these, so a pattern that passes in `test/` may still fail lint in `src/`.
+  - `demo/` is excluded from **both** ESLint and Prettier — the generated headers and the demo frontend have their own toolchains.
 - **Prettier**: 120 char width, single quotes, no trailing commas.
 - **README "What's New"**: minor and major versions only — no patch versions; fold them into the parent minor entry.
+
+## CI / release
+
+Both workflows (`ci-dev.yaml` on any non-main branch, `ci-full.yaml` on main) run the same gate on a **Node 22/24/26 matrix**: `format:check` → `lint:check` → `build` → `typecheck` → `test:coverage`. Formatting and lint are checked, not fixed — run `npm run fix` before pushing.
+
+**A push to `main` publishes.** `ci-full.yaml` tags from `package.json`'s `version` (`create-tag-action`, `release: true`) and then `npm publish`es — so the version bump in `package.json` _is_ the release trigger, and merging with a version that is already tagged silently skips the publish job instead of failing. The npm tarball ships only `bin/*.js` and `dist/**` (`files`), with two entry points in `exports`: `.` → `dist/index.js` and `./vite` → `dist/vitePlugin.js`.

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.4] - 2026-08-08
+
+### Changed
+
+- Updated npm dev dependencies: `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `eslint-plugin-unicorn` (v72 → v73), `globals`, `memfs`, and `tsx`. No runtime dependency changed — `tinyglobby` is still the only one
+- Updated the `demo/svelte` toolchain (`@sveltejs/vite-plugin-svelte`, `vite`, `svelte-check`, `postcss`, and the shared lint/TypeScript packages) and committed the resulting `dist` rebuild, which changes the content-hashed asset filename and therefore the `SVELTEESP32_FILE_*` defines and ETag hashes in every generated demo header
+
 ## [3.2.3] - 2026-07-31
 
 ### Changed
@@ -800,6 +807,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface with `-s`, `-e`, `-o` options
 - `index.html` automatic default route handling
 
+[3.2.4]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.2.3...v3.2.4
+[3.2.3]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.2.2...v3.2.3
+[3.2.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.2.1...v3.2.2
+[3.2.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.2.0...v3.2.1
+[3.2.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.1.3...v3.2.0
+[3.1.3]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.1.2...v3.1.3
 [3.1.2]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.1.1...v3.1.2
 [3.1.1]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/BCsabaEngine/svelteesp32/compare/v3.0.2...v3.1.0

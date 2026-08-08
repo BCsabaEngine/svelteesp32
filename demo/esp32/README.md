@@ -4,7 +4,7 @@ This folder contains a buildable minimalistic project demonstrating how to use t
 
 Each engine has its own sketch — `src/main_async.cpp`, `src/main_psychic.cpp`, `src/main_webserver.cpp` — selected per environment with `build_src_filter`, so only one is compiled at a time. Every sketch calls `initSvelteStaticFiles(&server)` to register the embedded static files and then adds its own `GET /api/status` and `POST /api/toggle` handlers (LED + uptime), showing that the generated header coexists with hand-written API routes on the same server.
 
-The `async` and `psychic` environments pin their library via `lib_deps` (ESPAsyncWebServer `v3.11.2`, PsychicHttp `3.1.2`); `webserver` uses the `WebServer` library bundled with the Arduino ESP32 core.
+The `async` and `psychic` environments pin their library via `lib_deps` (ESPAsyncWebServer `v3.12.0`, PsychicHttp `3.1.2`); `webserver` uses the `WebServer` library bundled with the Arduino ESP32 core.
 
 ## Setup
 
