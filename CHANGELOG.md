@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-08-08
+
+### Fixed
+
+- **An invalid `engine` value in an RC file no longer terminates the Vite build process.** `validateEngine` printed the error with `console.error` and then called `process.exit(1)`. That is correct for the CLI, but the same validation runs inside the Vite plugin (`svelteESP32()` → `loadRcFileConfig` → `validateRcConfig`), so a typo such as `"engine": "psychis"` in `.svelteesp32rc.json` killed the whole Vite process mid-build instead of raising an error Vite could report and attribute to the plugin. It now throws; the CLI catches it at the argument-parsing boundary and still prints the same enhanced message and exits 1, so command-line behaviour is unchanged.
+
+- **Table column widths no longer overflow the call stack on very large builds.** `--dryrun`, `--analyze` and the `--manifest` change summary sized their columns with `Math.max(...array)`, which spreads every row into a single call and throws `RangeError: Maximum call stack size exceeded` past V8's argument limit — reachable at roughly 125 000 files. Replaced with a reduce, which also drops the intermediate arrays.
+
+### Changed
+
+- **Generated headers are byte-identical to 3.2.4** for every engine × `--etag` × `--gzip` combination. This release is internal work only and there is nothing to migrate.
+
+- **Header generation no longer builds the data arrays it throws away.** For every source file the generator produced _both_ the gzip and the plain C array text and then discarded one — and each array text is roughly four times the size of the payload it encodes. On the default `--gzip=always` path that meant allocating, and immediately garbaging, a string several times larger than the entire `dist/` on every run. Only `--gzip=compiler` ever emits both arrays. Peak memory during generation drops by about 4× the uncompressed payload size.
+
+- **Scanning the source directory is no longer quadratic.** Pre-compressed files are skipped when the original is also present, but that check was a linear array search repeated for every file. This is the common case rather than a corner: plugins such as `vite-plugin-compression` emit a `.gz` beside _every_ asset, so the search ran n times over an n-element list. It is now a single set lookup.
+
+- **All four engines now generate their header from the shared helpers in `cppCode.ts`.** The ESP-IDF generator carried its own inline copies of five of the six shared blocks — the `#warning` ladder, the data arrays, the ETag arrays, the manifest and the hook — one of them byte-identical to the shared version. Drift between per-engine copies is exactly what caused the missing `304` headers fixed in 3.2.1, so the copies are gone: `cppCodeEspIdf.ts` drops from 204 to 120 lines, and the shared helpers are parameterised for the differences that genuinely vary (C typedef vs C++ struct, `unsigned char` vs `uint8_t`, PROGMEM, `extern "C"`). A new `gateGzip()` helper, mirroring the existing `gateEtag()`, replaces six hand-written `#ifdef` ladders.
+
+- Deduplicated RC-file validation — nine copy-pasted property checks, plus the list of `$npm_package_`-interpolatable fields that previously had to be kept in step across three places — and the two near-identical option-building blocks in the Vite plugin. Error messages and validation order are unchanged.
+
 ## [3.2.4] - 2026-08-08
 
 ### Changed
