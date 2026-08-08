@@ -20,43 +20,81 @@ interface VitePlugin {
 }
 
 export interface SvelteESP32PluginOptions {
-  /** Output .h file path (required when using plugin options) */
+  /**
+  Output .h file path (required when using plugin options)
+  */
   output?: string;
-  /** Source directory — defaults to Vite's build.outDir */
+  /**
+  Source directory — defaults to Vite's build.outDir
+  */
   sourcepath?: string;
-  /** Target engine (default: 'psychic') */
+  /**
+  Target engine (default: 'psychic')
+  */
   engine?: 'psychic' | 'async' | 'espidf' | 'webserver';
-  /** ETag generation (default: 'never') */
+  /**
+  ETag generation (default: 'never')
+  */
   etag?: 'always' | 'never' | 'compiler';
-  /** Gzip compression (default: 'always') */
+  /**
+  Gzip compression (default: 'always')
+  */
   gzip?: 'always' | 'never' | 'compiler';
-  /** Cache-Control max-age in seconds (default: 0) */
+  /**
+  Cache-Control max-age in seconds (default: 0)
+  */
   cachetime?: number;
-  /** Cache-Control max-age for HTML files (overrides cachetime) */
+  /**
+  Cache-Control max-age for HTML files (overrides cachetime)
+  */
   cachetimehtml?: number;
-  /** Cache-Control max-age for non-HTML assets (overrides cachetime) */
+  /**
+  Cache-Control max-age for non-HTML assets (overrides cachetime)
+  */
   cachetimeassets?: number;
-  /** Files to exclude (glob patterns) */
+  /**
+  Files to exclude (glob patterns)
+  */
   exclude?: string[];
-  /** URL base path prefix (e.g. '/ui') */
+  /**
+  URL base path prefix (e.g. '/ui')
+  */
   basepath?: string;
-  /** Generated method name (default: 'initSvelteStaticFiles') */
+  /**
+  Generated method name (default: 'initSvelteStaticFiles')
+  */
   espmethod?: string;
-  /** C++ #define prefix (default: 'SVELTEESP32') */
+  /**
+  C++ #define prefix (default: 'SVELTEESP32')
+  */
   define?: string;
-  /** Version string to embed in the header */
+  /**
+  Version string to embed in the header
+  */
   version?: string;
-  /** Include creation timestamp (default: false) */
+  /**
+  Include creation timestamp (default: false)
+  */
   created?: boolean;
-  /** Serve index.html for unmatched routes (SPA routing) */
+  /**
+  Serve index.html for unmatched routes (SPA routing)
+  */
   spa?: boolean;
-  /** Write companion JSON manifest alongside the header */
+  /**
+  Write companion JSON manifest alongside the header
+  */
   manifest?: boolean;
-  /** Skip index.html validation */
+  /**
+  Skip index.html validation
+  */
   noindexcheck?: boolean;
-  /** Maximum total uncompressed size in bytes */
+  /**
+  Maximum total uncompressed size in bytes
+  */
   maxsize?: number;
-  /** Maximum total gzip size in bytes */
+  /**
+  Maximum total gzip size in bytes
+  */
   maxgzipsize?: number;
 }
 
