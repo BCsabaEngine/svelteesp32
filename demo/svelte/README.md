@@ -8,6 +8,19 @@ With minimal functionality, it can emulate a working Svelte application, which h
 
 `src/App.svelte` renders an uptime/LED status card and a "Toggle LED" button. On mount, and after every toggle, it calls the JSON endpoints `GET /api/status` and `POST /api/toggle`, which the firmware implements alongside the static files served from this app's build output — one handler each for the `psychic`, `async` and `webserver` engines in `../esp32/src`, and the `espidf` equivalent in `../esp32idf/src/main.c`. So the same board serves both the UI and its live data. Building this app (`npm run build`) produces the `dist` folder; the root project's `npm run dev:psychic` / `dev:async` / `dev:webserver` watches `src/index.ts` and converts that `dist` folder into `demo/esp32/include/svelteesp32.h`, the C++ header actually flashed onto the ESP32 via PlatformIO (`npm run test:esp32` from the repo root).
 
+## The `build` script emits two deliberate test fixtures
+
+`npm run build` is not a plain `vite build` — it appends two steps that exist purely to exercise `src/file.ts` on every regeneration:
+
+```jsonc
+"build": "vite build && gzip -c ./dist/favicon.png > ./dist/favicon.png.gz && cp ./dist/gallery/esp32-2.jpg ./dist/gallery/esp32-2a.jpg"
+```
+
+- **`favicon.png.gz` next to `favicon.png`** covers the pre-compressed skip: `shouldSkipFile()` drops a `.gz`/`.br`/`.brotli` file when the un-suffixed original is also present, so the generator never embeds the same asset twice. Running the CLI over this `dist` prints `favicon.png.gz skipped — likely a compressed version of favicon.png`.
+- **`gallery/esp32-2a.jpg`, a byte-identical copy of `esp32-2.jpg`** covers duplicate detection: `findSimilarFiles()` groups files by SHA256 and warns `gallery/esp32-2.jpg, gallery/esp32-2a.jpg files appear identical`.
+
+Both are warnings, not errors — the files still land in the header. Do not "clean up" either one; deleting them silently removes the only coverage those two code paths get outside the unit tests.
+
 ## `dist` is committed on purpose
 
 Unlike a normal Svelte project, `dist` is checked into git rather than ignored. Every generated header in the repo — the 37 variants that `./package.script` writes into `../esp32/include/` and `../esp32idf/include/` — is built from it, so committing `dist` is what lets those headers (and the PlatformIO builds) be regenerated without installing this app's dependencies or running a Svelte build at all.
