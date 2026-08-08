@@ -65,7 +65,6 @@ export type TemplateData = {
   basePath: string;
   spa: boolean;
   spaSource: TransformedSource | undefined;
-  isPsychic: boolean;
   uriHandlers: string;
   maxUriHandlers: string;
 };
@@ -81,6 +80,23 @@ export const gateEtag = (d: TemplateData, body: string, indent = '  '): string =
     always: body,
     compiler: [`${indent}#ifdef ${d.definePrefix}_ENABLE_ETAG`, body, `${indent}#endif`].join('\n')
   });
+
+// The gzip counterpart of gateEtag. `plainBody` is empty for blocks that only exist when gzip is
+// on - the Content-Encoding header - and those must not grow an #else arm; when both bodies are
+// empty there is nothing to fence and the #ifdef itself is omitted.
+export const gateGzip = (d: TemplateData, gzipBody: string, plainBody: string, indent = '  '): string => {
+  if (!gzipBody && !plainBody) return '';
+  return sw(d.gzip, {
+    always: gzipBody,
+    never: plainBody,
+    compiler: [
+      `${indent}#ifdef ${d.definePrefix}_ENABLE_GZIP`,
+      gzipBody,
+      ...(plainBody ? [`${indent}#else`, plainBody] : []),
+      `${indent}#endif`
+    ].join('\n')
+  });
+};
 
 // Cache-Control is independent of the ETag switch: --cachetime must survive --etag=never, and an
 // ifdef'd-out ETag must not take caching down with it. Only the validator line is gated.
@@ -121,7 +137,12 @@ export const computeRouteCount = (
   return sources.length + numberDefault + spaExtra;
 };
 
-export const genCommonHeader = (d: TemplateData): string => {
+// Who gets the _URI_HANDLERS defines: espidf's httpd_config_t.max_uri_handlers actually consumes
+// them ('loadBearing'), psychic overwrites server.config.max_uri_handlers in start() so they are
+// documentation only ('informational'), and async/webserver have no handler table to size.
+export type UriHandlerMode = 'none' | 'informational' | 'loadBearing';
+
+export const genCommonHeader = (d: TemplateData, uriHandlerMode: UriHandlerMode): string => {
   const lines: string[] = [];
   const etagWarn = sw(d.etag, {
     always: [
@@ -156,13 +177,17 @@ export const genCommonHeader = (d: TemplateData): string => {
     `#define ${d.definePrefix}_SIZE ${d.fileSize}`,
     `#define ${d.definePrefix}_SIZE_GZIP ${d.fileGzipSize}`
   );
-  if (d.isPsychic)
+  if (uriHandlerMode !== 'none') {
+    if (uriHandlerMode === 'informational')
+      lines.push(
+        `// Informational: PsychicHttp 3.x sizes the esp-idf handler table itself in start(), so`,
+        `// assigning these to server.config.max_uri_handlers has no effect.`
+      );
     lines.push(
-      `// Informational: PsychicHttp 3.x sizes the esp-idf handler table itself in start(), so`,
-      `// assigning these to server.config.max_uri_handlers has no effect.`,
       `#define ${d.definePrefix}_URI_HANDLERS ${d.uriHandlers}`,
       `#define ${d.definePrefix}_MAX_URI_HANDLERS ${d.maxUriHandlers}`
     );
+  }
   lines.push('//');
   for (const s of d.sources) lines.push(`#define ${d.definePrefix}_FILE_${s.datanameUpperCase}`);
   lines.push('//');
@@ -172,14 +197,14 @@ export const genCommonHeader = (d: TemplateData): string => {
 
 // Not routed through sw(): its cases object would force both arms to be built, and only the
 // 'compiler' mode actually emits both. Branching explicitly keeps the discarded arm uncomputed.
-export const genDataArrays = (d: TemplateData, isProgmem: boolean): string => {
-  const mem = isProgmem ? ' PROGMEM' : '';
+export const genDataArrays = (d: TemplateData, options: { elementType: string; isProgmem: boolean }): string => {
+  const mem = options.isProgmem ? ' PROGMEM' : '';
   const arrays = (isGzipped: boolean): string =>
     d.sources
       .map((s) =>
         isGzipped
-          ? `static const uint8_t datagzip_${s.dataname}[${s.lengthGzip}]${mem} = { ${bufferToByteString(s.contentGzip)} };`
-          : `static const uint8_t data_${s.dataname}[${s.length}]${mem} = { ${bufferToByteString(s.content)} };`
+          ? `static const ${options.elementType} datagzip_${s.dataname}[${s.lengthGzip}]${mem} = { ${bufferToByteString(s.contentGzip)} };`
+          : `static const ${options.elementType} data_${s.dataname}[${s.length}]${mem} = { ${bufferToByteString(s.content)} };`
       )
       .join('\n');
   if (d.gzip === 'always') return arrays(true);
@@ -196,16 +221,17 @@ export const genEtagArrays = (d: TemplateData): string =>
     ''
   );
 
-export const genManifest = (d: TemplateData): string =>
+// espidf's header is compiled as C, where a bare `struct X {}` does not introduce the bare name X.
+export const genManifest = (d: TemplateData, isCStyle = false): string =>
   [
-    `// File manifest struct`,
-    `struct ${d.definePrefix}_FileInfo {`,
+    isCStyle ? `// File manifest struct (C-compatible typedef)` : `// File manifest struct`,
+    isCStyle ? `typedef struct {` : `struct ${d.definePrefix}_FileInfo {`,
     `  const char* path;`,
     `  uint32_t size;`,
     `  uint32_t gzipSize;`,
     `  const char* etag;`,
     `  const char* contentType;`,
-    `};`,
+    isCStyle ? `} ${d.definePrefix}_FileInfo;` : `};`,
     `// File manifest array`,
     `static const ${d.definePrefix}_FileInfo ${d.definePrefix}_FILES[] = {`,
     ...d.sources.map(
@@ -216,8 +242,12 @@ export const genManifest = (d: TemplateData): string =>
     `static const size_t ${d.definePrefix}_FILE_COUNT = sizeof(${d.definePrefix}_FILES) / sizeof(${d.definePrefix}_FILES[0]);`
   ].join('\n');
 
-export const genHook = (d: TemplateData): string =>
-  `// File served hook - override with your own implementation\nextern "C" void __attribute__((weak)) ${d.definePrefix}_onFileServed(const char* path, int statusCode) {}`;
+// The C++ engines need extern "C" so the weak symbol keeps a C name users can override from either
+// language; espidf's header is already C, where the attribute leads and extern "C" is not a thing.
+export const genHook = (d: TemplateData, isExternC = true): string => {
+  const signature = isExternC ? 'extern "C" void __attribute__((weak))' : '__attribute__((weak)) void';
+  return `// File served hook - override with your own implementation\n${signature} ${d.definePrefix}_onFileServed(const char* path, int statusCode) {}`;
+};
 
 const getGenerator = (engine: ICopyFilesArguments['engine']): ((d: TemplateData) => string) => {
   switch (engine) {
@@ -281,7 +311,6 @@ export const getCppCode = (
     basePath: options.basePath,
     spa: !!options.spa,
     spaSource,
-    isPsychic: options.engine === 'psychic',
     uriHandlers: routeCount.toString(),
     maxUriHandlers: (routeCount + 5).toString()
   };

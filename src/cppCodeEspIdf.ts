@@ -1,5 +1,15 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { bufferToByteString, cacheCtrl, etagLiteral, gateEtag, genCacheHeaders, sw } from './cppCode';
+import {
+  cacheCtrl,
+  gateEtag,
+  gateGzip,
+  genCacheHeaders,
+  genCommonHeader,
+  genDataArrays,
+  genEtagArrays,
+  genHook,
+  genManifest
+} from './cppCode';
 
 const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): string => {
   const path = `${d.basePath}/${source.filename}`;
@@ -29,37 +39,19 @@ const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): strin
   const etagCheck = gateEtag(d, etagBody);
   if (etagCheck) lines.push(etagCheck);
   lines.push(`    httpd_resp_set_type(req, "${source.mime}");`);
-  const gzipEncoding = sw(d.gzip, {
-    always: source.isGzip ? `    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");` : '',
-    compiler: source.isGzip
-      ? [
-          `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-          `    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");`,
-          `  #endif`
-        ].join('\n')
-      : ''
-  });
+  const gzipEncoding = gateGzip(d, source.isGzip ? `    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");` : '', '');
   if (gzipEncoding) lines.push(gzipEncoding);
   lines.push(
     genCacheHeaders(d, source, (h, v) => `    httpd_resp_set_hdr(req, "${h}", ${v});`),
-    sw(d.gzip, {
-      always: [
-        `    ${d.definePrefix}_onFileServed("${path}", 200);`,
-        `    httpd_resp_send(req, (const char *)datagzip_${source.dataname}, ${source.lengthGzip});`
-      ].join('\n'),
-      never: [
-        `    ${d.definePrefix}_onFileServed("${path}", 200);`,
-        `    httpd_resp_send(req, (const char *)data_${source.dataname}, ${source.length});`
-      ].join('\n'),
-      compiler: [
-        `    ${d.definePrefix}_onFileServed("${path}", 200);`,
-        `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
+    // The hook fires before the send in every mode, so it sits outside the gzip gate.
+    [
+      `    ${d.definePrefix}_onFileServed("${path}", 200);`,
+      gateGzip(
+        d,
         `    httpd_resp_send(req, (const char *)datagzip_${source.dataname}, ${source.lengthGzip});`,
-        `  #else`,
-        `    httpd_resp_send(req, (const char *)data_${source.dataname}, ${source.length});`,
-        `  #endif`
-      ].join('\n')
-    }),
+        `    httpd_resp_send(req, (const char *)data_${source.dataname}, ${source.length});`
+      )
+    ].join('\n'),
     `    return ESP_OK;`,
     `}`
   );
@@ -88,97 +80,22 @@ export const genEspIdfCpp = (d: TemplateData): string => {
     `//engine:   espidf`,
     `//config:   ${d.config}`,
     ...(d.created ? [`//created:  ${d.now}`] : []),
-    '//'
-  ];
-  const etagWarn = sw(d.etag, {
-    always: [
-      `#ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `#warning ${d.definePrefix}_ENABLE_ETAG has no effect because it is permanently switched ON`,
-      `#endif`
-    ].join('\n'),
-    never: [
-      `#ifdef ${d.definePrefix}_ENABLE_ETAG`,
-      `#warning ${d.definePrefix}_ENABLE_ETAG has no effect because it is permanently switched OFF`,
-      `#endif`
-    ].join('\n')
-  });
-  if (etagWarn) lines.push(etagWarn);
-  const gzipWarn = sw(d.gzip, {
-    always: [
-      `#ifdef ${d.definePrefix}_ENABLE_GZIP`,
-      `#warning ${d.definePrefix}_ENABLE_GZIP has no effect because it is permanently switched ON`,
-      `#endif`
-    ].join('\n'),
-    never: [
-      `#ifdef ${d.definePrefix}_ENABLE_GZIP`,
-      `#warning ${d.definePrefix}_ENABLE_GZIP has no effect because it is permanently switched OFF`,
-      `#endif`
-    ].join('\n')
-  });
-  if (gzipWarn) lines.push(gzipWarn);
-  lines.push('//');
-  if (d.version) lines.push(`#define ${d.definePrefix}_VERSION "${d.version}"`);
-  lines.push(
-    `#define ${d.definePrefix}_COUNT ${d.fileCount}`,
-    `#define ${d.definePrefix}_SIZE ${d.fileSize}`,
-    `#define ${d.definePrefix}_SIZE_GZIP ${d.fileGzipSize}`,
-    `#define ${d.definePrefix}_URI_HANDLERS ${d.uriHandlers}`,
-    `#define ${d.definePrefix}_MAX_URI_HANDLERS ${d.maxUriHandlers}`,
     '//',
-    ...d.sources.map((s) => `#define ${d.definePrefix}_FILE_${s.datanameUpperCase}`),
-    '//',
-    ...d.filesByExtension.map((g) => `#define ${d.definePrefix}_${g.extension}_FILES ${g.count}`),
+    // espidf is the one engine where the handler counts are load-bearing: httpd_config_t.max_uri_handlers
+    // reads them, so they are emitted without psychic's "informational only" disclaimer.
+    genCommonHeader(d, 'loadBearing'),
     '#include <stdint.h>',
     '#include <string.h>',
     '#include <stdlib.h>',
     '#include <esp_err.h>',
     '#include <esp_http_server.h>',
-    '//'
-  );
-  // Branch explicitly rather than via sw(): only 'compiler' emits both arms, and each array text is
-  // ~4x the payload size, so building the discarded one costs megabytes per run.
-  const dataBlock = (): string => {
-    const arrays = (isGzipped: boolean): string =>
-      d.sources
-        .map((s) =>
-          isGzipped
-            ? `static const unsigned char datagzip_${s.dataname}[${s.lengthGzip}] = { ${bufferToByteString(s.contentGzip)} };`
-            : `static const unsigned char data_${s.dataname}[${s.length}] = { ${bufferToByteString(s.content)} };`
-        )
-        .join('\n');
-    if (d.gzip === 'always') return arrays(true);
-    if (d.gzip === 'never') return arrays(false);
-    if (d.gzip === 'compiler')
-      return [`#ifdef ${d.definePrefix}_ENABLE_GZIP`, arrays(true), '#else', arrays(false), '#endif'].join('\n');
-    return '';
-  };
-  lines.push(dataBlock(), '//');
-  const etagBlock = gateEtag(
-    d,
-    d.sources.map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`).join('\n'),
-    ''
-  );
-  if (etagBlock) lines.push(etagBlock);
-  lines.push(
-    `// File manifest struct (C-compatible typedef)`,
-    `typedef struct {`,
-    `  const char* path;`,
-    `  uint32_t size;`,
-    `  uint32_t gzipSize;`,
-    `  const char* etag;`,
-    `  const char* contentType;`,
-    `} ${d.definePrefix}_FileInfo;`,
-    `// File manifest array`,
-    `static const ${d.definePrefix}_FileInfo ${d.definePrefix}_FILES[] = {`,
-    ...d.sources.map(
-      (s) =>
-        `  { "${d.basePath}/${s.filename}", ${s.length}, ${s.gzipSizeForManifest}, ${s.etagForManifest}, "${s.mime}" },`
-    ),
-    `};`,
-    `static const size_t ${d.definePrefix}_FILE_COUNT = sizeof(${d.definePrefix}_FILES) / sizeof(${d.definePrefix}_FILES[0]);`,
-    `// File served hook - override with your own implementation`,
-    `__attribute__((weak)) void ${d.definePrefix}_onFileServed(const char* path, int statusCode) {}`
-  );
+    '//',
+    genDataArrays(d, { elementType: 'unsigned char', isProgmem: false }),
+    '//',
+    genEtagArrays(d),
+    genManifest(d, true),
+    genHook(d, false)
+  ];
   for (const source of d.sources) lines.push(genEspIdfFileHandler(d, source));
   if (d.spa && d.spaSource) {
     const source = d.spaSource;

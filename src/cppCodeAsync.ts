@@ -2,13 +2,13 @@ import type { TemplateData, TransformedSource } from './cppCode';
 import {
   cacheCtrl,
   gateEtag,
+  gateGzip,
   genCacheHeaders,
   genCommonHeader,
   genDataArrays,
   genEtagArrays,
   genHook,
-  genManifest,
-  sw
+  genManifest
 } from './cppCode';
 
 const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: string): string => {
@@ -40,21 +40,14 @@ const genAsyncHandlerBody = (d: TemplateData, source: TransformedSource, path: s
       `      : request->beginResponse(200, "${source.mime}", ${array}_${source.dataname}, ${length});`
     ].join('\n');
   lines.push(
-    sw(d.gzip, {
-      always: [
+    gateGzip(
+      d,
+      [
         beginResponse('datagzip', source.lengthGzip),
         ...(source.isGzip ? [`    response->addHeader("Content-Encoding", "gzip");`] : [])
       ].join('\n'),
-      never: beginResponse('data', source.length),
-      compiler: [
-        `  #ifdef ${d.definePrefix}_ENABLE_GZIP`,
-        beginResponse('datagzip', source.lengthGzip),
-        ...(source.isGzip ? [`    response->addHeader("Content-Encoding", "gzip");`] : []),
-        `  #else`,
-        beginResponse('data', source.length),
-        `  #endif`
-      ].join('\n')
-    }),
+      beginResponse('data', source.length)
+    ),
     // Must follow beginResponse(): there is no `response` to hang the headers on before it.
     genCacheHeaders(d, source, (h, v) => `    response->addHeader("${h}", ${v});`),
     `    ${d.definePrefix}_onFileServed("${path}", 200);`,
@@ -69,12 +62,12 @@ export const genAsyncCpp = (d: TemplateData): string => {
     `//config:   ${d.config}`,
     ...(d.created ? [`//created:  ${d.now}`] : []),
     '//',
-    genCommonHeader(d),
+    genCommonHeader(d, 'none'),
     '//',
     '#include <Arduino.h>',
     '#include <ESPAsyncWebServer.h>',
     '//',
-    genDataArrays(d, true),
+    genDataArrays(d, { elementType: 'uint8_t', isProgmem: true }),
     '//',
     genEtagArrays(d),
     '//',
