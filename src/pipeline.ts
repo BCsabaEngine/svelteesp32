@@ -99,13 +99,13 @@ const toDataName = (filename: string): string => {
 Group filenames that sanitize to the same C++ identifier. Compared case-insensitively,
 because the generated header also emits uppercased symbols (defines, ESP-IDF handlers).
 */
-const findIdentifierCollisions = (filenames: string[]): IdentifierCollision[] => {
+const findIdentifierCollisions = (datanames: ReadonlyMap<string, string>): IdentifierCollision[] => {
   const byIdentifier = new Map<string, IdentifierCollision>();
-  for (const filename of filenames) {
-    const identifier = toDataName(filename);
-    const collision = byIdentifier.get(identifier.toUpperCase());
+  for (const [filename, identifier] of datanames) {
+    const key = identifier.toUpperCase();
+    const collision = byIdentifier.get(key);
     if (collision) collision.files.push(filename);
-    else byIdentifier.set(identifier.toUpperCase(), { identifier, files: [filename] });
+    else byIdentifier.set(key, { identifier, files: [filename] });
   }
 
   return byIdentifier
@@ -145,6 +145,11 @@ const sizeCellFor = (s: CppCodeSource): string => {
   return orig;
 };
 
+// Column widths come from a reduce, not `Math.max(...array)`: spreading into a call blows V8's
+// argument limit and throws RangeError once the list is long enough, which a large dist can reach.
+const maxLength = <T>(items: readonly T[], select: (item: T) => string, initial = 0): number =>
+  items.reduce((longest, item) => Math.max(longest, select(item).length), initial);
+
 const formatDryRunRoutes = (
   sources: CppCodeSources,
   engine: 'psychic' | 'async' | 'espidf' | 'webserver',
@@ -179,9 +184,9 @@ const formatDryRunRoutes = (
     rows.push({ url: spaUrl, mime: defaultSource.mime, sizeCell: '', tag: '[SPA catch-all → index.html]' });
   }
 
-  const urlWidth = Math.max(...rows.map((r) => r.url.length));
-  const mimeWidth = Math.max(...rows.map((r) => r.mime.length));
-  const sizeWidth = Math.max(...rows.map((r) => r.sizeCell.length));
+  const urlWidth = maxLength(rows, (r) => r.url);
+  const mimeWidth = maxLength(rows, (r) => r.mime);
+  const sizeWidth = maxLength(rows, (r) => r.sizeCell);
 
   return rows
     .map((r) => {
@@ -205,9 +210,9 @@ const formatAnalyzeTable = (
     tag: s.isGzip ? '' : '[no gzip]'
   }));
 
-  const fileWidth = Math.max(4, ...rows.map((r) => r.file.length), 'Total'.length);
-  const origWidth = Math.max(8, ...rows.map((r) => r.orig.length), formatSizePrecise(summary.size).length);
-  const gzipWidth = Math.max(8, ...rows.map((r) => r.gzip.length), formatSizePrecise(summary.gzipsize).length);
+  const fileWidth = maxLength(rows, (r) => r.file, Math.max(4, 'Total'.length));
+  const origWidth = maxLength(rows, (r) => r.orig, Math.max(8, formatSizePrecise(summary.size).length));
+  const gzipWidth = maxLength(rows, (r) => r.gzip, Math.max(8, formatSizePrecise(summary.gzipsize).length));
 
   const separator = `${'─'.repeat(fileWidth)}  ${'─'.repeat(origWidth)}  ${'─'.repeat(gzipWidth)}`;
   const header = `${'File'.padEnd(fileWidth)}  ${'Original'.padEnd(origWidth)}  ${'Gzip'.padEnd(gzipWidth)}`;
@@ -272,7 +277,7 @@ const formatChangeSummary = (sources: CppCodeSources, previousFiles: PreviousMan
     ...removed.map((f) => f.path),
     ...modified.map((m) => m.source.filename)
   ];
-  const nameWidth = Math.max(...allNames.map((n) => n.length));
+  const nameWidth = maxLength(allNames, (n) => n);
 
   const lines: string[] = ['Change summary:'];
 
@@ -310,10 +315,21 @@ export function runPipeline(options: ICopyFilesArguments): void {
   const files = getFiles(options);
   if (files.size === 0) throw new Error(`Directory ${options.sourcepath} is empty`);
 
-  const collisions = findIdentifierCollisions(files.keys().toArray());
+  // One pass for everything the file names alone can answer. The datanames are reused by the
+  // compression loop below, so toDataName runs once per file rather than once here and once there.
+  const datanames = new Map<string, string>();
+  let longestFilename = 0;
+  let hasDefaultFile = false;
+  for (const filename of files.keys()) {
+    datanames.set(filename, toDataName(filename));
+    if (filename.length > longestFilename) longestFilename = filename.length;
+    if (filename === 'index.html' || filename === 'index.htm') hasDefaultFile = true;
+  }
+
+  const collisions = findIdentifierCollisions(datanames);
   if (collisions.length > 0) throw new Error(getIdentifierCollisionError(collisions));
 
-  if (options.spa && files.keys().every((f) => !(f === 'index.html' || f === 'index.htm')))
+  if (!hasDefaultFile && options.spa)
     console.warn(
       yellowLog(
         '[SvelteESP32] Warning: --spa is set but no index.html/index.htm found; catch-all will not be generated.'
@@ -322,7 +338,6 @@ export function runPipeline(options: ICopyFilesArguments): void {
 
   console.log();
   console.log('Translation to header file');
-  const longestFilename = files.keys().reduce((p, c) => Math.max(c.length, p), 0);
 
   for (const [originalFilename, fileData] of files) {
     const { content, hash: sha256 } = fileData;
@@ -338,7 +353,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
 
     // Normalize filename and generate data name
     const filename = originalFilename.replace(/\\/g, '/');
-    const dataname = toDataName(originalFilename);
+    const dataname = datanames.get(originalFilename)!;
 
     // Extract and update file extension statistics
     let extension = path.extname(filename).toUpperCase();
