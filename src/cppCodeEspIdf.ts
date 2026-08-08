@@ -1,5 +1,5 @@
 import type { TemplateData, TransformedSource } from './cppCode';
-import { cacheCtrl, etagLiteral, gateEtag, genCacheHeaders, sw } from './cppCode';
+import { bufferToByteString, cacheCtrl, etagLiteral, gateEtag, genCacheHeaders, sw } from './cppCode';
 
 const genEspIdfFileHandler = (d: TemplateData, source: TransformedSource): string => {
   const path = `${d.basePath}/${source.filename}`;
@@ -135,20 +135,24 @@ export const genEspIdfCpp = (d: TemplateData): string => {
     '#include <esp_http_server.h>',
     '//'
   );
-  const gzipArrays = d.sources
-    .map((s) => `static const unsigned char datagzip_${s.dataname}[${s.lengthGzip}] = { ${s.bytesGzip} };`)
-    .join('\n');
-  const plainArrays = d.sources
-    .map((s) => `static const unsigned char data_${s.dataname}[${s.length}] = { ${s.bytes} };`)
-    .join('\n');
-  lines.push(
-    sw(d.gzip, {
-      always: gzipArrays,
-      never: plainArrays,
-      compiler: [`#ifdef ${d.definePrefix}_ENABLE_GZIP`, gzipArrays, '#else', plainArrays, '#endif'].join('\n')
-    }),
-    '//'
-  );
+  // Branch explicitly rather than via sw(): only 'compiler' emits both arms, and each array text is
+  // ~4x the payload size, so building the discarded one costs megabytes per run.
+  const dataBlock = (): string => {
+    const arrays = (isGzipped: boolean): string =>
+      d.sources
+        .map((s) =>
+          isGzipped
+            ? `static const unsigned char datagzip_${s.dataname}[${s.lengthGzip}] = { ${bufferToByteString(s.contentGzip)} };`
+            : `static const unsigned char data_${s.dataname}[${s.length}] = { ${bufferToByteString(s.content)} };`
+        )
+        .join('\n');
+    if (d.gzip === 'always') return arrays(true);
+    if (d.gzip === 'never') return arrays(false);
+    if (d.gzip === 'compiler')
+      return [`#ifdef ${d.definePrefix}_ENABLE_GZIP`, arrays(true), '#else', arrays(false), '#endif'].join('\n');
+    return '';
+  };
+  lines.push(dataBlock(), '//');
   const etagBlock = gateEtag(
     d,
     d.sources.map((s) => `static const char etag_${s.dataname}[] = ${etagLiteral(s.sha256)};`).join('\n'),

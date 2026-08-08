@@ -397,7 +397,7 @@ export function runPipeline(options: ICopyFilesArguments): void {
     return;
   }
 
-  const cppFile = getCppCode(sources, filesByExtension, options);
+  const cppFile = getCppCode(sources, filesByExtension, options, summary);
   mkdirSync(path.normalize(path.dirname(options.outputfile)), { recursive: true });
   writeFileSync(options.outputfile, cppFile, { flush: true, encoding: 'utf8' });
 
