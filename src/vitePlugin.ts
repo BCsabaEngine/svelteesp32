@@ -103,6 +103,49 @@ function coerceBool(value: boolean | 'true' | 'false' | undefined): boolean | un
   return value === true || value === 'true';
 }
 
+// The RC file and the plugin options carry the same key names (only outputfile/output differ) but
+// different value types: RC booleans may arrive as "true"/"false" strings, plugin options are real
+// booleans. coerceBool accepts both, so one builder covers the two modes and they cannot drift.
+type ConfigSource = Omit<SvelteESP32PluginOptions, 'output' | 'created' | 'noindexcheck' | 'spa' | 'manifest'> & {
+  created?: boolean | 'true' | 'false';
+  noindexcheck?: boolean | 'true' | 'false';
+  spa?: boolean | 'true' | 'false';
+  manifest?: boolean | 'true' | 'false';
+};
+
+function buildArguments(
+  source: ConfigSource,
+  resolved: {
+    configSource: ICopyFilesArguments['configSource'];
+    sourcepath: string;
+    outputfile: string;
+    basePath: string;
+  }
+): ICopyFilesArguments {
+  return {
+    configSource: resolved.configSource,
+    engine: source.engine ?? 'psychic',
+    sourcepath: resolved.sourcepath,
+    outputfile: resolved.outputfile,
+    etag: source.etag ?? 'never',
+    gzip: source.gzip ?? 'always',
+    cachetime: source.cachetime ?? 0,
+    cachetimeHtml: source.cachetimehtml,
+    cachetimeAssets: source.cachetimeassets,
+    created: coerceBool(source.created) ?? false,
+    version: source.version ?? '',
+    espmethod: source.espmethod ?? 'initSvelteStaticFiles',
+    define: source.define ?? 'SVELTEESP32',
+    exclude: source.exclude ?? [],
+    basePath: resolved.basePath,
+    noIndexCheck: coerceBool(source.noindexcheck),
+    spa: coerceBool(source.spa),
+    manifest: coerceBool(source.manifest),
+    maxSize: source.maxsize,
+    maxGzipSize: source.maxgzipsize
+  };
+}
+
 /**
 Vite plugin for svelteesp32.
 
@@ -147,28 +190,14 @@ export function svelteESP32(optionsOrRcPath?: SvelteESP32PluginOptions | string)
         const rawBasepath = rcConfig.basepath ?? '';
         const basePath = validateBasePath(rawBasepath);
 
-        options_ = {
-          configSource: 'rcfile',
-          engine: rcConfig.engine ?? 'psychic',
-          sourcepath,
-          outputfile,
-          etag: rcConfig.etag ?? 'never',
-          gzip: rcConfig.gzip ?? 'always',
-          cachetime: rcConfig.cachetime ?? 0,
-          cachetimeHtml: rcConfig.cachetimehtml,
-          cachetimeAssets: rcConfig.cachetimeassets,
-          created: coerceBool(rcConfig.created) ?? false,
-          version: rcConfig.version ?? '',
-          espmethod: rcConfig.espmethod ?? 'initSvelteStaticFiles',
-          define: rcConfig.define ?? 'SVELTEESP32',
-          exclude: rcConfig.exclude ?? [],
-          basePath,
-          noIndexCheck: coerceBool(rcConfig.noindexcheck),
-          spa: coerceBool(rcConfig.spa),
-          manifest: coerceBool(rcConfig.manifest),
-          maxSize: rcConfig.maxsize as number | undefined,
-          maxGzipSize: rcConfig.maxgzipsize as number | undefined
-        };
+        options_ = buildArguments(
+          {
+            ...rcConfig,
+            maxsize: rcConfig.maxsize as number | undefined,
+            maxgzipsize: rcConfig.maxgzipsize as number | undefined
+          },
+          { configSource: 'rcfile', sourcepath, outputfile, basePath }
+        );
       } else {
         // Plugin options mode — use options exclusively, RC file is ignored
         const options = optionsOrRcPath;
@@ -182,28 +211,7 @@ export function svelteESP32(optionsOrRcPath?: SvelteESP32PluginOptions | string)
         const rawBasepath = options.basepath ?? '';
         const basePath = validateBasePath(rawBasepath);
 
-        options_ = {
-          configSource: 'vite',
-          engine: options.engine ?? 'psychic',
-          sourcepath,
-          outputfile,
-          etag: options.etag ?? 'never',
-          gzip: options.gzip ?? 'always',
-          cachetime: options.cachetime ?? 0,
-          cachetimeHtml: options.cachetimehtml,
-          cachetimeAssets: options.cachetimeassets,
-          created: options.created ?? false,
-          version: options.version ?? '',
-          espmethod: options.espmethod ?? 'initSvelteStaticFiles',
-          define: options.define ?? 'SVELTEESP32',
-          exclude: options.exclude ?? [],
-          basePath,
-          noIndexCheck: options.noindexcheck,
-          spa: options.spa,
-          manifest: options.manifest,
-          maxSize: options.maxsize,
-          maxGzipSize: options.maxgzipsize
-        };
+        options_ = buildArguments(options, { configSource: 'vite', sourcepath, outputfile, basePath });
       }
 
       runPipeline(options_);

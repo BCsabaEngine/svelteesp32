@@ -464,7 +464,6 @@ export function runPipeline(options: ICopyFilesArguments): void {
 export {
   calculateCompressionRatio,
   createSourceEntry,
-  findIdentifierCollisions,
   formatAnalyzeTable,
   formatChangeSummary,
   formatCompressionLog,
@@ -472,6 +471,5 @@ export {
   formatSize,
   formatSizePrecise,
   shouldUseGzip,
-  toDataName,
   updateExtensionGroup
 };
