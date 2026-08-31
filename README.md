@@ -1,4 +1,4 @@
-# svelteesp32 ![image](https://badges.github.io/stability-badges/dist/stable.svg)
+# svelteesp32 ![Stability](https://badges.github.io/stability-badges/dist/stable.svg) [![npm version](https://img.shields.io/npm/v/svelteesp32.svg)](https://www.npmjs.com/package/svelteesp32) [![License](https://img.shields.io/npm/l/svelteesp32.svg)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/BCsabaEngine/svelteesp32/ci-full.yaml?branch=main)](https://github.com/BCsabaEngine/svelteesp32/actions/workflows/ci-full.yaml)
 
 ### Embed Any Web App in Your ESP32 — One Binary, Zero Filesystem Hassle
 
@@ -961,6 +961,12 @@ The unit tests assert on the generated header as a string, so they cannot catch 
 npm run test:esp32     # 27 environments: async / psychic / webserver × 9 ETag+gzip variants
 npm run test:esp32idf  # 10 environments: ESP-IDF, including the --spa / --basepath build
 ```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
