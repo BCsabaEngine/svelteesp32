@@ -1,0 +1,78 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the details below so it can be reproduced.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect to happen instead?
+      placeholder: |
+        Expected: ...
+        Actual: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The exact CLI command / Vite plugin options / RC file used, and any minimal input files needed to trigger it.
+      placeholder: |
+        1. Run `npx svelteesp32 -e psychic -s ./dist -o ./out.h --etag=always`
+        2. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Engine
+      description: Which engine were you generating for?
+      options:
+        - psychic
+        - async
+        - espidf
+        - webserver
+        - Not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: svelteesp32 version
+      placeholder: e.g. 3.2.1 (see `npx svelteesp32 --version` or your package.json)
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      description: Run `node --version`. This project requires Node.js >= 22.
+      placeholder: e.g. v22.4.0
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. macOS 15, Ubuntu 24.04, Windows 11
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output / generated code
+      description: Console output, error messages, or the relevant slice of the generated C++ header. This will be rendered as a code block.
+      render: shell
+    validations:
+      required: false
