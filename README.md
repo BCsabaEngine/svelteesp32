@@ -964,6 +964,12 @@ npm run test:esp32idf  # 10 environments: ESP-IDF, including the --spa / --basep
 
 ---
 
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
 **Ready to ship your web UI in a single binary?**
 
 ```bash

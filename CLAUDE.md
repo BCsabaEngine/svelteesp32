@@ -4,7 +4,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## Project Overview
 
-TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines. Node.js >= 22, npm >= 10.
+TypeScript CLI tool and Vite plugin converting frontend apps (Svelte, React, Angular, Vue) into C++ header files for ESP32/ESP8266 web servers. Gzip compression, ETag support, 4 engines. Node.js >= 22, npm >= 10. MIT licensed (`LICENSE` at repo root, mirrored in `package.json`'s `license` field).
 
 ## Commands
 
