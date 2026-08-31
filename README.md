@@ -1,4 +1,4 @@
-# svelteesp32 ![image](https://badges.github.io/stability-badges/dist/stable.svg)
+# svelteesp32 ![Stability](https://badges.github.io/stability-badges/dist/stable.svg) [![npm version](https://img.shields.io/npm/v/svelteesp32.svg)](https://www.npmjs.com/package/svelteesp32) [![License](https://img.shields.io/npm/l/svelteesp32.svg)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/BCsabaEngine/svelteesp32/ci-full.yaml?branch=main)](https://github.com/BCsabaEngine/svelteesp32/actions/workflows/ci-full.yaml)
 
 ### Embed Any Web App in Your ESP32 — One Binary, Zero Filesystem Hassle
 
