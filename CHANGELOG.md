@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.6] - 2026-09-05
+
+### Added
+
+- **`LICENSE` file at the repo root**, mirroring the MIT license already declared in `package.json`'s `license` field
+- GitHub issue templates (bug report, feature request) and a config pointing general questions to Discussions
+
+### Fixed
+
+- **Colored console output no longer forces ANSI escape codes onto non-interactive output.** `greenLog`/`yellowLog`/`redLog`/`cyanLog` wrapped every string in color codes unconditionally, so piping the CLI's output — CI logs, `--dryrun`/`--analyze` redirected to a file — embedded raw escape sequences in the saved text. Output is now colored only when attached to a TTY or `FORCE_COLOR` is set, and never when `NO_COLOR` is set, following the [NO_COLOR](https://no-color.org/) convention.
+
+### Changed
+
+- Updated npm dev dependencies: `@typescript-eslint/eslint-plugin`/`@typescript-eslint/parser` (8.68 → 8.69), `eslint` (10.9.1 → 10.10.0), `globals` (17.11 → 17.12), `memfs` (4.68.2 → 4.71.0), and `vitest`/`@vitest/coverage-v8` (4 → 5, a major bump — no config or test changes were needed)
+- `eslint.config.mjs` migrated to ESLint's `defineConfig`/`globalIgnores` flat-config helpers and added `reportUnusedDisableDirectives: 'error'`
+- Updated the `demo/svelte` toolchain (`svelte`, `svelte-check`, `vite`, `postcss`, `eslint-plugin-svelte`, and the shared lint/TypeScript packages) and committed the resulting `dist` rebuild, which changes the content-hashed asset filename and therefore the `SVELTEESP32_FILE_*` defines and ETag hashes in every generated demo header
+
 ## [3.2.5] - 2026-08-08
 
 ### Fixed

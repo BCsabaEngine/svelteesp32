@@ -1,26 +1,30 @@
 import js from '@eslint/js';
 import typescriptEslint from '@typescript-eslint/eslint-plugin';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import prettierConfig from 'eslint-config-prettier';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 
-export default [
+export default defineConfig([
+  globalIgnores([
+    '**/.DS_Store',
+    '**/node_modules',
+    '**/coverage',
+    '**/bin',
+    '**/dist',
+    '**/demo',
+    '**/.env',
+    '**/.env.*',
+    '!**/.env.example',
+    '**/pnpm-lock.yaml',
+    '**/package-lock.json',
+    '**/yarn.lock'
+  ]),
   {
-    ignores: [
-      '**/.DS_Store',
-      '**/node_modules',
-      '**/coverage',
-      '**/bin',
-      '**/dist',
-      '**/demo',
-      '**/.env',
-      '**/.env.*',
-      '!**/.env.example',
-      '**/pnpm-lock.yaml',
-      '**/package-lock.json',
-      '**/yarn.lock'
-    ]
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error'
+    }
   },
   js.configs.recommended,
   ...typescriptEslint.configs['flat/recommended'],
@@ -101,4 +105,4 @@ export default [
       '@typescript-eslint/no-redundant-type-constituents': 'error'
     }
   }
-];
+]);
