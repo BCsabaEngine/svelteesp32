@@ -1,6 +1,6 @@
 {
   "name": "svelteesp32",
-  "version": "3.2.5",
+  "version": "3.2.6",
   "description": "Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)",
   "author": "BCsabaEngine",
   "license": "MIT",
@@ -75,21 +75,21 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.1",
     "@types/picomatch": "^4.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.68.0",
-    "@typescript-eslint/parser": "^8.68.0",
-    "@vitest/coverage-v8": "^4.1.11",
-    "eslint": "^10.9.1",
+    "@typescript-eslint/eslint-plugin": "^8.69.0",
+    "@typescript-eslint/parser": "^8.69.0",
+    "@vitest/coverage-v8": "^5.0.0",
+    "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^14.0.0",
     "eslint-plugin-unicorn": "^74.0.0",
-    "globals": "^17.11.0",
-    "memfs": "^4.68.2",
+    "globals": "^17.12.0",
+    "memfs": "^4.71.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.9.6",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   },
   "peerDependencies": {
     "vite": ">=5"

@@ -91,9 +91,9 @@ void setup() {
 Your web UI is just another build artifact: build the frontend, turn `dist/` into a header, compile it into the firmware. But **svelteesp32 does not belong in your inner loop** — develop the UI with `vite dev` against the device's REST API as you always would, and only generate the header when the UI is ready to ship.
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph inner["Inner loop — all day, no svelteesp32"]
-        direction LR
+        direction TB
         A["Develop frontend<br/>vite dev + hot reload"]
         API["ESP32 REST API<br/>(real device or mock)"]
         A <--> API
