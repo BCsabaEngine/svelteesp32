@@ -84,9 +84,7 @@ describe('file', () => {
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockImplementation((filePath: fs.PathOrFileDescriptor) => {
         const pathString = filePath.toString();
-        if (pathString.includes('file1') || pathString.includes('file2')) return content1;
-
-        return content3;
+        return pathString.includes('file1') || pathString.includes('file2') ? content1 : content3;
       });
 
       const consoleLogSpy = vi.spyOn(console, 'log');

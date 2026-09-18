@@ -1,6 +1,6 @@
 {
   "name": "svelteesp32",
-  "version": "3.2.6",
+  "version": "3.3.0",
   "description": "Convert Svelte (or any frontend) JS application to serve it from ESP32 webserver (PsychicHttp)",
   "author": "BCsabaEngine",
   "license": "MIT",
@@ -24,7 +24,8 @@
   "files": [
     "bin/*.js",
     "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "svelteesp32.schema.json"
   ],
   "bin": {
     "svelteesp32": "bin/index.js"
@@ -75,21 +76,21 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.1",
     "@types/picomatch": "^4.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.69.0",
-    "@typescript-eslint/parser": "^8.69.0",
-    "@vitest/coverage-v8": "^5.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.70.0",
+    "@typescript-eslint/parser": "^8.70.0",
+    "@vitest/coverage-v8": "^5.0.1",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^14.0.0",
-    "eslint-plugin-unicorn": "^74.0.0",
+    "eslint-plugin-unicorn": "^75.0.0",
     "globals": "^17.12.0",
-    "memfs": "^4.71.0",
+    "memfs": "^4.78.1",
     "nodemon": "^3.1.14",
-    "prettier": "^3.9.6",
+    "prettier": "^3.9.8",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.1"
   },
   "peerDependencies": {
     "vite": ">=5"

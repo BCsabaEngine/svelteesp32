@@ -18,17 +18,17 @@ const genPsychicHandlerBody = (
   path: string,
   isAnyMethod: boolean
 ): string => {
-  const lines: string[] = [];
-  if (isAnyMethod)
-    lines.push(
-      [
-        `    if (request->method() != HTTP_GET && request->method() != HTTP_HEAD) {`,
-        `      response->setCode(405);`,
-        `      response->addHeader("Allow", "GET, HEAD");`,
-        `      return response->send();`,
-        `    }`
-      ].join('\n')
-    );
+  const lines: string[] = isAnyMethod
+    ? [
+        [
+          `    if (request->method() != HTTP_GET && request->method() != HTTP_HEAD) {`,
+          `      response->setCode(405);`,
+          `      response->addHeader("Allow", "GET, HEAD");`,
+          `      return response->send();`,
+          `    }`
+        ].join('\n')
+      ]
+    : [];
   // RFC 7232 4.1: a 304 must repeat the Cache-Control and ETag a 200 would have carried, otherwise
   // the client cannot refresh the stored response's freshness lifetime and revalidates every time.
   const etagBody = [

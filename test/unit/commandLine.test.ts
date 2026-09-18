@@ -809,8 +809,7 @@ describe('commandLine', () => {
 
         const fsModule = await import('node:fs');
         vi.mocked(fsModule.existsSync).mockImplementation((path) => {
-          if (path === '/test/dist') return true;
-          return Boolean(path.toString().includes('.svelteesp32rc.json'));
+          return path === '/test/dist' ? true : Boolean(path.toString().includes('.svelteesp32rc.json'));
         });
         vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
         vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -831,9 +830,9 @@ describe('commandLine', () => {
         const fsModule = await import('node:fs');
         vi.mocked(fsModule.existsSync).mockImplementation((path) => {
           const pathString = path.toString();
-          if (pathString.includes('.svelteesp32rc.json')) return true;
-          if (pathString.includes('.svelteesp32rc')) return true;
-          return pathString === '/test/dist';
+          return pathString.includes('.svelteesp32rc.json') || pathString.includes('.svelteesp32rc')
+            ? true
+            : pathString === '/test/dist';
         });
         vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
         vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -854,8 +853,7 @@ describe('commandLine', () => {
         vi.mocked(osModule.homedir).mockReturnValue('/home/user');
         vi.mocked(fsModule.existsSync).mockImplementation((path) => {
           const pathString = path.toString();
-          if (pathString.includes('/home/user/.svelteesp32rc.json')) return true;
-          return pathString === '/test/dist';
+          return pathString.includes('/home/user/.svelteesp32rc.json') ? true : pathString === '/test/dist';
         });
         vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
         vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -1073,6 +1071,25 @@ describe('commandLine', () => {
 
         const { parseArguments } = await import('../../src/commandLine');
         expect(() => parseArguments()).toThrow("'exclude' in RC file must be an array");
+      });
+
+      it('should accept $schema in RC file without warning', async () => {
+        const mockRcContent = JSON.stringify({
+          $schema: './node_modules/svelteesp32/svelteesp32.schema.json',
+          sourcepath: '/test/dist'
+        });
+
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(mockRcContent);
+        vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+        process.argv = ['node', 'script.js'];
+
+        const { parseArguments } = await import('../../src/commandLine');
+        parseArguments();
+
+        expect(console.warn).not.toHaveBeenCalledWith(expect.stringContaining('Unknown property'));
       });
 
       it('should warn about unknown properties in RC file', async () => {
@@ -1576,8 +1593,9 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
-            return '{}';
+            return path.toString().includes('package.json')
+              ? JSON.stringify({ name: 'testapp', version: '1.2.3' })
+              : '{}';
           });
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
@@ -1592,9 +1610,9 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
-
-            return '{}';
+            return path.toString().includes('package.json')
+              ? JSON.stringify({ name: 'testapp', version: '1.2.3' })
+              : '{}';
           });
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
@@ -1613,9 +1631,9 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
-
-            return '{}';
+            return path.toString().includes('package.json')
+              ? JSON.stringify({ name: 'testapp', version: '1.2.3' })
+              : '{}';
           });
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
@@ -1630,9 +1648,9 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
-
-            return '{}';
+            return path.toString().includes('package.json')
+              ? JSON.stringify({ name: 'testapp', version: '1.2.3' })
+              : '{}';
           });
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
@@ -1647,9 +1665,9 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
-
-            return '{}';
+            return path.toString().includes('package.json')
+              ? JSON.stringify({ name: 'testapp', version: '1.2.3' })
+              : '{}';
           });
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
@@ -1664,9 +1682,9 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return JSON.stringify({ name: 'testapp', version: '1.2.3' });
-
-            return '{}';
+            return path.toString().includes('package.json')
+              ? JSON.stringify({ name: 'testapp', version: '1.2.3' })
+              : '{}';
           });
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
@@ -1762,13 +1780,12 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json'))
-              return JSON.stringify({
-                name: 'testapp',
-                repository: { type: 'git', url: 'https://github.com/test/repo.git' }
-              });
-
-            return '{}';
+            return path.toString().includes('package.json')
+              ? JSON.stringify({
+                  name: 'testapp',
+                  repository: { type: 'git', url: 'https://github.com/test/repo.git' }
+                })
+              : '{}';
           });
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
@@ -1783,8 +1800,7 @@ describe('commandLine', () => {
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockReturnValue(true);
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return '{ invalid json }';
-            return '{}';
+            return path.toString().includes('package.json') ? '{ invalid json }' : '{}';
           });
 
           const { interpolateNpmVariables } = await import('../../src/commandLine');
@@ -1814,15 +1830,14 @@ describe('commandLine', () => {
 
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return true;
-            if (path.toString().includes('.svelteesp32rc')) return true;
-            return path === '/test/dist';
+            return path.toString().includes('package.json') || path.toString().includes('.svelteesp32rc')
+              ? true
+              : path === '/test/dist';
           });
 
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
             if (path.toString().includes('package.json')) return mockPackageJson;
-            if (path.toString().includes('.svelteesp32rc')) return mockRcContent;
-            return '{}';
+            return path.toString().includes('.svelteesp32rc') ? mockRcContent : '{}';
           });
 
           vi.mocked(fsModule.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
@@ -1843,13 +1858,12 @@ describe('commandLine', () => {
 
           const fsModule = await import('node:fs');
           vi.mocked(fsModule.existsSync).mockImplementation((path) => {
-            if (path.toString().includes('package.json')) return false; // package.json doesn't exist
-            return Boolean(path.toString().includes('.svelteesp32rc'));
+            // package.json doesn't exist
+            return !path.toString().includes('package.json') && path.toString().includes('.svelteesp32rc');
           });
 
           vi.mocked(fsModule.readFileSync).mockImplementation((path) => {
-            if (path.toString().includes('.svelteesp32rc')) return mockRcContent;
-            return '{}';
+            return path.toString().includes('.svelteesp32rc') ? mockRcContent : '{}';
           });
 
           process.argv = ['node', 'script.js'];
@@ -2682,8 +2696,9 @@ describe('commandLine', () => {
       const fsModule = await import('node:fs');
       vi.mocked(fsModule.existsSync).mockReturnValue(true);
       vi.mocked(fsModule.readFileSync).mockImplementation((p) => {
-        if (p.toString().includes('package.json')) return JSON.stringify({ name: 'myapp' });
-        return JSON.stringify({ sourcepath: './$npm_package_name', exclude: ['ok', 42] });
+        return p.toString().includes('package.json')
+          ? JSON.stringify({ name: 'myapp' })
+          : JSON.stringify({ sourcepath: './$npm_package_name', exclude: ['ok', 42] });
       });
 
       const { parseArguments } = await import('../../src/commandLine');
@@ -2734,8 +2749,7 @@ describe('commandLine', () => {
       const fsModule = await import('node:fs');
       vi.mocked(fsModule.existsSync).mockReturnValue(true);
       vi.mocked(fsModule.readFileSync).mockImplementation((p) => {
-        if (p.toString().includes('package.json')) return JSON.stringify({ name: 'myapp' });
-        return '{}';
+        return p.toString().includes('package.json') ? JSON.stringify({ name: 'myapp' }) : '{}';
       });
 
       const { interpolateNpmVariables } = await import('../../src/commandLine');

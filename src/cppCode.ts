@@ -85,17 +85,18 @@ export const gateEtag = (d: TemplateData, body: string, indent = '  '): string =
 // on - the Content-Encoding header - and those must not grow an #else arm; when both bodies are
 // empty there is nothing to fence and the #ifdef itself is omitted.
 export const gateGzip = (d: TemplateData, gzipBody: string, plainBody: string, indent = '  '): string => {
-  if (!gzipBody && !plainBody) return '';
-  return sw(d.gzip, {
-    always: gzipBody,
-    never: plainBody,
-    compiler: [
-      `${indent}#ifdef ${d.definePrefix}_ENABLE_GZIP`,
-      gzipBody,
-      ...(plainBody ? [`${indent}#else`, plainBody] : []),
-      `${indent}#endif`
-    ].join('\n')
-  });
+  return !gzipBody && !plainBody
+    ? ''
+    : sw(d.gzip, {
+        always: gzipBody,
+        never: plainBody,
+        compiler: [
+          `${indent}#ifdef ${d.definePrefix}_ENABLE_GZIP`,
+          gzipBody,
+          ...(plainBody ? [`${indent}#else`, plainBody] : []),
+          `${indent}#endif`
+        ].join('\n')
+      });
 };
 
 // Cache-Control is independent of the ETag switch: --cachetime must survive --etag=never, and an
@@ -209,9 +210,9 @@ export const genDataArrays = (d: TemplateData, options: { elementType: string; i
       .join('\n');
   if (d.gzip === 'always') return arrays(true);
   if (d.gzip === 'never') return arrays(false);
-  if (d.gzip === 'compiler')
-    return [`#ifdef ${d.definePrefix}_ENABLE_GZIP`, arrays(true), '#else', arrays(false), '#endif'].join('\n');
-  return '';
+  return d.gzip === 'compiler'
+    ? [`#ifdef ${d.definePrefix}_ENABLE_GZIP`, arrays(true), '#else', arrays(false), '#endif'].join('\n')
+    : '';
 };
 
 export const genEtagArrays = (d: TemplateData): string =>
