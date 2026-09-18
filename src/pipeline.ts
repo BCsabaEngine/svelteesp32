@@ -77,13 +77,11 @@ const formatCompressionLog = (
 };
 
 const formatSize = (bytes: number): string => {
-  if (bytes < 1024) return `${bytes}B`;
-  return `${Math.round(bytes / 1024)}kB`;
+  return bytes < 1024 ? `${bytes}B` : `${Math.round(bytes / 1024)}kB`;
 };
 
 const formatSizePrecise = (bytes: number): string => {
-  if (bytes < 1024) return `${bytes}B`;
-  return `${(bytes / 1024).toFixed(1)}kB`;
+  return bytes < 1024 ? `${bytes}B` : `${(bytes / 1024).toFixed(1)}kB`;
 };
 
 /**
@@ -141,8 +139,7 @@ const updateExtensionGroup = (filesByExtension: ExtensionGroups, extension: stri
 
 const sizeCellFor = (s: CppCodeSource): string => {
   const orig = formatSize(s.content.length);
-  if (s.isGzip) return `${orig} → ${formatSize(s.contentGzip.length)}`;
-  return orig;
+  return s.isGzip ? `${orig} → ${formatSize(s.contentGzip.length)}` : orig;
 };
 
 // Column widths come from a reduce, not `Math.max(...array)`: spreading into a call blows V8's
@@ -161,28 +158,21 @@ const formatDryRunRoutes = (
   const defaultSource = sources.find((s) => s.filename === 'index.html' || s.filename === 'index.htm');
 
   type RouteRow = { url: string; mime: string; sizeCell: string; tag: string };
-  const rows: RouteRow[] = [];
-
-  if (defaultSource)
-    rows.push({
-      url: basePath || '/',
-      mime: defaultSource.mime,
-      sizeCell: sizeCellFor(defaultSource),
-      tag: '[default]'
-    });
-
-  for (const source of sources)
-    rows.push({
+  const spaUrl = engine === 'psychic' && basePath ? `${basePath}/*` : '(SPA catch-all)';
+  const rows: RouteRow[] = [
+    ...(defaultSource
+      ? [{ url: basePath || '/', mime: defaultSource.mime, sizeCell: sizeCellFor(defaultSource), tag: '[default]' }]
+      : []),
+    ...sources.map((source) => ({
       url: `${basePath}/${source.filename}`,
       mime: source.mime,
       sizeCell: sizeCellFor(source),
       tag: source.isGzip ? '' : '[no gzip]'
-    });
-
-  if (isSpa && defaultSource) {
-    const spaUrl = engine === 'psychic' && basePath ? `${basePath}/*` : '(SPA catch-all)';
-    rows.push({ url: spaUrl, mime: defaultSource.mime, sizeCell: '', tag: '[SPA catch-all → index.html]' });
-  }
+    })),
+    ...(isSpa && defaultSource
+      ? [{ url: spaUrl, mime: defaultSource.mime, sizeCell: '', tag: '[SPA catch-all → index.html]' }]
+      : [])
+  ];
 
   const urlWidth = maxLength(rows, (r) => r.url);
   const mimeWidth = maxLength(rows, (r) => r.mime);
@@ -422,48 +412,49 @@ export function runPipeline(options: ICopyFilesArguments): void {
 
   console.log(`${options.outputfile} ${formatSize(cppFile.length)} size`);
 
-  if (options.manifest) {
-    const manifestPath = path.join(
-      path.dirname(options.outputfile),
-      path.basename(options.outputfile, path.extname(options.outputfile)) + '.manifest.json'
-    );
+  if (!options.manifest) return;
 
-    let previousManifest: undefined | { files: PreviousManifestFile[] };
-    if (existsSync(manifestPath))
-      try {
-        previousManifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { files: PreviousManifestFile[] };
-      } catch {
-        // ignore corrupt manifest
-      }
+  const manifestPath = path.join(
+    path.dirname(options.outputfile),
+    path.basename(options.outputfile, path.extname(options.outputfile)) + '.manifest.json'
+  );
 
-    const now = new Date();
-    const manifest = {
-      generated: now.toISOString(),
-      engine: options.engine,
-      etag: options.etag,
-      gzip: options.gzip,
-      filecount: summary.filecount,
-      size: summary.size,
-      gzipSize: summary.gzipsize,
-      files: sources.map((s) => ({
-        path: s.filename,
-        mime: s.mime,
-        size: s.content.length,
-        gzipSize: s.isGzip ? s.contentGzip.length : s.content.length,
-        isGzip: s.isGzip,
-        sha256: s.sha256
-      }))
-    };
-    writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2), { encoding: 'utf8' });
-    console.log(`${manifestPath} manifest written`);
+  let previousManifest: undefined | { files: PreviousManifestFile[] };
+  if (existsSync(manifestPath))
+    try {
+      previousManifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { files: PreviousManifestFile[] };
+    } catch {
+      // ignore corrupt manifest
+    }
 
-    if (previousManifest) console.log(formatChangeSummary(sources, previousManifest.files));
-  }
+  const now = new Date();
+  const manifest = {
+    generated: now.toISOString(),
+    engine: options.engine,
+    etag: options.etag,
+    gzip: options.gzip,
+    filecount: summary.filecount,
+    size: summary.size,
+    gzipSize: summary.gzipsize,
+    files: sources.map((s) => ({
+      path: s.filename,
+      mime: s.mime,
+      size: s.content.length,
+      gzipSize: s.isGzip ? s.contentGzip.length : s.content.length,
+      isGzip: s.isGzip,
+      sha256: s.sha256
+    }))
+  };
+  writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2), { encoding: 'utf8' });
+  console.log(`${manifestPath} manifest written`);
+
+  if (previousManifest) console.log(formatChangeSummary(sources, previousManifest.files));
 }
 
 export {
   calculateCompressionRatio,
   createSourceEntry,
+  findIdentifierCollisions,
   formatAnalyzeTable,
   formatChangeSummary,
   formatCompressionLog,
@@ -471,5 +462,6 @@ export {
   formatSize,
   formatSizePrecise,
   shouldUseGzip,
+  toDataName,
   updateExtensionGroup
 };

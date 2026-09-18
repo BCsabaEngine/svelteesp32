@@ -61,6 +61,8 @@ svelteesp32 - Svelte JS to ESP32 converter
 
 Commands:
   init                       Create .svelteesp32rc.json interactively
+  doctor | check [--strict]  Lint the source directory for problems found only after flashing
+                             (base path mismatch, CDN references, leftovers, URI length, name collisions)
 
 Configuration:
   --config <path>            Use custom RC file (default: search for .svelteesp32rc.json)
@@ -241,8 +243,7 @@ function getNpmPackageVariable(packageJson: Record<string, unknown>, variableNam
     current = (current as Record<string, unknown>)[segment];
   }
 
-  if (current === null || current === undefined) return undefined;
-  return String(current);
+  return current === null || current === undefined ? undefined : String(current);
 }
 
 // Runs before validateRcConfig, so the values are still whatever JSON.parse produced
@@ -326,8 +327,7 @@ function loadRcFile(rcPath: string): IRcFileConfig {
 
 export function loadRcFileConfig(configPath?: string): Partial<IRcFileConfig> {
   const rcPath = findRcFile(configPath);
-  if (!rcPath) return {};
-  return loadRcFile(rcPath);
+  return rcPath ? loadRcFile(rcPath) : {};
 }
 
 function validateSizeOption(configObject: Record<string, unknown>, key: string): void {
@@ -361,39 +361,41 @@ function validateCacheTimeOption(configObject: Record<string, unknown>, key: str
   if (value < 0) throw new TypeError(`Invalid ${key} in RC file: ${value} (must be non-negative)`);
 }
 
+// Keep in sync with svelteesp32.schema.json (test/unit/rcSchema.test.ts enforces it). `$schema` is editor metadata.
+export const RC_VALID_KEYS: ReadonlySet<string> = new Set([
+  '$schema',
+  'engine',
+  'sourcepath',
+  'outputfile',
+  'espmethod',
+  'define',
+  'gzip',
+  'etag',
+  'cachetime',
+  'cachetimehtml',
+  'cachetimeassets',
+  'created',
+  'version',
+  'exclude',
+  'basepath',
+  'maxsize',
+  'maxgzipsize',
+  'noindexcheck',
+  'dryrun',
+  'analyze',
+  'spa',
+  'manifest'
+]);
+
 function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (typeof config !== 'object' || config === null) throw new Error(`RC file ${rcPath} must contain a JSON object`);
 
   // Type assertion after runtime check
   const configObject = config as Record<string, unknown>;
 
-  const validKeys = new Set([
-    'engine',
-    'sourcepath',
-    'outputfile',
-    'espmethod',
-    'define',
-    'gzip',
-    'etag',
-    'cachetime',
-    'cachetimehtml',
-    'cachetimeassets',
-    'created',
-    'version',
-    'exclude',
-    'basepath',
-    'maxsize',
-    'maxgzipsize',
-    'noindexcheck',
-    'dryrun',
-    'analyze',
-    'spa',
-    'manifest'
-  ]);
-
   // Warn about unknown keys
   for (const key of Object.keys(configObject))
-    if (!validKeys.has(key)) console.warn(yellowLog(`Warning: Unknown property '${key}' in RC file ${rcPath}`));
+    if (!RC_VALID_KEYS.has(key)) console.warn(yellowLog(`Warning: Unknown property '${key}' in RC file ${rcPath}`));
 
   // Validate individual properties
   if (configObject['engine'] !== undefined) configObject['engine'] = validateEngine(configObject['engine'] as string);
@@ -490,7 +492,8 @@ function parseCommandLine(): ICopyFilesArguments {
     configSource: 'cli'
   };
 
-  // STEP 4: Merge RC file values
+  // STEP 4: Merge RC file values (conditional per-key merges; not foldable into the literal)
+  // eslint-disable-next-line unicorn/no-immediate-mutation
   if (rcConfig.engine) result.engine = rcConfig.engine;
   if (rcConfig.sourcepath) result.sourcepath = rcConfig.sourcepath;
   if (rcConfig.outputfile) result.outputfile = rcConfig.outputfile;
@@ -714,6 +717,7 @@ export function formatConfig(commandLine: ICopyFilesArguments): string {
     `cachetime=${commandLine.cachetime}`
   ];
 
+  // eslint-disable-next-line unicorn/no-immediate-mutation -- conditional pushes, not foldable into the literal
   if (commandLine.cachetimeHtml !== undefined) parts.push(`cachetimeHtml=${commandLine.cachetimeHtml}`);
 
   if (commandLine.cachetimeAssets !== undefined) parts.push(`cachetimeAssets=${commandLine.cachetimeAssets}`);

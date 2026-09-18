@@ -54,6 +54,7 @@ describe('initCommand', () => {
       const written = vi.mocked(fs.writeFileSync).mock.calls[0]?.[1] as string;
       const config = JSON.parse(written) as Record<string, string>;
       expect(config).toStrictEqual({
+        $schema: './node_modules/svelteesp32/svelteesp32.schema.json',
         engine: 'psychic',
         sourcepath: './dist',
         outputfile: './svelteesp32.h',
@@ -77,6 +78,7 @@ describe('initCommand', () => {
       const written = vi.mocked(fs.writeFileSync).mock.calls[0]?.[1] as string;
       const config = JSON.parse(written) as Record<string, string>;
       expect(config).toStrictEqual({
+        $schema: './node_modules/svelteesp32/svelteesp32.schema.json',
         engine: 'async',
         sourcepath: './build',
         outputfile: './out/web.h',

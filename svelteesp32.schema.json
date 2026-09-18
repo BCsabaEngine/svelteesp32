@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://unpkg.com/svelteesp32/svelteesp32.schema.json",
+  "title": "svelteesp32 RC file",
+  "description": "Configuration for svelteesp32 (.svelteesp32rc.json). CLI arguments override these values.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "JSON Schema reference for editor autocomplete and validation." },
+    "engine": {
+      "enum": ["psychic", "async", "espidf", "webserver"],
+      "default": "psychic",
+      "description": "The engine for which the include file is created."
+    },
+    "sourcepath": { "type": "string", "description": "Source dist folder with compiled web files." },
+    "outputfile": {
+      "type": "string",
+      "default": "svelteesp32.h",
+      "description": "Generated output file. Must be a relative path (use --outputfile on the CLI for absolute paths)."
+    },
+    "etag": {
+      "enum": ["always", "never", "compiler"],
+      "default": "never",
+      "description": "Use ETag header for cache. 'compiler' emits #ifdef arms."
+    },
+    "gzip": {
+      "enum": ["always", "never", "compiler"],
+      "default": "always",
+      "description": "Compress content with gzip. 'compiler' emits #ifdef arms."
+    },
+    "created": { "$ref": "#/definitions/boolean", "description": "Include creation time in the output file." },
+    "version": { "type": "string", "default": "", "description": "Version info included in the output file." },
+    "espmethod": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "default": "initSvelteStaticFiles",
+      "description": "Name of the generated init method (valid C++ identifier)."
+    },
+    "define": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "default": "SVELTEESP32",
+      "description": "Prefix of generated C++ defines (valid C++ identifier)."
+    },
+    "cachetime": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0,
+      "description": "Cache-Control max-age in seconds for all files."
+    },
+    "cachetimehtml": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Cache-Control max-age in seconds for HTML files (overrides cachetime)."
+    },
+    "cachetimeassets": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Cache-Control max-age in seconds for non-HTML files (overrides cachetime)."
+    },
+    "exclude": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Glob patterns of files to exclude, e.g. [\"*.map\", \"*.md\"]."
+    },
+    "basepath": { "type": "string", "description": "URL prefix for all routes, e.g. \"/ui\"." },
+    "maxsize": { "$ref": "#/definitions/size", "description": "Maximum total uncompressed size, e.g. \"400k\"." },
+    "maxgzipsize": { "$ref": "#/definitions/size", "description": "Maximum total gzip size, e.g. \"150k\"." },
+    "noindexcheck": { "$ref": "#/definitions/boolean", "description": "Skip index.html validation." },
+    "dryrun": {
+      "$ref": "#/definitions/boolean",
+      "description": "Show route table and summary without writing output."
+    },
+    "analyze": {
+      "$ref": "#/definitions/boolean",
+      "description": "Print per-file size table and budget status without writing output; exits 1 if over budget."
+    },
+    "spa": { "$ref": "#/definitions/boolean", "description": "Serve index.html for unmatched routes (SPA routing)." },
+    "manifest": {
+      "$ref": "#/definitions/boolean",
+      "description": "Write a companion .manifest.json next to the header."
+    }
+  },
+  "definitions": {
+    "boolean": { "oneOf": [{ "type": "boolean" }, { "enum": ["true", "false"] }], "default": false },
+    "size": {
+      "oneOf": [
+        { "type": "number", "exclusiveMinimum": 0 },
+        { "type": "string", "pattern": "^\\s*\\d+(\\.\\d+)?\\s*[KMkm]?\\s*$" }
+      ]
+    }
+  }
+}

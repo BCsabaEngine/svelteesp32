@@ -116,6 +116,7 @@ flowchart TD
 
 ## What's New
 
+- **v3.3.0** — **`svelteesp32 doctor`**: lint the build output for base path mismatches, CDN references, leftover source maps, oversized files, over-long URIs and filename collisions before flashing. **JSON Schema for the RC file** (`svelteesp32.schema.json`): add `"$schema"` to `.svelteesp32rc.json` for editor autocomplete, hover docs and validation; `npx svelteesp32 init` now writes it
 - **v3.2.0** — **HTTP `HEAD` support** on the psychic and async engines (always on, no flag): `curl -I`, health checks and uptime monitors now get the same status and headers as `GET`, with no body. psychic file routes are registered as `HTTP_ANY` and return `405 Method Not Allowed` for non-GET/HEAD instead of falling through to `index.html`. Also fixes ETag/`304` on the **webserver** engine, which never fired because Arduino `WebServer` was not told to retain the `If-None-Match` header. **RFC-compliant ETags**: the tag is now quoted (`ETag: "387b88e345cc56ef"`) as RFC 9110 requires and truncated to 16 hex characters — 18 bytes per file instead of 64, on every response header and every conditional request — and `If-None-Match` is matched with `strstr()`, so browsers sending a comma-separated list or a weak `W/"…"` validator now get their `304` instead of a full `200`
 - **v3.1.0** — Removed `handlebars`, `picomatch`, and `mime-types` dependencies; C++ generation is now pure TypeScript with a built-in MIME type map and direct `tinyglobby` exclude handling. `--cachetime-html` → `--cachetimehtml`, `--cachetime-assets` → `--cachetimeassets` (CLI now matches RC file keys); `--dry-run` alias removed — use `--dryrun`. `SVELTEESP32_URI_HANDLERS`/`SVELTEESP32_MAX_URI_HANDLERS` (psychic/espidf) now reflect the exact registered route count, including the default `/` route and `--spa` catch-all
 - **v3.0.0** — **Vite plugin** (`import { svelteESP32 } from 'svelteesp32/vite'`) generates the header automatically after every build — call with no argument for RC file mode or pass an options object for plugin-options mode; `npx svelteesp32 init` interactive RC file wizard; Node.js >= 22 required
@@ -630,6 +631,26 @@ Budget (maxgzipsize)                 -         150.0kB   ✓ PASS
 
 Exits with code **1** if any budget is exceeded — CI fails automatically. Mutually exclusive with `--dryrun`.
 
+### Doctor (Pre-Flash Lint)
+
+`doctor` (alias `check`) inspects the source directory for problems that usually surface only after flashing. It accepts the same options and RC file as generation and writes nothing:
+
+```bash
+npx svelteesp32 doctor -e psychic -s ./dist --basepath=/app
+```
+
+| Check       | Severity | What it catches                                                                                                                                      |
+| ----------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `basepath`  | error    | HTML/CSS references (`/assets/…`) that don't resolve to a served file under `--basepath` — the blank-page bug; hints at Vite's `base` / `--basepath` |
+| `collision` | error    | Files that sanitize to the same C++ identifier (`a-b.js` and `a_b.js`)                                                                               |
+| `uri`       | error    | Routes longer than 512 characters (psychic/espidf; `CONFIG_HTTPD_MAX_URI_LEN`)                                                                       |
+| `index`     | error    | No `index.html`/`index.htm` (skipped with `--noindexcheck`)                                                                                          |
+| `cdn`       | warning  | External assets (Google Fonts, unpkg, jsDelivr, …) that won't load when the device is an offline access point                                        |
+| `leftovers` | warning  | Source maps, sources, markdown, license dumps and analyzer reports that should be `--exclude`d                                                       |
+| `size`      | warning  | A single file above 60% of the payload, or above half of `--maxsize`                                                                                 |
+
+Exits with code **1** on any error; add `--strict` to fail on warnings too. Only HTML and CSS references are resolved — URLs built at runtime inside JS bundles are not.
+
 ### JSON Manifest
 
 Add `--manifest` to write a companion `.manifest.json` file alongside the header (same directory, same base name):
@@ -745,6 +766,7 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
 
 ```json
 {
+  "$schema": "./node_modules/svelteesp32/svelteesp32.schema.json",
   "engine": "psychic",
   "sourcepath": "./dist",
   "outputfile": "./esp32/svelteesp32.h",
@@ -764,6 +786,8 @@ Store your settings in `.svelteesp32rc.json` for zero-argument builds:
   "manifest": false
 }
 ```
+
+The optional `$schema` line gives editors (VS Code, JetBrains, …) autocomplete, hover documentation and validation. It is ignored by svelteesp32 itself; `npx svelteesp32 init` adds it for you. Without a local install, use `https://unpkg.com/svelteesp32/svelteesp32.schema.json`.
 
 Boolean fields (`noindexcheck`, `dryrun`, `analyze`, `spa`, `manifest`, `created`) accept native JSON booleans (`true`/`false`) or their string equivalents (`"true"`/`"false"`), matching the existing behaviour of `etag` and `gzip`.
 

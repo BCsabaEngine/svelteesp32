@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-09-18
+
+### Added
+
+- **`svelteesp32 doctor` (alias `check`)** — a static linter for the source directory that catches problems normally found only after flashing. It takes the same options and RC file as generation and writes nothing. Checks: **base path mismatch** (HTML/CSS references that don't resolve to a served file under `--basepath`, with a hint at the prefix the build was made for), **external CDN references** (break when the device is an offline access point), **leftovers** (source maps, sources, markdown, license dumps, analyzer reports) and **dominant files** (also against `--maxsize`), **URI length** (psychic/espidf, esp_http_server's default 512), **C++ identifier collisions** (`a-b.js` vs `a_b.js`) and a missing `index.html`. Exits `1` on errors; `--strict` also fails on warnings.
+- **JSON Schema for `.svelteesp32rc.json`** (`svelteesp32.schema.json`, shipped in the npm package). Reference it with `"$schema": "./node_modules/svelteesp32/svelteesp32.schema.json"` for editor autocomplete, hover documentation and validation of every RC option. `npx svelteesp32 init` now writes the `$schema` line. A unit test keeps the schema's property list in sync with the RC validator.
+
+### Fixed
+
+- `$schema` is accepted in RC files without an "Unknown property" warning.
+
 ## [3.2.6] - 2026-09-05
 
 ### Added

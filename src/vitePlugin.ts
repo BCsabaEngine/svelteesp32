@@ -99,8 +99,7 @@ export interface SvelteESP32PluginOptions {
 }
 
 function coerceBool(value: boolean | 'true' | 'false' | undefined): boolean | undefined {
-  if (value === undefined) return undefined;
-  return value === true || value === 'true';
+  return value === undefined ? undefined : value === true || value === 'true';
 }
 
 // The RC file and the plugin options carry the same key names (only outputfile/output differ) but

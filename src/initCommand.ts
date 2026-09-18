@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 
 const RC_FILENAME = '.svelteesp32rc.json';
+const RC_SCHEMA_PATH = './node_modules/svelteesp32/svelteesp32.schema.json';
 const ENGINES = ['psychic', 'async', 'espidf', 'webserver'] as const;
 const TRISTATES = ['always', 'never', 'compiler'] as const;
 
@@ -48,7 +49,7 @@ export async function runInit(): Promise<void> {
     const etagAnswer = etagAnswerRaw.trim();
     const etag: TriState = isTriState(etagAnswer) ? etagAnswer : 'always';
 
-    const config = { engine, sourcepath, outputfile, etag, gzip: 'always' };
+    const config = { $schema: RC_SCHEMA_PATH, engine, sourcepath, outputfile, etag, gzip: 'always' };
 
     writeFileSync(rcPath, JSON.stringify(config, undefined, 2) + '\n', 'utf8');
     console.log(`\nCreated ${RC_FILENAME}`);
