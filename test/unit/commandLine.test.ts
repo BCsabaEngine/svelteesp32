@@ -405,6 +405,29 @@ describe('commandLine', () => {
     });
   });
 
+  describe('splitPatterns', () => {
+    it('should split on top-level commas and trim', async () => {
+      const { splitPatterns } = await import('../../src/commandLine');
+      expect(splitPatterns('*.map, *.md ,test/**/*.ts')).toEqual(['*.map', '*.md', 'test/**/*.ts']);
+    });
+
+    it('should keep commas inside braces', async () => {
+      const { splitPatterns } = await import('../../src/commandLine');
+      expect(splitPatterns('**/*.{ts,tsx,scss},*.map')).toEqual(['**/*.{ts,tsx,scss}', '*.map']);
+      expect(splitPatterns('{a,{b,c}},d')).toEqual(['{a,{b,c}}', 'd']);
+    });
+
+    it('should drop empty entries', async () => {
+      const { splitPatterns } = await import('../../src/commandLine');
+      expect(splitPatterns(',a,,b,')).toEqual(['a', 'b']);
+    });
+
+    it('should tolerate an unbalanced closing brace', async () => {
+      const { splitPatterns } = await import('../../src/commandLine');
+      expect(splitPatterns('a},b')).toEqual(['a}', 'b']);
+    });
+  });
+
   describe('exclude patterns', () => {
     it('should parse single exclude pattern with --exclude=value format', async () => {
       process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--exclude=*.map'];
@@ -549,6 +572,27 @@ describe('commandLine', () => {
 
       const { parseArguments } = await import('../../src/commandLine');
       expect(() => parseArguments()).toThrow('Invalid cachetime: notanumber');
+    });
+
+    it.each(['Infinity', '-Infinity'])('should reject --cachetime=%s', async (value) => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', `--cachetime=${value}`];
+
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(() => parseArguments()).toThrow(`Invalid cachetime: ${value}`);
+    });
+
+    it('should truncate a fractional --cachetime to whole seconds', async () => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', '--cachetime=1.9'];
+
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(parseArguments().cachetime).toBe(1);
+    });
+
+    it.each(['cachetimehtml', 'cachetimeassets'])('should reject a negative --%s', async (flag) => {
+      process.argv = ['node', 'script.js', '--sourcepath=/test/dist', `--${flag}=-5`];
+
+      const { parseArguments } = await import('../../src/commandLine');
+      expect(() => parseArguments()).toThrow(`Invalid ${flag}: -5 (must be non-negative)`);
     });
 
     it('should throw error for unknown flag', async () => {
@@ -794,7 +838,7 @@ describe('commandLine', () => {
       expect(console.error).toHaveBeenCalledWith(
         'Error: --sourcepath is required (can be specified in RC file or CLI)'
       );
-      expect(process.exit).toHaveBeenCalledWith(0);
+      expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
 
@@ -1055,6 +1099,30 @@ describe('commandLine', () => {
 
         const { parseArguments } = await import('../../src/commandLine');
         expect(() => parseArguments()).toThrow('Invalid cachetime in RC file');
+      });
+
+      it('should reject a fractional cachetime in RC file', async () => {
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(JSON.stringify({ sourcepath: '/test/dist', cachetime: 1.5 }));
+
+        process.argv = ['node', 'script.js'];
+
+        const { parseArguments } = await import('../../src/commandLine');
+        expect(() => parseArguments()).toThrow('Invalid cachetime in RC file: 1.5 (must be a whole number of seconds)');
+      });
+
+      it('should validate version in RC file', async () => {
+        const fsModule = await import('node:fs');
+        vi.mocked(fsModule.existsSync).mockReturnValue(true);
+        vi.mocked(fsModule.readFileSync).mockReturnValue(
+          JSON.stringify({ sourcepath: '/test/dist', version: 'v1"; evil' })
+        );
+
+        process.argv = ['node', 'script.js'];
+
+        const { parseArguments } = await import('../../src/commandLine');
+        expect(() => parseArguments()).toThrow('version must only contain word characters');
       });
 
       it('should validate exclude is an array in RC file', async () => {

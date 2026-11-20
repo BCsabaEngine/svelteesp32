@@ -55,7 +55,7 @@ export interface IRcFileConfig {
   manifest?: boolean | 'true' | 'false';
 }
 
-function showHelp(): void {
+function showHelp(exitCode = 0): void {
   console.log(`
 svelteesp32 - Svelte JS to ESP32 converter
 
@@ -65,7 +65,7 @@ Commands:
                              (base path mismatch, CDN references, leftovers, URI length, name collisions)
 
 Configuration:
-  --config <path>            Use custom RC file (default: search for .svelteesp32rc.json)
+  --config <path>            Use custom RC file (default: search for .svelteesp32rc[.json])
 
 Options:
   -e, --engine <value>       The engine for which the include file is created
@@ -82,10 +82,13 @@ Options:
   --cachetimehtml <sec>      Cache-Control max-age for HTML files (overrides --cachetime)
   --cachetimeassets <sec>    Cache-Control max-age for non-HTML assets (overrides --cachetime)
   --exclude <pattern>        Exclude files matching glob pattern (repeatable or comma-separated)
+                             Patterns without a "/" match at any depth ("*.map" = "**/*.map");
+                             patterns with a "/" are relative to the source directory
                              Examples: --exclude="*.map" --exclude="test/**/*.ts"
   --basepath <path>          URL prefix for all routes (e.g., "/ui") (default: "")
   --maxsize <size>           Maximum total uncompressed size (e.g., 400k, 1.5m, 409600)
   --maxgzipsize <size>       Maximum total gzip size (e.g., 150k, 1m, 153600)
+  --noindexcheck             Do not fail when index.html/index.htm is missing from the source root (default: false)
   --dryrun                   Show summary without writing the output file (default: false)
   --analyze                  Print per-file size table and budget status without writing (default: false)
   --spa                      Serve index.html for unmatched routes (SPA routing) (default: false)
@@ -93,7 +96,7 @@ Options:
   -h, --help                 Show this help
 
 RC File:
-  The tool searches for .svelteesp32rc.json in:
+  The tool searches for .svelteesp32rc.json (or .svelteesp32rc) in:
     1. Current directory (./.svelteesp32rc.json)
     2. User home directory (~/.svelteesp32rc.json)
 
@@ -114,7 +117,7 @@ RC File:
 
   CLI arguments override RC file values.
 `);
-  process.exit(0);
+  process.exit(exitCode);
 }
 
 // Throws rather than exiting: validateRcConfig also runs inside the Vite plugin, where a
@@ -165,6 +168,32 @@ function validateVersion(value: string): string {
   if (!/^[\w+.-]+$/.test(value))
     throw new Error(`version must only contain word characters, dots, hyphens, and plus signs: ${value}`);
   return value;
+}
+
+// CLI cache times are truncated to whole seconds; NaN and Infinity would end up as max-age=NaN/Infinity
+function parseCacheTime(value: string, name: string): number {
+  const seconds = Math.trunc(Number(value));
+  if (!Number.isFinite(seconds)) throw new TypeError(`Invalid ${name}: ${value}`);
+  if (seconds < 0) throw new TypeError(`Invalid ${name}: ${value} (must be non-negative)`);
+  return seconds;
+}
+
+// Split a comma-separated pattern list, keeping commas inside {...} braces: "{ts,tsx}.x,*.map" → 2 patterns
+export function splitPatterns(value: string): string[] {
+  const patterns: string[] = [];
+  let current = '';
+  let depth = 0;
+  for (const character of value) {
+    if (character === '{') depth++;
+    else if (character === '}' && depth > 0) depth--;
+
+    if (character === ',' && depth === 0) {
+      patterns.push(current);
+      current = '';
+    } else current += character;
+  }
+  patterns.push(current);
+  return patterns.map((p) => p.trim()).filter(Boolean);
 }
 
 function parseSize(value: string, name: string): number {
@@ -357,7 +386,8 @@ function validateBooleanOption(configObject: Record<string, unknown>, key: strin
 function validateCacheTimeOption(configObject: Record<string, unknown>, key: string): void {
   const value = configObject[key];
   if (value === undefined) return;
-  if (typeof value !== 'number' || Number.isNaN(value)) throw new TypeError(`Invalid ${key} in RC file: ${value}`);
+  if (typeof value !== 'number' || !Number.isSafeInteger(value))
+    throw new TypeError(`Invalid ${key} in RC file: ${value} (must be a whole number of seconds)`);
   if (value < 0) throw new TypeError(`Invalid ${key} in RC file: ${value} (must be non-negative)`);
 }
 
@@ -387,7 +417,7 @@ export const RC_VALID_KEYS: ReadonlySet<string> = new Set([
   'manifest'
 ]);
 
-function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
+export function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
   if (typeof config !== 'object' || config === null) throw new Error(`RC file ${rcPath} must contain a JSON object`);
 
   // Type assertion after runtime check
@@ -405,6 +435,8 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
 
   if (configObject['gzip'] !== undefined)
     configObject['gzip'] = validateTriState(configObject['gzip'] as string, 'gzip');
+
+  if (configObject['version'] !== undefined) validateVersion(configObject['version'] as string);
 
   if (configObject['espmethod'] !== undefined) validateCppIdentifier(configObject['espmethod'] as string, 'espmethod');
 
@@ -428,7 +460,7 @@ function validateRcConfig(config: unknown, rcPath: string): IRcFileConfig {
 
   if (configObject['outputfile'] !== undefined && path.isAbsolute(configObject['outputfile'] as string))
     throw new Error(
-      `'outputfile' in RC file must be a relative path (use --output CLI flag for absolute paths): ${configObject['outputfile']}`
+      `'outputfile' in RC file must be a relative path (use --outputfile CLI flag for absolute paths): ${configObject['outputfile']}`
     );
 
   return configObject;
@@ -552,28 +584,16 @@ function parseCommandLine(): ICopyFilesArguments {
         result.define = validateCppIdentifier(value, 'define');
         break;
       case 'cachetime':
-        result.cachetime = Math.trunc(Number(value));
-        if (Number.isNaN(result.cachetime)) throw new TypeError(`Invalid cachetime: ${value}`);
-        if (result.cachetime < 0) throw new TypeError(`Invalid cachetime: ${value} (must be non-negative)`);
+        result.cachetime = parseCacheTime(value, 'cachetime');
         break;
-      case 'cachetimehtml': {
-        result.cachetimeHtml = Math.trunc(Number(value));
-        if (Number.isNaN(result.cachetimeHtml)) throw new TypeError(`Invalid cachetimehtml: ${value}`);
-        if (result.cachetimeHtml < 0) throw new TypeError(`Invalid cachetimehtml: ${value} (must be non-negative)`);
+      case 'cachetimehtml':
+        result.cachetimeHtml = parseCacheTime(value, 'cachetimehtml');
         break;
-      }
-      case 'cachetimeassets': {
-        result.cachetimeAssets = Math.trunc(Number(value));
-        if (Number.isNaN(result.cachetimeAssets)) throw new TypeError(`Invalid cachetimeassets: ${value}`);
-        if (result.cachetimeAssets < 0) throw new TypeError(`Invalid cachetimeassets: ${value} (must be non-negative)`);
+      case 'cachetimeassets':
+        result.cachetimeAssets = parseCacheTime(value, 'cachetimeassets');
         break;
-      }
       case 'exclude': {
-        const patterns = value
-          .split(',')
-          .map((p) => p.trim())
-          .filter(Boolean);
-        cliExclude.push(...patterns);
+        cliExclude.push(...splitPatterns(value));
         break;
       }
       case 'basepath':
@@ -691,7 +711,7 @@ function parseCommandLine(): ICopyFilesArguments {
   // STEP 7: Validate required arguments
   if (!result.sourcepath) {
     console.error('Error: --sourcepath is required (can be specified in RC file or CLI)');
-    showHelp();
+    showHelp(1);
   }
 
   if (result.dryRun && result.analyze)

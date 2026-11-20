@@ -40,7 +40,7 @@ export function getMissingIndexError(engine: string): string {
   const hint = hints[engine] ?? hints['psychic'];
 
   return (
-    redLog('[ERROR] No index.html or index.htm found in source files') +
+    redLog('[ERROR] No index.html or index.htm found in the root of the source directory') +
     `
 
 Why this matters:

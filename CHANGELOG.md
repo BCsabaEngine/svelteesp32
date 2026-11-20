@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2026-11-20
+
+### Fixed
+
+- **`--exclude="*.map"` now matches files in subdirectories.** Patterns without a `/` were anchored to the source root by the glob engine, so the README's own example silently excluded nothing from Vite's `assets/` folder. Slash-less patterns now match at any depth (like `.gitignore`); patterns with a `/` stay relative to the source directory. Applies to the CLI, RC files, the Vite plugin and `doctor`.
+- **Brace globs in `--exclude` are no longer split on their commas.** `--exclude="**/*.{ts,tsx}"` — the very hint `doctor` prints — used to be cut into two broken patterns.
+- **A missing `--sourcepath` now exits with status 1** instead of 0, so CI and scripts no longer pass silently.
+- **The index check now matches the generated code.** Only a root `index.html`/`index.htm` becomes the `/` route, but the check (and `doctor`) also accepted `sub/index.html`, producing a header with no default route. A nested index no longer satisfies the check; pass `--noindexcheck` if that is intended.
+- **Vite plugin:** `build.outDir` is resolved against Vite's `root` (previously `process.cwd()`, wrong with `--root` and monorepos); plugin options are now validated like an RC file (a bad `engine`, `etag`, `espmethod`, `define`, `version` or cache time used to go straight into the C++); a nonexistent `sourcepath` raises a clear error instead of "no index.html".
+- **`version` is validated in RC files and plugin options** as it already was on the CLI — it is interpolated into a C string.
+- **Cache times must be finite whole numbers.** `--cachetime=Infinity` and RC values such as `1.5` used to produce `max-age=Infinity` / `max-age=1.5`.
+- **A `--manifest` file that is valid JSON but the wrong shape no longer crashes the run** after the header was written; it is treated like a corrupt one and ignored.
+- **More MIME types:** `.wasm` (`application/wasm`, required by `WebAssembly.instantiateStreaming`), `.webmanifest`, `.avif`, `.csv`, `.md`.
+- `doctor`'s leftovers hint for bundle-analyzer reports now covers `report.html` as well as `stats.html`.
+- The "use `--output`" error and README note name the real flag, `--outputfile`.
+
+### Changed
+
+- `--help` documents `--noindexcheck`, the `.svelteesp32rc` lookup and the any-depth `--exclude` matching; `svelteesp32.schema.json` declares the cache times as integers.
+- README: corrected the FAQ claim that incremental builds skip recompilation (the header is rewritten on every run) and the `$npm_package_name` `define` example, which fails identifier validation for hyphenated or scoped package names.
+- Updated npm dev dependencies: `@typescript-eslint/eslint-plugin`/`@typescript-eslint/parser` (8.71 → 8.73), `@vitest/coverage-v8`/`vitest` (5.0.3 → 5.1.1), `eslint` (10.12 → 10.15), `globals`, `memfs` and `prettier` (3.9.9 → 3.10.1)
+
 ## [3.3.0] - 2026-09-18
 
 ### Added

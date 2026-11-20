@@ -38,6 +38,11 @@ describe('doctor runChecks', () => {
       expect(checksOf(runChecks(files, options()))).toEqual(['error:index']);
       expect(runChecks(files, options({ noIndexCheck: true }))).toEqual([]);
     });
+
+    it('errors when index.html exists only in a subdirectory, as no "/" route would be generated', () => {
+      const files = makeFiles({ 'sub/index.html': html(''), 'app.js': 'x' });
+      expect(checksOf(runChecks(files, options()))).toEqual(['error:index']);
+    });
   });
 
   describe('basepath', () => {
@@ -155,6 +160,13 @@ describe('doctor runChecks', () => {
         'Add --exclude="**/*.map" (or "exclude" in the RC file).',
         'Add --exclude="**/*.{ts,tsx,scss,sass,less,svelte,vue}" (or "exclude" in the RC file).'
       ]);
+    });
+
+    it('suggests a glob that covers both stats.html and report.html', () => {
+      const files = makeFiles({ 'index.html': html(''), 'report.html': html('') });
+      expect(runChecks(files, options())[0]?.hint).toBe(
+        'Add --exclude="**/{stats,report}.html" (or "exclude" in the RC file).'
+      );
     });
 
     it('warns about a dominant file', () => {

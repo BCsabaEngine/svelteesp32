@@ -48,6 +48,14 @@ const shouldSkipFile = (filename: string, allFilenames: ReadonlySet<string>): bo
 };
 
 /**
+Slash-less patterns ("*.map") match by file name at any depth, like .gitignore — tinyglobby would
+otherwise anchor them to the source root and silently skip nested files such as assets/index.js.map.
+Patterns that contain a "/" stay relative to the source directory.
+*/
+export const normalizeExcludePattern = (pattern: string): string =>
+  pattern.includes('/') || pattern.startsWith('**') ? pattern : `**/${pattern}`;
+
+/**
 Get all files from the source directory, excluding pre-compressed variants
 @returns Map of filename to file data (content + SHA256 hash)
 */
@@ -78,7 +86,7 @@ export const getFiles = (
         onlyFiles: true,
         dot: false,
         followSymbolicLinks: false,
-        ignore: excludePatterns
+        ignore: excludePatterns.map((pattern) => normalizeExcludePattern(pattern))
       })
     );
     filenames = [];
@@ -120,10 +128,8 @@ export const getFiles = (
   const duplicates = findSimilarFiles(result);
   for (const sameFiles of duplicates) console.log(yellowLog(` ${sameFiles.join(', ')} files appear identical`));
 
-  // Check for index.html or index.htm (in root or subdirectories)
-  const hasIndex = result
-    .keys()
-    .some((f) => f === 'index.html' || f === 'index.htm' || f.endsWith('/index.html') || f.endsWith('/index.htm'));
+  // Only a root index.html/index.htm becomes the "/" route in the generated code, so a nested one doesn't count
+  const hasIndex = result.has('index.html') || result.has('index.htm');
 
   if (!hasIndex && !options.noIndexCheck) throw new Error(getMissingIndexError(options.engine));
 

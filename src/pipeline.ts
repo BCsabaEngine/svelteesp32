@@ -36,7 +36,12 @@ const MIME_TYPES: Record<string, string> = {
   txt: 'text/plain',
   xml: 'application/xml',
   pdf: 'application/pdf',
-  map: 'application/json'
+  map: 'application/json',
+  wasm: 'application/wasm',
+  webmanifest: 'application/manifest+json',
+  avif: 'image/avif',
+  csv: 'text/csv',
+  md: 'text/markdown'
 };
 
 const mimeLookup = (filename: string): string | false => {
@@ -422,7 +427,10 @@ export function runPipeline(options: ICopyFilesArguments): void {
   let previousManifest: undefined | { files: PreviousManifestFile[] };
   if (existsSync(manifestPath))
     try {
-      previousManifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { files: PreviousManifestFile[] };
+      const parsed: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      // Valid JSON of the wrong shape (e.g. `{}` or `null`) would crash formatChangeSummary after the header was written
+      if (typeof parsed === 'object' && parsed !== null && Array.isArray((parsed as { files?: unknown }).files))
+        previousManifest = parsed as { files: PreviousManifestFile[] };
     } catch {
       // ignore corrupt manifest
     }

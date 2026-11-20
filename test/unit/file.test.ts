@@ -4,7 +4,7 @@ import path from 'node:path';
 import * as tinyglobby from 'tinyglobby';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getFiles } from '../../src/file';
+import { getFiles, normalizeExcludePattern } from '../../src/file';
 
 vi.mock('tinyglobby');
 vi.mock('node:fs');
@@ -329,16 +329,15 @@ describe('file', () => {
       expect(result.size).toBe(2);
     });
 
-    it('should pass if index.html is in subdirectory', () => {
+    it('should throw if index.html exists only in a subdirectory (no "/" route would be generated)', () => {
       const mockFiles = ['assets/index.html', 'style.css'];
       const mockContent = Buffer.from('test content');
 
       vi.mocked(tinyglobby.globSync).mockReturnValue(mockFiles);
       vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
 
-      const result = getFiles({ ...defaultOptions, noIndexCheck: false });
-
-      expect(result.size).toBe(2);
+      expect(() => getFiles({ ...defaultOptions, noIndexCheck: false })).toThrow('No index.html or index.htm found');
+      expect(getFiles({ ...defaultOptions, noIndexCheck: true }).size).toBe(2);
     });
   });
 
@@ -371,6 +370,31 @@ describe('file', () => {
       expect(result.size).toBe(1);
       // Should log "... and 4 more" since we show first 10 and have 14 excluded
       expect(console.log).toHaveBeenCalledWith(expect.stringContaining('... and 4 more'));
+    });
+  });
+
+  describe('normalizeExcludePattern', () => {
+    it('should make slash-less patterns match at any depth', () => {
+      expect(normalizeExcludePattern('*.map')).toBe('**/*.map');
+      expect(normalizeExcludePattern('{a,b}.txt')).toBe('**/{a,b}.txt');
+    });
+
+    it('should leave patterns with a path component or a leading ** untouched', () => {
+      expect(normalizeExcludePattern('assets/*.map')).toBe('assets/*.map');
+      expect(normalizeExcludePattern('test/**/*')).toBe('test/**/*');
+      expect(normalizeExcludePattern('**/*.map')).toBe('**/*.map');
+    });
+
+    it('should pass the normalized patterns to the glob as ignore', () => {
+      vi.mocked(tinyglobby.globSync).mockReturnValue(['index.html']);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('x'));
+
+      getFiles({ ...defaultOptions, exclude: ['*.map', 'docs/**'] });
+
+      expect(tinyglobby.globSync).toHaveBeenCalledWith(
+        '**/*',
+        expect.objectContaining({ ignore: ['**/*.map', 'docs/**'] })
+      );
     });
   });
 });

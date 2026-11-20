@@ -51,7 +51,11 @@ const LEFTOVERS: { label: string; pattern: RegExp; glob: string }[] = [
   },
   { label: 'markdown files', pattern: /\.md$/i, glob: '**/*.md' },
   { label: 'license dumps', pattern: /\.license\.txt$/i, glob: '**/*.LICENSE.txt' },
-  { label: 'bundle analyzer reports', pattern: /(^|\/)(stats|report)\.html$/i, glob: '**/stats.html' }
+  {
+    label: 'bundle analyzer reports',
+    pattern: /(^|\/)(stats|report)\.html$/i,
+    glob: '**/{stats,report}.html'
+  }
 ];
 
 const isHtml = (filename: string): boolean => /\.html?$/i.test(filename);
@@ -289,7 +293,7 @@ const checkCollisions = (files: Map<string, FileData>): Finding[] => {
 };
 
 const checkIndex = (files: Map<string, FileData>): Finding[] =>
-  files.keys().some((filename) => isDefaultFile(filename))
+  files.has('index.html') || files.has('index.htm')
     ? []
     : [
         {

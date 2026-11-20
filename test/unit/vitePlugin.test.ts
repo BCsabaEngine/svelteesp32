@@ -1,7 +1,14 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { loadRcFileConfig } from '../../src/commandLine';
+import { loadRcFileConfig, validateRcConfig } from '../../src/commandLine';
 import { svelteESP32 } from '../../src/vitePlugin';
+
+vi.mock('node:fs', () => ({
+  existsSync: vi.fn(() => true)
+}));
 
 vi.mock('../../src/pipeline', () => ({
   runPipeline: vi.fn()
@@ -9,6 +16,7 @@ vi.mock('../../src/pipeline', () => ({
 
 vi.mock('../../src/commandLine', () => ({
   loadRcFileConfig: vi.fn(() => ({})),
+  validateRcConfig: vi.fn(),
   validateBasePath: vi.fn((v: string) => {
     if (v !== '' && !v.startsWith('/')) throw new Error(`basePath must start with /: ${v}`);
     if (v.endsWith('/')) throw new Error(`basePath must not end with /: ${v}`);
@@ -25,6 +33,7 @@ describe('vitePlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(loadRcFileConfig).mockReturnValue({});
+    vi.mocked(existsSync).mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -163,6 +172,44 @@ describe('vitePlugin', () => {
 
       const options = vi.mocked(runPipeline).mock.calls[0]?.[0];
       expect(options?.sourcepath).toBe('public/build');
+    });
+
+    it('should resolve build.outDir against the Vite root when one is given', async () => {
+      const { runPipeline } = await import('../../src/pipeline');
+
+      const plugin = svelteESP32({ output: './output.h' });
+      plugin.configResolved({ root: '/work/app', build: { outDir: 'dist' } });
+      plugin.closeBundle();
+
+      const options = vi.mocked(runPipeline).mock.calls[0]?.[0];
+      expect(options?.sourcepath).toBe(path.resolve('/work/app', 'dist'));
+    });
+
+    it('should validate the options with the shared RC validator, without the plugin-only output key', () => {
+      const plugin = svelteESP32({ output: './output.h', engine: 'async', version: 'v1' });
+      plugin.configResolved(mockConfig);
+      plugin.closeBundle();
+
+      expect(validateRcConfig).toHaveBeenCalledWith({ engine: 'async', version: 'v1' }, 'plugin options');
+    });
+
+    it('should surface validation errors from the options', () => {
+      vi.mocked(validateRcConfig).mockImplementationOnce(() => {
+        throw new Error('Invalid etag: sometimes');
+      });
+      const plugin = svelteESP32({ output: './output.h' });
+      plugin.configResolved(mockConfig);
+      expect(() => plugin.closeBundle()).toThrow('Invalid etag: sometimes');
+    });
+
+    it('should throw a clear error when the source directory does not exist', async () => {
+      const { runPipeline } = await import('../../src/pipeline');
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const plugin = svelteESP32({ output: './output.h', sourcepath: './missing' });
+      plugin.configResolved(mockConfig);
+      expect(() => plugin.closeBundle()).toThrow('sourcepath does not exist');
+      expect(runPipeline).not.toHaveBeenCalled();
     });
 
     it('should fall back to "dist" if configResolved was not called', async () => {

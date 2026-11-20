@@ -505,14 +505,14 @@ npx svelteesp32 -e psychic -s ./dist -o ./output.h --noindexcheck
 Keep source maps, docs, and test files out of your firmware:
 
 ```bash
-# Single pattern
+# Single pattern (no "/" → matches at any depth, so this also removes assets/index.js.map)
 npx svelteesp32 -s ./dist -o ./output.h --exclude="*.map"
 
 # Multiple patterns
 npx svelteesp32 -s ./dist -o ./output.h --exclude="*.map,*.md,test/**/*"
 ```
 
-No patterns are excluded by default — specify everything you need explicitly.
+Patterns containing a `/` are relative to the source directory (`assets/*.map` only matches directly inside `assets/`). Brace lists such as `**/*.{ts,tsx}` are supported; commas inside `{…}` do not split the pattern. No patterns are excluded by default — specify everything you need explicitly.
 
 Build output shows exactly what's excluded:
 
@@ -803,12 +803,13 @@ Sync versions and names automatically from your `package.json`:
 
 ```json
 {
-  "version": "v$npm_package_version",
-  "define": "$npm_package_name"
+  "version": "v$npm_package_version"
 }
 ```
 
 With `package.json` containing `"version": "2.1.0"`, this becomes `"version": "v2.1.0"`.
+
+> `define` and `espmethod` must be valid C++ identifiers, so `$npm_package_name` only works when the package name contains no hyphens, dots or `@scope/` (`my-app` and `@org/app` are rejected).
 
 ### Multiple Environments
 
@@ -818,7 +819,7 @@ npx svelteesp32 --config=.svelteesp32rc.prod.json
 
 CLI arguments always override RC file values.
 
-> **Security note:** When svelteesp32 auto-loads an RC file from the current directory it prints a warning. If you cloned a project that includes `.svelteesp32rc.json`, review it before running. `outputfile` in RC files must be a relative path — use `--output` on the CLI for absolute paths.
+> **Security note:** When svelteesp32 auto-loads an RC file from the current directory it prints a warning. If you cloned a project that includes `.svelteesp32rc.json`, review it before running. `outputfile` in RC files must be a relative path — use `--outputfile` on the CLI for absolute paths.
 
 ---
 
@@ -961,7 +962,7 @@ Flash only. Data is stored in program memory (PROGMEM on ESP8266, const arrays o
 The text representation (comma-separated bytes) is larger than binary. Check `SVELTEESP32_SIZE_GZIP` for actual flash usage.
 
 **Does compilation take forever?**
-No. Large headers compile in seconds, and incremental builds skip recompilation if your frontend hasn't changed.
+No. Large headers compile in seconds. The header is rewritten on every run, so PlatformIO recompiles it even when your frontend hasn't changed — run svelteesp32 at release time rather than on every UI iteration.
 
 **Can frontend and firmware teams work separately?**
 Absolutely. Frontend builds the app, runs svelteesp32, commits the header. Firmware team includes it and ships. Version sync via npm variables keeps everyone aligned.

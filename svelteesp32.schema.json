@@ -43,18 +43,18 @@
       "description": "Prefix of generated C++ defines (valid C++ identifier)."
     },
     "cachetime": {
-      "type": "number",
+      "type": "integer",
       "minimum": 0,
       "default": 0,
       "description": "Cache-Control max-age in seconds for all files."
     },
     "cachetimehtml": {
-      "type": "number",
+      "type": "integer",
       "minimum": 0,
       "description": "Cache-Control max-age in seconds for HTML files (overrides cachetime)."
     },
     "cachetimeassets": {
-      "type": "number",
+      "type": "integer",
       "minimum": 0,
       "description": "Cache-Control max-age in seconds for non-HTML files (overrides cachetime)."
     },
