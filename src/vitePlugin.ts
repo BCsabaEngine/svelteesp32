@@ -1,11 +1,13 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 import type { ICopyFilesArguments, IRcFileConfig } from './commandLine';
-import { loadRcFileConfig, validateBasePath } from './commandLine';
+import { loadRcFileConfig, validateBasePath, validateRcConfig } from './commandLine';
 import { runPipeline } from './pipeline';
 
 // Minimal Vite Plugin interface subset — avoids a hard Vite devDependency
 interface ResolvedViteConfig {
+  root?: string;
   build: {
     outDir: string;
   };
@@ -145,6 +147,12 @@ function buildArguments(
   };
 }
 
+// A missing directory globs to zero files, which would surface as a misleading "no index.html" error
+function requireSourceDirectory(sourcepath: string): string {
+  if (!existsSync(sourcepath)) throw new Error(`sourcepath does not exist: ${path.resolve(sourcepath)}`);
+  return sourcepath;
+}
+
 /**
 Vite plugin for svelteesp32.
 
@@ -170,7 +178,8 @@ export function svelteESP32(optionsOrRcPath?: SvelteESP32PluginOptions | string)
     enforce: 'post',
 
     configResolved(config: ResolvedViteConfig): void {
-      outDirectory = config.build.outDir;
+      // Vite resolves outDir against its root, which is not necessarily process.cwd() (--root, monorepos)
+      outDirectory = config.root ? path.resolve(config.root, config.build.outDir) : config.build.outDir;
     },
 
     closeBundle(): void {
@@ -185,7 +194,7 @@ export function svelteESP32(optionsOrRcPath?: SvelteESP32PluginOptions | string)
         if (!rawOutput) throw new Error('output is required — specify outputfile in the RC file (.svelteesp32rc.json)');
         const outputfile = path.resolve(rawOutput);
 
-        const sourcepath = rcConfig.sourcepath ?? outDirectory;
+        const sourcepath = requireSourceDirectory(rcConfig.sourcepath ?? outDirectory);
         const rawBasepath = rcConfig.basepath ?? '';
         const basePath = validateBasePath(rawBasepath);
 
@@ -206,7 +215,13 @@ export function svelteESP32(optionsOrRcPath?: SvelteESP32PluginOptions | string)
           throw new Error('output is required — specify it as a plugin option or use svelteESP32() for RC file mode');
         const outputfile = path.resolve(rawOutput);
 
-        const sourcepath = options.sourcepath ?? outDirectory;
+        // Same checks the RC file gets; `output` is plugin-only, so it stays out of the RC validator
+        validateRcConfig(
+          Object.fromEntries(Object.entries(options).filter(([key]) => key !== 'output')),
+          'plugin options'
+        );
+
+        const sourcepath = requireSourceDirectory(options.sourcepath ?? outDirectory);
         const rawBasepath = options.basepath ?? '';
         const basePath = validateBasePath(rawBasepath);
 

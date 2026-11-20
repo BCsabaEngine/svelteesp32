@@ -1629,6 +1629,19 @@ describe('index.ts main pipeline integration', () => {
       expect(loggedLines(console.log).some((l) => l.includes('Change summary'))).toBe(false);
       expect(process.exit).not.toHaveBeenCalled();
     });
+
+    it.each(['{}', 'null', '[]', '{"files":{}}'])(
+      'should ignore valid JSON of the wrong shape: %s',
+      async (content) => {
+        vi.mocked(fs.readFileSync).mockReturnValue(content);
+        vi.resetModules();
+        const { main } = await import('../../src/index');
+
+        expect(() => main()).not.toThrow();
+        expect(writtenManifest()).toBeDefined();
+        expect(loggedLines(console.log).some((l) => l.includes('Change summary'))).toBe(false);
+      }
+    );
   });
 
   describe('MIME type resolution', () => {
@@ -1644,6 +1657,21 @@ describe('index.ts main pipeline integration', () => {
       const warning = loggedLines(console.log).find((l) => l.includes('unknown MIME type'));
       expect(warning).toContain(`'.xyz'`);
       expect(warning).toContain('using text/plain');
+    });
+
+    it.each([
+      ['app.wasm', 'application/wasm'],
+      ['app.webmanifest', 'application/manifest+json'],
+      ['photo.avif', 'image/avif']
+    ])('should map %s to %s', async (filename, mime) => {
+      mockGetFiles.mockReturnValue(new Map([[filename, makeFileData('data')]]));
+      mockCommandLine();
+      vi.resetModules();
+      const { main } = await import('../../src/index');
+      main();
+
+      const sources = mockGetCppCode.mock.calls[0]?.[0] ?? [];
+      expect(sources[0]?.mime).toBe(mime);
     });
 
     it('should group a file with no extension under the empty extension', async () => {
